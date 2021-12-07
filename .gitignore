@@ -1,0 +1,12 @@
+# No exe or temp dir
+/sdk-features*
+
+# Build Java stuff
+build
+
+# Intellij and Gradle stuff
+.gradle
+.idea
+
+# NodeJS stuff
+node_modules

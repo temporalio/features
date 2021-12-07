@@ -1,0 +1,195 @@
+[
+  {
+    "events": [
+      {
+        "eventId": "1",
+        "eventTime": "2021-11-19T22:54:53.264854600Z",
+        "eventType": "WorkflowExecutionStarted",
+        "taskId": "1048636",
+        "workflowExecutionStartedEventAttributes": {
+          "workflowType": {
+            "name": "Workflow"
+          },
+          "taskQueue": {
+            "name": "sdk-features-activity/retry_on_error-a039be11-42df-4108-a6e2-061f87e6ca89",
+            "kind": "Normal"
+          },
+          "workflowExecutionTimeout": "0s",
+          "workflowRunTimeout": "0s",
+          "workflowTaskTimeout": "10s",
+          "originalExecutionRunId": "f7908bea-3ce8-473a-98e6-669d77d5f664",
+          "identity": "17312@cretz-laptop@",
+          "firstExecutionRunId": "f7908bea-3ce8-473a-98e6-669d77d5f664",
+          "attempt": 1,
+          "firstWorkflowTaskBackoff": "0s",
+          "header": {}
+        }
+      },
+      {
+        "eventId": "2",
+        "eventTime": "2021-11-19T22:54:53.264879300Z",
+        "eventType": "WorkflowTaskScheduled",
+        "taskId": "1048637",
+        "workflowTaskScheduledEventAttributes": {
+          "taskQueue": {
+            "name": "sdk-features-activity/retry_on_error-a039be11-42df-4108-a6e2-061f87e6ca89",
+            "kind": "Normal"
+          },
+          "startToCloseTimeout": "10s",
+          "attempt": 1
+        }
+      },
+      {
+        "eventId": "3",
+        "eventTime": "2021-11-19T22:54:53.277117100Z",
+        "eventType": "WorkflowTaskStarted",
+        "taskId": "1048641",
+        "workflowTaskStartedEventAttributes": {
+          "scheduledEventId": "2",
+          "identity": "17312@cretz-laptop@",
+          "requestId": "9ffad72e-d3e5-4509-9c96-5b02bb5f5c64"
+        }
+      },
+      {
+        "eventId": "4",
+        "eventTime": "2021-11-19T22:54:53.286673700Z",
+        "eventType": "WorkflowTaskCompleted",
+        "taskId": "1048644",
+        "workflowTaskCompletedEventAttributes": {
+          "scheduledEventId": "2",
+          "startedEventId": "3",
+          "identity": "17312@cretz-laptop@",
+          "binaryChecksum": "0193155cdf6bfc273f766d61a279a060"
+        }
+      },
+      {
+        "eventId": "5",
+        "eventTime": "2021-11-19T22:54:53.286716900Z",
+        "eventType": "ActivityTaskScheduled",
+        "taskId": "1048645",
+        "activityTaskScheduledEventAttributes": {
+          "activityId": "5",
+          "activityType": {
+            "name": "AlwaysFailActivity"
+          },
+          "taskQueue": {
+            "name": "sdk-features-activity/retry_on_error-a039be11-42df-4108-a6e2-061f87e6ca89",
+            "kind": "Normal"
+          },
+          "header": {},
+          "scheduleToCloseTimeout": "60s",
+          "scheduleToStartTimeout": "60s",
+          "startToCloseTimeout": "60s",
+          "heartbeatTimeout": "0s",
+          "workflowTaskCompletedEventId": "4",
+          "retryPolicy": {
+            "initialInterval": "0.000000001s",
+            "backoffCoefficient": 1,
+            "maximumInterval": "0.000000100s",
+            "maximumAttempts": 5
+          }
+        }
+      },
+      {
+        "eventId": "6",
+        "eventTime": "2021-11-19T22:54:56.310491500Z",
+        "eventType": "ActivityTaskStarted",
+        "taskId": "1048663",
+        "activityTaskStartedEventAttributes": {
+          "scheduledEventId": "5",
+          "identity": "17312@cretz-laptop@",
+          "requestId": "34741594-1e74-4651-94aa-b49581917682",
+          "attempt": 5,
+          "lastFailure": {
+            "message": "activity attempt 4 failed",
+            "source": "GoSDK",
+            "applicationFailureInfo": {}
+          }
+        }
+      },
+      {
+        "eventId": "7",
+        "eventTime": "2021-11-19T22:54:56.321244200Z",
+        "eventType": "ActivityTaskFailed",
+        "taskId": "1048664",
+        "activityTaskFailedEventAttributes": {
+          "failure": {
+            "message": "activity attempt 5 failed",
+            "source": "GoSDK",
+            "applicationFailureInfo": {}
+          },
+          "scheduledEventId": "5",
+          "startedEventId": "6",
+          "identity": "17312@cretz-laptop@",
+          "retryState": "MaximumAttemptsReached"
+        }
+      },
+      {
+        "eventId": "8",
+        "eventTime": "2021-11-19T22:54:56.321248700Z",
+        "eventType": "WorkflowTaskScheduled",
+        "taskId": "1048665",
+        "workflowTaskScheduledEventAttributes": {
+          "taskQueue": {
+            "name": "cretz-laptop:0b997120-6f5d-4d5d-bfc8-98caaa6e38fe",
+            "kind": "Sticky"
+          },
+          "startToCloseTimeout": "10s",
+          "attempt": 1
+        }
+      },
+      {
+        "eventId": "9",
+        "eventTime": "2021-11-19T22:54:56.327612600Z",
+        "eventType": "WorkflowTaskStarted",
+        "taskId": "1048669",
+        "workflowTaskStartedEventAttributes": {
+          "scheduledEventId": "8",
+          "identity": "17312@cretz-laptop@",
+          "requestId": "1fd1e0f5-b542-4067-950c-ec9aad802ac9"
+        }
+      },
+      {
+        "eventId": "10",
+        "eventTime": "2021-11-19T22:54:56.334417100Z",
+        "eventType": "WorkflowTaskCompleted",
+        "taskId": "1048672",
+        "workflowTaskCompletedEventAttributes": {
+          "scheduledEventId": "8",
+          "startedEventId": "9",
+          "identity": "17312@cretz-laptop@",
+          "binaryChecksum": "0193155cdf6bfc273f766d61a279a060"
+        }
+      },
+      {
+        "eventId": "11",
+        "eventTime": "2021-11-19T22:54:56.334443400Z",
+        "eventType": "WorkflowExecutionFailed",
+        "taskId": "1048673",
+        "workflowExecutionFailedEventAttributes": {
+          "failure": {
+            "message": "activity error",
+            "source": "GoSDK",
+            "cause": {
+              "message": "activity attempt 5 failed",
+              "source": "GoSDK",
+              "applicationFailureInfo": {}
+            },
+            "activityFailureInfo": {
+              "scheduledEventId": "5",
+              "startedEventId": "6",
+              "identity": "17312@cretz-laptop@",
+              "activityType": {
+                "name": "AlwaysFailActivity"
+              },
+              "activityId": "5",
+              "retryState": "MaximumAttemptsReached"
+            }
+          },
+          "retryState": "RetryPolicyNotSet",
+          "workflowTaskCompletedEventId": "10"
+        }
+      }
+    ]
+  }
+]

@@ -1,0 +1,38 @@
+plugins {
+    id 'java'
+}
+
+group 'io.temporal'
+version '0.1.0-SNAPSHOT'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_10
+    targetCompatibility = JavaVersion.VERSION_1_10
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'ch.qos.logback:logback-classic:1.2.6'
+    implementation 'com.google.guava:guava:31.0.1-jre'
+    implementation 'com.google.code.gson:gson:2.8.8'
+    implementation 'com.jayway.jsonpath:json-path:2.6.0'
+    implementation 'info.picocli:picocli:4.6.2'
+    implementation 'io.temporal:temporal-sdk:1.5.0'
+    implementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
+    implementation 'org.reflections:reflections:0.10.2'
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['features', 'harness/java']
+        }
+        // Use the same dirs for resources
+        resources {
+            srcDirs = ['features', 'harness/java']
+        }
+    }
+}

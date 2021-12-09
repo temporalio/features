@@ -47,8 +47,9 @@ history checks to fail. Until it is fixed, the external server as shown below mu
 ### External Server and Namespace
 
 By default, a [temporalite](https://github.com/DataDog/temporalite) is dynamically started at runtime to handle all
-feature runs. To not start the embedded server, use `--server` to specify the address of a server to use. Similarly, to
-not use a custom namespace that may not be registered on the external server, use `--namespace`
+feature runs and a namespace is dynamically generated. To not start the embedded server, use `--server` to specify the
+address of a server to use. Similarly, to not use a dynamic namespace (that may not be registered on the external
+server), use `--namespace`.
 
 ### History Checking
 
@@ -109,32 +110,22 @@ There are also files in the `history/` subdirectory which contain history files 
 
 To generate history, run the same test (see the "Running" section) for the version to generate at, but use the
 `--generate-history` option. When generating history, only one test can be specified and the version of the SDK must be
-specified.
+specified. Any existing history for that feature, language, and version will be overwritten.
 
-## Development
-
-## History Files
-
-Quick notes (TODO(cretz): make these real docs):
-
-* History files are at `features/<path/to/feature>/history/history.<lang>.<version>.json`.
-  * There does not have to be one per version. Only if there are differences in the "scrubbed" history do we need to
-    generate separate histories.
-* History files are a JSON array of all `temporal.api.history.v1.History` files for completed workflows sorted by the
-  first event's workflow type.
-* JSON format for each value in the array is serialized according to proto3 serialization with 2-space indent.
-* On every feature run, the wrapper will assert the scrubbed history matches all existing histories
-  * Scrubbed means that all run-specific values are removed before comparison
-  * TODO(cretz): Have a `.config.json` in the history folder saying which versions don't have to match per language?
-* On every feature run, in addition to the live run against the server, all histories will be loaded and replayed
-  * TODO(cretz): Have a `.config.json` in the history folder saying which versions don't have to be replayable per language?
+History generation should only be needed when first developing a feature or when a version intentionally introduces an
+incompatibility. Otherwise, history files should remain checked in and not regenerated.
 
 ## TODO
 
-* Add support for replaying testing of all versions _inside_ the each SDKs harness as part of the run
+* Add support for replaying testing of all versions _inside_ each SDKs harness as part of the run
 * Add TypeScript support
   * The main support is present, but there are outstanding questions on what constitutes a "version" since really
     TypeScript has many versions
 * Add many more feature workflows
 * Document how to use this framework to easily write and test features even when not committing
 * Log swallowing and concurrent execution
+* Investigate support for changing runtime versions (i.e. Go, Java, and Node versions)
+* Investigate support for changing server versions
+* CI support
+  * Support using a commit hash and alternative git location for an SDK to run against
+  * Decide whether the matrix of different SDK versions and such is really part of this repo or part of CI tooling

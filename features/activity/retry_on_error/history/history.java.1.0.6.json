@@ -1,0 +1,201 @@
+[
+  {
+    "events": [
+      {
+        "eventId": "1",
+        "eventTime": "2021-11-19T23:00:46.547437Z",
+        "eventType": "WorkflowExecutionStarted",
+        "taskId": "1048660",
+        "workflowExecutionStartedEventAttributes": {
+          "workflowType": {
+            "name": "SimpleWorkflow"
+          },
+          "taskQueue": {
+            "name": "sdk-features-activity/retry_on_error-e61e3c9a-61a8-4713-ad90-1b3d68351cc0",
+            "kind": "Normal"
+          },
+          "workflowExecutionTimeout": "0s",
+          "workflowRunTimeout": "0s",
+          "workflowTaskTimeout": "10s",
+          "originalExecutionRunId": "4182981a-a0b3-473b-9d90-12e3380bfde6",
+          "identity": "20044@cretz-laptop",
+          "firstExecutionRunId": "4182981a-a0b3-473b-9d90-12e3380bfde6",
+          "attempt": 1,
+          "firstWorkflowTaskBackoff": "0s",
+          "header": {}
+        }
+      },
+      {
+        "eventId": "2",
+        "eventTime": "2021-11-19T23:00:46.547457200Z",
+        "eventType": "WorkflowTaskScheduled",
+        "taskId": "1048661",
+        "workflowTaskScheduledEventAttributes": {
+          "taskQueue": {
+            "name": "sdk-features-activity/retry_on_error-e61e3c9a-61a8-4713-ad90-1b3d68351cc0",
+            "kind": "Normal"
+          },
+          "startToCloseTimeout": "10s",
+          "attempt": 1
+        }
+      },
+      {
+        "eventId": "3",
+        "eventTime": "2021-11-19T23:00:46.559484400Z",
+        "eventType": "WorkflowTaskStarted",
+        "taskId": "1048665",
+        "workflowTaskStartedEventAttributes": {
+          "scheduledEventId": "2",
+          "identity": "20044@cretz-laptop",
+          "requestId": "ed6916c0-4e73-4250-ab3c-07675fc744b3"
+        }
+      },
+      {
+        "eventId": "4",
+        "eventTime": "2021-11-19T23:00:46.718598400Z",
+        "eventType": "WorkflowTaskCompleted",
+        "taskId": "1048668",
+        "workflowTaskCompletedEventAttributes": {
+          "scheduledEventId": "2",
+          "startedEventId": "3",
+          "identity": "20044@cretz-laptop"
+        }
+      },
+      {
+        "eventId": "5",
+        "eventTime": "2021-11-19T23:00:46.718631100Z",
+        "eventType": "ActivityTaskScheduled",
+        "taskId": "1048669",
+        "activityTaskScheduledEventAttributes": {
+          "activityId": "e5e9ab84-b44d-3ab6-af01-cd75307077ba",
+          "activityType": {
+            "name": "AlwaysFail"
+          },
+          "taskQueue": {
+            "name": "sdk-features-activity/retry_on_error-e61e3c9a-61a8-4713-ad90-1b3d68351cc0",
+            "kind": "Normal"
+          },
+          "header": {},
+          "scheduleToCloseTimeout": "60s",
+          "scheduleToStartTimeout": "60s",
+          "startToCloseTimeout": "60s",
+          "heartbeatTimeout": "0s",
+          "workflowTaskCompletedEventId": "4",
+          "retryPolicy": {
+            "initialInterval": "1s",
+            "backoffCoefficient": 1,
+            "maximumInterval": "100s",
+            "maximumAttempts": 5
+          }
+        }
+      },
+      {
+        "eventId": "6",
+        "eventTime": "2021-11-19T23:00:50.813793500Z",
+        "eventType": "ActivityTaskStarted",
+        "taskId": "1048686",
+        "activityTaskStartedEventAttributes": {
+          "scheduledEventId": "5",
+          "identity": "20044@cretz-laptop",
+          "requestId": "89bac2d3-dc62-42e3-9471-e1b1ef1f3b75",
+          "attempt": 5,
+          "lastFailure": {
+            "message": "activity attempt 4 failed",
+            "source": "JavaSDK",
+            "stackTrace": "activity.retry_on_error.feature$Impl.alwaysFail(feature.java:43)\r\njava.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)\r\njava.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)\r\njava.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)\r\njava.base/java.lang.reflect.Method.invoke(Method.java:566)\r\nio.temporal.internal.sync.POJOActivityTaskHandler$POJOActivityInboundCallsInterceptor.execute(POJOActivityTaskHandler.java:286)\r\nio.temporal.internal.sync.POJOActivityTaskHandler$POJOActivityImplementation.execute(POJOActivityTaskHandler.java:252)\r\nio.temporal.internal.sync.POJOActivityTaskHandler.handle(POJOActivityTaskHandler.java:209)\r\nio.temporal.internal.worker.ActivityWorker$TaskHandlerImpl.handle(ActivityWorker.java:193)\r\nio.temporal.internal.worker.ActivityWorker$TaskHandlerImpl.handle(ActivityWorker.java:151)\r\nio.temporal.internal.worker.PollTaskExecutor.lambda$process$0(PollTaskExecutor.java:73)\r\njava.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)\r\njava.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)\r\njava.base/java.lang.Thread.run(Thread.java:829)\r\n",
+            "applicationFailureInfo": {
+              "type": "java.lang.IllegalStateException"
+            }
+          }
+        }
+      },
+      {
+        "eventId": "7",
+        "eventTime": "2021-11-19T23:00:50.826677500Z",
+        "eventType": "ActivityTaskFailed",
+        "taskId": "1048687",
+        "activityTaskFailedEventAttributes": {
+          "failure": {
+            "message": "activity attempt 5 failed",
+            "source": "JavaSDK",
+            "stackTrace": "activity.retry_on_error.feature$Impl.alwaysFail(feature.java:43)\r\njava.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)\r\njava.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)\r\njava.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)\r\njava.base/java.lang.reflect.Method.invoke(Method.java:566)\r\nio.temporal.internal.sync.POJOActivityTaskHandler$POJOActivityInboundCallsInterceptor.execute(POJOActivityTaskHandler.java:286)\r\nio.temporal.internal.sync.POJOActivityTaskHandler$POJOActivityImplementation.execute(POJOActivityTaskHandler.java:252)\r\nio.temporal.internal.sync.POJOActivityTaskHandler.handle(POJOActivityTaskHandler.java:209)\r\nio.temporal.internal.worker.ActivityWorker$TaskHandlerImpl.handle(ActivityWorker.java:193)\r\nio.temporal.internal.worker.ActivityWorker$TaskHandlerImpl.handle(ActivityWorker.java:151)\r\nio.temporal.internal.worker.PollTaskExecutor.lambda$process$0(PollTaskExecutor.java:73)\r\njava.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)\r\njava.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)\r\njava.base/java.lang.Thread.run(Thread.java:829)\r\n",
+            "applicationFailureInfo": {
+              "type": "java.lang.IllegalStateException"
+            }
+          },
+          "scheduledEventId": "5",
+          "startedEventId": "6",
+          "identity": "20044@cretz-laptop",
+          "retryState": "MaximumAttemptsReached"
+        }
+      },
+      {
+        "eventId": "8",
+        "eventTime": "2021-11-19T23:00:50.826690300Z",
+        "eventType": "WorkflowTaskScheduled",
+        "taskId": "1048688",
+        "workflowTaskScheduledEventAttributes": {
+          "taskQueue": {
+            "name": "20044@cretz-laptop:a60b40c6-b1b0-4a8d-bdfe-f50d5681c3b2",
+            "kind": "Sticky"
+          },
+          "startToCloseTimeout": "10s",
+          "attempt": 1
+        }
+      },
+      {
+        "eventId": "9",
+        "eventTime": "2021-11-19T23:00:50.832939100Z",
+        "eventType": "WorkflowTaskStarted",
+        "taskId": "1048692",
+        "workflowTaskStartedEventAttributes": {
+          "scheduledEventId": "8",
+          "identity": "a60b40c6-b1b0-4a8d-bdfe-f50d5681c3b2",
+          "requestId": "0eabe5d5-cedc-4047-89ec-c8450930c809"
+        }
+      },
+      {
+        "eventId": "10",
+        "eventTime": "2021-11-19T23:00:50.856811300Z",
+        "eventType": "WorkflowTaskCompleted",
+        "taskId": "1048695",
+        "workflowTaskCompletedEventAttributes": {
+          "scheduledEventId": "8",
+          "startedEventId": "9",
+          "identity": "20044@cretz-laptop"
+        }
+      },
+      {
+        "eventId": "11",
+        "eventTime": "2021-11-19T23:00:50.856832100Z",
+        "eventType": "WorkflowExecutionFailed",
+        "taskId": "1048696",
+        "workflowExecutionFailedEventAttributes": {
+          "failure": {
+            "message": "Activity task failed",
+            "cause": {
+              "message": "activity attempt 5 failed",
+              "source": "JavaSDK",
+              "stackTrace": "activity.retry_on_error.feature$Impl.alwaysFail(feature.java:43)\r\njava.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)\r\njava.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)\r\njava.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)\r\njava.base/java.lang.reflect.Method.invoke(Method.java:566)\r\nio.temporal.internal.sync.POJOActivityTaskHandler$POJOActivityInboundCallsInterceptor.execute(POJOActivityTaskHandler.java:286)\r\nio.temporal.internal.sync.POJOActivityTaskHandler$POJOActivityImplementation.execute(POJOActivityTaskHandler.java:252)\r\nio.temporal.internal.sync.POJOActivityTaskHandler.handle(POJOActivityTaskHandler.java:209)\r\nio.temporal.internal.worker.ActivityWorker$TaskHandlerImpl.handle(ActivityWorker.java:193)\r\nio.temporal.internal.worker.ActivityWorker$TaskHandlerImpl.handle(ActivityWorker.java:151)\r\nio.temporal.internal.worker.PollTaskExecutor.lambda$process$0(PollTaskExecutor.java:73)\r\njava.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)\r\njava.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)\r\njava.base/java.lang.Thread.run(Thread.java:829)\r\n",
+              "applicationFailureInfo": {
+                "type": "java.lang.IllegalStateException"
+              }
+            },
+            "activityFailureInfo": {
+              "scheduledEventId": "5",
+              "startedEventId": "6",
+              "identity": "20044@cretz-laptop",
+              "activityType": {
+                "name": "AlwaysFail"
+              },
+              "activityId": "e5e9ab84-b44d-3ab6-af01-cd75307077ba",
+              "retryState": "MaximumAttemptsReached"
+            }
+          },
+          "retryState": "RetryPolicyNotSet",
+          "workflowTaskCompletedEventId": "10"
+        }
+      }
+    ]
+  }
+]

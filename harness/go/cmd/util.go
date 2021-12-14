@@ -10,6 +10,9 @@ func GoBuildTags(sdkVersion string) (tags []string) {
 	if semver.Compare(sdkVersion, "v1.11.0") < 0 {
 		tags = append(tags, "pre1.11.0")
 	}
+	if semver.Compare(sdkVersion, "v1.12.0") < 0 {
+		tags = append(tags, "pre1.12.0")
+	}
 
 	return
 }

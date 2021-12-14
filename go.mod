@@ -3,14 +3,14 @@ module go.temporal.io/sdk-features
 go 1.17
 
 require (
-	github.com/DataDog/temporalite v0.0.0-20211116202202-50d4a310c48f
+	github.com/DataDog/temporalite v0.0.0-20211213084614-ac001abcb0e6
 	github.com/google/uuid v1.3.0
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/urfave/cli/v2 v2.3.0
-	go.temporal.io/sdk v1.11.1
+	go.temporal.io/sdk v1.12.0
 	go.temporal.io/sdk-features/features v1.0.0
 	go.temporal.io/sdk-features/harness/go v1.0.0
-	go.temporal.io/server v1.13.1-0.20211115193149-58af5da4d614
+	go.temporal.io/server v1.13.1-0.20211213192924-3c44e562605c
 	golang.org/x/mod v0.5.1
 )
 
@@ -67,7 +67,9 @@ require (
 	github.com/temporalio/ringpop-go v0.0.0-20211012191444-6f91b5915e95 // indirect
 	github.com/twmb/murmur3 v1.1.6 // indirect
 	github.com/uber-common/bark v1.3.0 // indirect
-	github.com/uber-go/tally/v4 v4.1.0 // indirect
+	github.com/uber-go/tally/v4 v4.1.1 // indirect
+	github.com/uber/jaeger-client-go v2.29.1+incompatible // indirect
+	github.com/uber/jaeger-lib v2.4.1+incompatible // indirect
 	github.com/uber/tchannel-go v1.22.0 // indirect
 	github.com/xwb1989/sqlparser v0.0.0-20180606152119-120387863bf2 // indirect
 	go.opencensus.io v0.23.0 // indirect
@@ -79,29 +81,30 @@ require (
 	go.opentelemetry.io/otel/sdk/export/metric v0.24.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v0.24.0 // indirect
 	go.opentelemetry.io/otel/trace v1.1.0 // indirect
-	go.temporal.io/api v1.6.1-0.20211110205628-60c98e9cbfe2 // indirect
+	go.temporal.io/api v1.7.0 // indirect
+	go.temporal.io/sdk/contrib/tally v0.1.0 // indirect
 	go.temporal.io/version v0.0.0-20201015012359-4d3bb966d193 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/dig v1.13.0 // indirect
 	go.uber.org/fx v1.14.2 // indirect
+	go.uber.org/goleak v1.1.11 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
 	go.uber.org/zap v1.19.1 // indirect
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519 // indirect
-	golang.org/x/net v0.0.0-20211109214657-ef0fda0de508 // indirect
+	golang.org/x/net v0.0.0-20211209124913-491a49abca63 // indirect
 	golang.org/x/oauth2 v0.0.0-20211005180243-6b3c2da341f1 // indirect
-	golang.org/x/sys v0.0.0-20211110154304-99a53858aa08 // indirect
+	golang.org/x/sys v0.0.0-20211209171907-798191bca915 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/api v0.59.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20211104193956-4c6863e31247 // indirect
+	google.golang.org/genproto v0.0.0-20211208223120-3a66f561d7aa // indirect
 	google.golang.org/grpc v1.42.0 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
 	gopkg.in/validator.v2 v2.0.0-20210331031555-b37d688a7fb0 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
 

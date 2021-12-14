@@ -1,0 +1,278 @@
+[
+  {
+    "events": [
+      {
+        "eventId": "1",
+        "eventTime": "2021-12-14T18:21:49.500540600Z",
+        "eventType": "WorkflowExecutionStarted",
+        "taskId": "1048905",
+        "workflowExecutionStartedEventAttributes": {
+          "workflowType": {
+            "name": "Workflow"
+          },
+          "taskQueue": {
+            "name": "sdk-features-bugs/go/activity_start_race-1526e0f9-5a63-4a69-b9d6-da72868250b6",
+            "kind": "Normal"
+          },
+          "workflowExecutionTimeout": "0s",
+          "workflowRunTimeout": "0s",
+          "workflowTaskTimeout": "10s",
+          "originalExecutionRunId": "5e404d7a-6da6-4422-a341-af94b38e84a8",
+          "identity": "3036@cretz-laptop@",
+          "firstExecutionRunId": "5e404d7a-6da6-4422-a341-af94b38e84a8",
+          "attempt": 1,
+          "firstWorkflowTaskBackoff": "0s",
+          "header": {}
+        }
+      },
+      {
+        "eventId": "2",
+        "eventTime": "2021-12-14T18:21:49.500555800Z",
+        "eventType": "WorkflowTaskScheduled",
+        "taskId": "1048906",
+        "workflowTaskScheduledEventAttributes": {
+          "taskQueue": {
+            "name": "sdk-features-bugs/go/activity_start_race-1526e0f9-5a63-4a69-b9d6-da72868250b6",
+            "kind": "Normal"
+          },
+          "startToCloseTimeout": "10s",
+          "attempt": 1
+        }
+      },
+      {
+        "eventId": "3",
+        "eventTime": "2021-12-14T18:21:49.509768700Z",
+        "eventType": "WorkflowExecutionSignaled",
+        "taskId": "1048910",
+        "workflowExecutionSignaledEventAttributes": {
+          "signalName": "resume",
+          "input": {
+            "payloads": [
+              {
+                "metadata": {
+                  "encoding": "YmluYXJ5L251bGw="
+                }
+              }
+            ]
+          },
+          "identity": "3036@cretz-laptop@"
+        }
+      },
+      {
+        "eventId": "4",
+        "eventTime": "2021-12-14T18:21:49.514515500Z",
+        "eventType": "WorkflowTaskStarted",
+        "taskId": "1048912",
+        "workflowTaskStartedEventAttributes": {
+          "scheduledEventId": "2",
+          "identity": "3036@cretz-laptop@",
+          "requestId": "7745bdd5-017e-436c-b1ca-116df9a15bb5"
+        }
+      },
+      {
+        "eventId": "5",
+        "eventTime": "2021-12-14T18:21:49.523559100Z",
+        "eventType": "WorkflowTaskCompleted",
+        "taskId": "1048915",
+        "workflowTaskCompletedEventAttributes": {
+          "scheduledEventId": "2",
+          "startedEventId": "4",
+          "identity": "3036@cretz-laptop@",
+          "binaryChecksum": "eee13ad81f4a6ed908491bf4b8c774db"
+        }
+      },
+      {
+        "eventId": "6",
+        "eventTime": "2021-12-14T18:21:49.523597400Z",
+        "eventType": "ActivityTaskScheduled",
+        "taskId": "1048916",
+        "activityTaskScheduledEventAttributes": {
+          "activityId": "6",
+          "activityType": {
+            "name": "SleepActivity"
+          },
+          "taskQueue": {
+            "name": "sdk-features-bugs/go/activity_start_race-1526e0f9-5a63-4a69-b9d6-da72868250b6",
+            "kind": "Normal"
+          },
+          "header": {},
+          "scheduleToCloseTimeout": "0s",
+          "scheduleToStartTimeout": "0s",
+          "startToCloseTimeout": "60s",
+          "heartbeatTimeout": "0s",
+          "workflowTaskCompletedEventId": "5",
+          "retryPolicy": {
+            "initialInterval": "1s",
+            "backoffCoefficient": 2,
+            "maximumInterval": "100s"
+          }
+        }
+      },
+      {
+        "eventId": "7",
+        "eventTime": "2021-12-14T18:21:49.523607800Z",
+        "eventType": "ActivityTaskScheduled",
+        "taskId": "1048917",
+        "activityTaskScheduledEventAttributes": {
+          "activityId": "7",
+          "activityType": {
+            "name": "SleepActivity"
+          },
+          "taskQueue": {
+            "name": "sdk-features-bugs/go/activity_start_race-1526e0f9-5a63-4a69-b9d6-da72868250b6",
+            "kind": "Normal"
+          },
+          "header": {},
+          "scheduleToCloseTimeout": "0s",
+          "scheduleToStartTimeout": "0s",
+          "startToCloseTimeout": "60s",
+          "heartbeatTimeout": "0s",
+          "workflowTaskCompletedEventId": "5",
+          "retryPolicy": {
+            "initialInterval": "1s",
+            "backoffCoefficient": 2,
+            "maximumInterval": "100s"
+          }
+        }
+      },
+      {
+        "eventId": "8",
+        "eventTime": "2021-12-14T18:21:49.535577Z",
+        "eventType": "ActivityTaskStarted",
+        "taskId": "1048923",
+        "activityTaskStartedEventAttributes": {
+          "scheduledEventId": "7",
+          "identity": "3036@cretz-laptop@",
+          "requestId": "f493043a-b780-4b01-9de2-097319ce594c",
+          "attempt": 1
+        }
+      },
+      {
+        "eventId": "9",
+        "eventTime": "2021-12-14T18:21:49.752080900Z",
+        "eventType": "ActivityTaskCompleted",
+        "taskId": "1048924",
+        "activityTaskCompletedEventAttributes": {
+          "scheduledEventId": "7",
+          "startedEventId": "8",
+          "identity": "3036@cretz-laptop@"
+        }
+      },
+      {
+        "eventId": "10",
+        "eventTime": "2021-12-14T18:21:49.752086900Z",
+        "eventType": "WorkflowTaskScheduled",
+        "taskId": "1048925",
+        "workflowTaskScheduledEventAttributes": {
+          "taskQueue": {
+            "name": "cretz-laptop:3298159c-3a1c-40f4-ade6-3e93efbfc521",
+            "kind": "Sticky"
+          },
+          "startToCloseTimeout": "10s",
+          "attempt": 1
+        }
+      },
+      {
+        "eventId": "11",
+        "eventTime": "2021-12-14T18:21:49.531507500Z",
+        "eventType": "ActivityTaskStarted",
+        "taskId": "1048929",
+        "activityTaskStartedEventAttributes": {
+          "scheduledEventId": "6",
+          "identity": "3036@cretz-laptop@",
+          "requestId": "09b0ddc6-09d2-490c-8191-9b5a9b98ce95",
+          "attempt": 1
+        }
+      },
+      {
+        "eventId": "12",
+        "eventTime": "2021-12-14T18:21:49.762749700Z",
+        "eventType": "ActivityTaskCompleted",
+        "taskId": "1048930",
+        "activityTaskCompletedEventAttributes": {
+          "scheduledEventId": "6",
+          "startedEventId": "11",
+          "identity": "3036@cretz-laptop@"
+        }
+      },
+      {
+        "eventId": "13",
+        "eventTime": "2021-12-14T18:21:49.768026800Z",
+        "eventType": "WorkflowTaskStarted",
+        "taskId": "1048932",
+        "workflowTaskStartedEventAttributes": {
+          "scheduledEventId": "10",
+          "identity": "3036@cretz-laptop@",
+          "requestId": "cfa5d42a-2cf7-485b-ad69-440706e192a7"
+        }
+      },
+      {
+        "eventId": "14",
+        "eventTime": "2021-12-14T18:21:49.774290600Z",
+        "eventType": "WorkflowTaskCompleted",
+        "taskId": "1048935",
+        "workflowTaskCompletedEventAttributes": {
+          "scheduledEventId": "10",
+          "startedEventId": "13",
+          "identity": "3036@cretz-laptop@",
+          "binaryChecksum": "eee13ad81f4a6ed908491bf4b8c774db"
+        }
+      },
+      {
+        "eventId": "15",
+        "eventTime": "2021-12-14T18:21:51.136885900Z",
+        "eventType": "WorkflowExecutionCancelRequested",
+        "taskId": "1048937",
+        "workflowExecutionCancelRequestedEventAttributes": {
+          "identity": "3036@cretz-laptop@"
+        }
+      },
+      {
+        "eventId": "16",
+        "eventTime": "2021-12-14T18:21:51.136890500Z",
+        "eventType": "WorkflowTaskScheduled",
+        "taskId": "1048938",
+        "workflowTaskScheduledEventAttributes": {
+          "taskQueue": {
+            "name": "cretz-laptop:3298159c-3a1c-40f4-ade6-3e93efbfc521",
+            "kind": "Sticky"
+          },
+          "startToCloseTimeout": "10s",
+          "attempt": 1
+        }
+      },
+      {
+        "eventId": "17",
+        "eventTime": "2021-12-14T18:21:51.147868300Z",
+        "eventType": "WorkflowTaskStarted",
+        "taskId": "1048942",
+        "workflowTaskStartedEventAttributes": {
+          "scheduledEventId": "16",
+          "identity": "3036@cretz-laptop@",
+          "requestId": "e36e94ee-4399-41ea-84ef-0712f8701b6c"
+        }
+      },
+      {
+        "eventId": "18",
+        "eventTime": "2021-12-14T18:21:51.154235500Z",
+        "eventType": "WorkflowTaskCompleted",
+        "taskId": "1048945",
+        "workflowTaskCompletedEventAttributes": {
+          "scheduledEventId": "16",
+          "startedEventId": "17",
+          "identity": "3036@cretz-laptop@",
+          "binaryChecksum": "eee13ad81f4a6ed908491bf4b8c774db"
+        }
+      },
+      {
+        "eventId": "19",
+        "eventTime": "2021-12-14T18:21:51.154261400Z",
+        "eventType": "WorkflowExecutionCompleted",
+        "taskId": "1048946",
+        "workflowExecutionCompletedEventAttributes": {
+          "workflowTaskCompletedEventId": "18"
+        }
+      }
+    ]
+  }
+]

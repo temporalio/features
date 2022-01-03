@@ -1,4 +1,4 @@
-//go:build !pre1.12.0
+//go:build !pre1.11.0 && pre1.12.0
 
 package metrics
 
@@ -11,7 +11,6 @@ import (
 	"go.temporal.io/sdk-features/harness/go/harness"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/client"
-	sdktally "go.temporal.io/sdk/contrib/tally"
 	"go.temporal.io/sdk/workflow"
 )
 
@@ -19,17 +18,15 @@ var Feature = harness.Feature{
 	Workflows:  Workflow,
 	Activities: CommaJoin,
 	ClientOptions: client.Options{
-		MetricsHandler: sdktally.NewMetricsHandler(scope),
+		MetricsScope: tally.NewTestScope("", nil),
 	},
 	ExpectRunResult: "foo, bar, baz",
 	CheckResult:     CheckResult,
 }
 
-var scope = tally.NewTestScope("", nil)
-
 func Workflow(ctx workflow.Context) (string, error) {
 	// Update our own counter with a custom tag
-	workflow.GetMetricsHandler(ctx).WithTags(map[string]string{"mytag": "mytagvalue"}).Counter("my_workflow_counter").Inc(2)
+	workflow.GetMetricsScope(ctx).Tagged(map[string]string{"mytag": "mytagvalue"}).Counter("my_workflow_counter").Inc(2)
 
 	// Run two activities
 	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{ScheduleToCloseTimeout: 1 * time.Minute})
@@ -44,7 +41,7 @@ func Workflow(ctx workflow.Context) (string, error) {
 
 func CommaJoin(ctx context.Context, strs []string) (string, error) {
 	// Update our own counter with a custom tag
-	activity.GetMetricsHandler(ctx).WithTags(map[string]string{"mytag": "mytagvalue"}).Counter("my_activity_counter").Inc(2)
+	activity.GetMetricsScope(ctx).Tagged(map[string]string{"mytag": "mytagvalue"}).Counter("my_activity_counter").Inc(2)
 	return strings.Join(strs, ", "), nil
 }
 
@@ -55,7 +52,7 @@ func CheckResult(ctx context.Context, r *harness.Runner, run client.WorkflowRun)
 	}
 
 	// Check counters with tags
-	snapshot := scope.Snapshot()
+	snapshot := r.Feature.ClientOptions.MetricsScope.(tally.TestScope).Snapshot()
 
 	// 2 activity completions
 	r.Require.Equal(int64(2), counterValue(snapshot, "temporal_request", map[string]string{

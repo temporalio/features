@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"go.temporal.io/sdk-features/harness/go/cmd"
 	"go.temporal.io/server/common/log/tag"
@@ -43,7 +44,20 @@ func (r *Runner) RunGoExternal(ctx context.Context, run *cmd.Run) error {
 	replace github.com/cactus/go-statsd-client => github.com/cactus/go-statsd-client v3.2.1+incompatible`
 	// If a version is specified, overwrite the SDK to use that
 	if r.config.Version != "" {
-		goMod += "\nreplace go.temporal.io/sdk => go.temporal.io/sdk " + r.config.Version
+		// If version does not start with a "v" we assume path
+		if strings.HasPrefix(r.config.Version, "v") {
+			goMod += "\nreplace go.temporal.io/sdk => go.temporal.io/sdk " + r.config.Version
+		} else {
+			absVersion, err := filepath.Abs(r.config.Version)
+			if err != nil {
+				return fmt.Errorf("version does not start with 'v' and cannot get abs dir: %w", err)
+			}
+			relVersion, err := filepath.Rel(tempDir, absVersion)
+			if err != nil {
+				return fmt.Errorf("version does not start with 'v' and unable to relativize: %w", err)
+			}
+			goMod += "\nreplace go.temporal.io/sdk => " + filepath.ToSlash(relVersion)
+		}
 	}
 	if err := os.WriteFile(filepath.Join(tempDir, "go.mod"), []byte(goMod), 0644); err != nil {
 		return fmt.Errorf("failed writing go.mod: %w", err)

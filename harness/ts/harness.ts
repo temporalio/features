@@ -99,12 +99,14 @@ export class Runner<W extends Workflow, A extends ActivityInterface> {
       feature.options.workflowsPath ?? require.resolve(path.join(source.absDir, 'feature.workflow.ts'));
     const worker = await Worker.create({
       workflowsPath,
+      // TODO: Pass these in -- second is only if using local SDK
+      nodeModulesPaths: ['../../node_modules', '/home/sushi/dev/temporal/sdk-node/node_modules'],
       activities: feature.activities,
       taskQueue: options.taskQueue,
     });
     const workerRunPromise = worker.run().finally(() => conn.client.close());
 
-    return new Runner(source, feature, workflowsPath, options, conn, client, worker, workerRunPromise);
+    return new Runner(source, feature, workflowsPath, options, client, worker, workerRunPromise);
   }
 
   private constructor(
@@ -112,7 +114,6 @@ export class Runner<W extends Workflow, A extends ActivityInterface> {
     readonly feature: Feature<W, A>,
     readonly workflowsPath: string,
     readonly options: RunnerOptions,
-    readonly conn: Connection,
     readonly client: WorkflowClient,
     readonly worker: Worker,
     readonly workerRunPromise: Promise<void>
@@ -136,6 +137,7 @@ export class Runner<W extends Workflow, A extends ActivityInterface> {
     // Result check
     console.log(`Checking result on feature ${this.source.relDir}`);
     if (this.feature.options.checkResult) {
+      console.log('Using custom result checker');
       await this.feature.options.checkResult(this, handle);
     } else {
       await this.waitForRunResult(handle);
@@ -160,7 +162,8 @@ export class Runner<W extends Workflow, A extends ActivityInterface> {
     return await run.result();
   }
 
-  close() {
+  async close() {
     this.worker.shutdown();
+    await this.workerRunPromise;
   }
 }

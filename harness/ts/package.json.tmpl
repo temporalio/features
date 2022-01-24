@@ -1,0 +1,30 @@
+{
+  "name": "sdk-features",
+  "private": true,
+  "scripts": {
+    "start": "ts-node -r tsconfig-paths/register {{ .PathToMainTS }}"
+  },
+  "dependencies": {
+  {{ if .LocalSDK }}
+    "@temporalio/activity": "file:/home/sushi/dev/temporal/sdk-node/packages/activity",
+    "@temporalio/client": "file:/home/sushi/dev/temporal/sdk-node/packages/client",
+    "@temporalio/common": "file:/home/sushi/dev/temporal/sdk-node/packages/common",
+    "@temporalio/proto": "file:/home/sushi/dev/temporal/sdk-node/packages/proto",
+    "@temporalio/worker": "file:/home/sushi/dev/temporal/sdk-node/packages/worker",
+    "@temporalio/workflow": "file:/home/sushi/dev/temporal/sdk-node/packages/workflow",
+  {{ else }}
+    "@temporalio": "{{.MetaPkgVersion}}",
+  {{ end }}
+
+    "commander": "^8.3.0",
+    "temporalio": "file:/home/sushi/dev/temporal/sdk-node/packages/meta",
+    "uuid": "^8.3.2"
+  },
+  "devDependencies": {
+    "@tsconfig/node16": "^1.0.0",
+    "@types/uuid": "^8.3.4",
+    "ts-node": "^10.4.0",
+    "tsconfig-paths": "^3.12.0",
+    "typescript": "^4.4.2"
+  }
+}

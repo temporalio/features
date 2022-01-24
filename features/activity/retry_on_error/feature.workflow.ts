@@ -3,7 +3,7 @@ import { proxyActivities } from '@temporalio/workflow';
 
 export async function workflow() {
   // Allow 4 retries with no backoff
-  const activities = proxyActivities<typeof feature.activities>({
+  const { alwaysFailActivity}  = proxyActivities<typeof feature.activities>({
     startToCloseTimeout: '1 minute',
     retry: {
       // Retry immediately
@@ -16,5 +16,5 @@ export async function workflow() {
   });
 
   // Execute activity
-  await activities.alwaysFailActivity();
+  await alwaysFailActivity();
 }

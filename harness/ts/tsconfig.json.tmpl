@@ -1,0 +1,20 @@
+{
+  "extends": "@tsconfig/node16/tsconfig.json",
+  "version": "4.4.2",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "outDir": "./tslib",
+    "rootDirs": ["../", "."],
+    "paths": {
+      "@temporalio/harness": ["../harness/ts/harness.ts"],
+
+      "*": ["node_modules/*", "node_modules/@types/*"]
+    },
+    "typeRoots": ["node_modules/@types"],
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "sourceMap": true
+  },
+  "include": ["../features/**/*.ts", "../harness/ts/**/*.ts"],
+  "exclude": ["../node_modules", "../harness/go", "../harness/java"],
+}

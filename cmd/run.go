@@ -173,7 +173,7 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 	case "java":
 		err = r.RunJavaExternal(ctx, run)
 	case "ts":
-		err = r.RunTypescriptExternal(ctx, run)
+		err = r.RunTypeScriptExternal(ctx, run)
 	default:
 		err = fmt.Errorf("unrecognized language")
 	}

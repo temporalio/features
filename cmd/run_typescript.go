@@ -6,11 +6,9 @@ import (
 	"fmt"
 	"go.temporal.io/sdk-features/harness/go/cmd"
 	"go.temporal.io/server/common/log/tag"
-	"io"
 	"os"
 	"os/exec"
 	"os/signal"
-	"path"
 	"path/filepath"
 	"strings"
 	"syscall"
@@ -23,9 +21,9 @@ type packageJSONDetails struct {
 	LocalSDK       string
 }
 
-// RunTypescriptExternal runs the TS harness in an external process. This expects the
+// RunTypeScriptExternal runs the TS harness in an external process. This expects the
 // server to already be started.
-func (r *Runner) RunTypescriptExternal(ctx context.Context, run *cmd.Run) error {
+func (r *Runner) RunTypeScriptExternal(ctx context.Context, run *cmd.Run) error {
 	// Create base dir
 	tempDir, err := os.MkdirTemp(r.rootDir, "sdk-features-typescript-test-")
 	if err != nil {
@@ -46,53 +44,45 @@ func (r *Runner) RunTypescriptExternal(ctx context.Context, run *cmd.Run) error 
 		defer os.RemoveAll(tempDir)
 	}
 
-	harnessPath, err := filepath.Abs(path.Clean(filepath.Join(r.rootDir, "harness", "ts")))
+	harnessPath, err := filepath.Abs(filepath.Join(r.rootDir, "harness", "ts"))
 	if err != nil {
 		return fmt.Errorf("failed to make absolute path for TS harness: %w", err)
 	}
-	packageJson, err := template.ParseFiles(filepath.Join(harnessPath, "package.json.tmpl"))
+	packageJSON, err := template.ParseFiles(filepath.Join(harnessPath, "package.json.tmpl"))
 	if err != nil {
 		return fmt.Errorf("failed to load package.json template: %w", err)
 	}
 
 	// Create package.json from template
-	packageJsonEvaluated := bytes.NewBufferString("")
-	LocalSDK := ""
+	var packageJSONEvaluated bytes.Buffer
+	localSDK := ""
 	MetaPkgVersion := ""
 	if strings.HasPrefix(r.config.Version, "/") {
-		LocalSDK = r.config.Version
+		localSDK = r.config.Version
 	} else {
 		MetaPkgVersion = r.config.Version
 	}
-	err = packageJson.Execute(packageJsonEvaluated, packageJSONDetails{
-		LocalSDK:       "file:" + LocalSDK,
+	err = packageJSON.Execute(&packageJSONEvaluated, packageJSONDetails{
+		LocalSDK:       "file:" + localSDK,
 		PathToMainTS:   "../harness/ts/main.ts",
 		MetaPkgVersion: MetaPkgVersion,
 	})
 	if err != nil {
 		return fmt.Errorf("failed build package.json template: %w", err)
 	}
-	pkgJsonDest, err := os.Create(filepath.Join(tempDir, "package.json"))
-	if err != nil {
-		return fmt.Errorf("failed create package.json in harness: %w", err)
-	}
-	_, err = pkgJsonDest.WriteString(packageJsonEvaluated.String())
+	err = os.WriteFile(filepath.Join(tempDir, "package.json"), packageJSONEvaluated.Bytes(), 0644)
 	if err != nil {
 		return fmt.Errorf("failed to write to package.json in harness: %w", err)
 	}
 
 	// Copy tsconfig
-	tsConfigSrc, err := os.Open(filepath.Join(harnessPath, "tsconfig.json.tmpl"))
+	tsConfigSrc, err := os.ReadFile(filepath.Join(harnessPath, "tsconfig.json.tmpl"))
 	if err != nil {
 		return fmt.Errorf("failed open tsconfig.json template: %w", err)
 	}
-	tsConfigDest, err := os.Create(filepath.Join(tempDir, "tsconfig.json"))
+	err = os.WriteFile(filepath.Join(tempDir, "tsconfig.json"), tsConfigSrc, 0644)
 	if err != nil {
 		return fmt.Errorf("failed create tsconfig.json in harness: %w", err)
-	}
-	_, err = io.Copy(tsConfigDest, tsConfigSrc)
-	if err != nil {
-		return fmt.Errorf("failed copy tsconfig.json: %w", err)
 	}
 
 	// TODO: Make callback for "done with initting" to avoid timing out too early?
@@ -108,8 +98,8 @@ func (r *Runner) RunTypescriptExternal(ctx context.Context, run *cmd.Run) error 
 	// Run the harness
 	runArgs := []string{"run", "start", "--",
 		"--server", r.config.Server, "--namespace", r.config.Namespace}
-	if LocalSDK != "" {
-		runArgs = append(runArgs, "--node-modules-path", filepath.Join(LocalSDK, "node_modules"))
+	if localSDK != "" {
+		runArgs = append(runArgs, "--node-modules-path", filepath.Join(localSDK, "node_modules"))
 	}
 	runArgs = append(runArgs, run.ToArgs()...)
 	npmRun := exec.CommandContext(ctx, "npm", runArgs...)

@@ -45,11 +45,8 @@ async function run() {
   // TODO(cretz): Concurrent with log capturing
   let failureCount = 0;
   for (const featureAndTaskQueue of opts.featureAndTaskQueues) {
-    // Split
-    const colon = featureAndTaskQueue.indexOf(':');
-    const cpos = colon == -1 ? undefined : colon;
-    const featureDir = featureAndTaskQueue.substring(0, cpos);
-    const taskQueue = featureAndTaskQueue.substring(colon + 1);
+    const [featureDir, taskQueueFromOpt] = featureAndTaskQueue.split(':');
+    const taskQueue = taskQueueFromOpt ?? featureDir;
 
     let runner;
     try {

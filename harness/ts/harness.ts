@@ -104,7 +104,6 @@ export class Runner<W extends Workflow, A extends ActivityInterface> {
       activities: feature.activities,
       taskQueue: options.taskQueue,
     };
-    console.log(options);
     if (options.nodeModulesPath) {
       workerOpts.nodeModulesPaths = [options.nodeModulesPath];
     }

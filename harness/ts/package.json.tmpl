@@ -12,7 +12,6 @@
     "@temporalio/proto": "{{ .LocalSDK }}/packages/proto",
     "@temporalio/worker": "{{ .LocalSDK }}/packages/worker",
     "@temporalio/workflow": "{{ .LocalSDK }}/packages/workflow",
-    "temporalio": "{{ .LocalSDK }}/packages/meta",
   {{ else }}
     "temporalio": "{{.MetaPkgVersion}}",
   {{ end }}

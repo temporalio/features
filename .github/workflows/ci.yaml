@@ -1,0 +1,28 @@
+name: Continuous Integration
+on: # rebuild any PRs and main branch changes
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  # Build cli and harnesses
+  build-lint-test:
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Print build information
+        run: 'echo head_ref: ${{ github.head_ref }}, ref: ${{ github.ref }}, os: ${{ matrix.os }}, node: ${{ matrix.node }}'
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+      - uses: actions/setup-node@v2
+
+      - run: go build
+      - run: npm ci
+      - run: npm install
+      - run: npm run build
+      - run: npm run lint
+

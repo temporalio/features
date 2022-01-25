@@ -3,12 +3,13 @@
   "private": true,
   "scripts": {
     "format": "prettier --write \"**/*.ts\"",
+    "build": "tsc --build",
     "lint": "eslint features harness/ts --ext .ts --no-error-on-unmatched-pattern && prettier --end-of-line auto --check \"**/*.ts\"",
     "start": "ts-node -r tsconfig-paths/register harness/ts/main.ts"
   },
   "dependencies": {
     "commander": "^8.3.0",
-    "temporalio": "0.16.3",
+    "temporalio": "0.17.2",
     "uuid": "^8.3.2"
   },
   "devDependencies": {

@@ -1,5 +1,5 @@
-import { FeatureSource, Runner } from '@temporalio/harness';
-import { Core } from '@temporalio/worker';
+import { FeatureSource, Runner } from './harness';
+import { Core, DefaultLogger } from '@temporalio/worker';
 import pkg from '@temporalio/worker/lib/pkg';
 import { Command } from 'commander';
 import * as path from 'path';
@@ -9,19 +9,28 @@ async function run() {
   program
     .requiredOption('--server <address>', 'The host:port of the server')
     .requiredOption('--namespace <namespace>', 'The namespace to use')
+    .option(
+      '--node-modules-path <filepath>',
+      'Overrides node_modules directory that will be used for workflow bundling.' +
+        ' Is needed when using a local version of the TS SDK'
+    )
     .argument('<features...>', 'Features as dir + ":" + task queue');
 
   const opts = program.parse(process.argv).opts<{
     server: string;
     namespace: string;
+    nodeModulesPath?: string;
     featureAndTaskQueues: string[];
   }>();
   opts.featureAndTaskQueues = program.args;
 
-  console.log('Running TypeScript SDK version ' + pkg.version);
+  console.log('Running TypeScript SDK version ' + pkg.version, 'against', opts.server);
 
   // Install core with our address and namespace
+  const logger = new DefaultLogger('DEBUG');
   await Core.install({
+    logger,
+    telemetryOptions: { logForwardingLevel: 'INFO' },
     serverOptions: {
       address: opts.server,
       namespace: opts.namespace,
@@ -36,16 +45,15 @@ async function run() {
   // TODO(cretz): Concurrent with log capturing
   let failureCount = 0;
   for (const featureAndTaskQueue of opts.featureAndTaskQueues) {
-    // Split
-    const colon = featureAndTaskQueue.indexOf(':');
-    const featureDir = featureAndTaskQueue.substring(0, colon);
-    const taskQueue = featureAndTaskQueue.substring(colon + 1);
+    const [featureDir, taskQueueFromOpt] = featureAndTaskQueue.split(':');
+    const taskQueue = taskQueueFromOpt ?? featureDir;
 
     let runner;
     try {
       // Find the source
       const source = sources.find((s) => s.relDir === featureDir);
       if (!source) {
+        // noinspection ExceptionCaughtLocallyJS
         throw new Error(`feature ${featureDir} not found`);
       }
 
@@ -55,12 +63,14 @@ async function run() {
         address: opts.server,
         namespace: opts.namespace,
         taskQueue,
+        nodeModulesPath: opts.nodeModulesPath
       });
       await runner.run();
     } catch (err) {
       console.error(`Feature ${featureDir} failed with ${err}`, (err as any).stack);
+      failureCount++;
     } finally {
-      runner?.close();
+      await runner?.close();
     }
   }
 

@@ -20,17 +20,12 @@ func (r *Runner) RunJavaExternal(ctx context.Context, run *cmd.Run) error {
 	// one, then "gradle run" it
 
 	// Create base dir
-	_, currFile, _, _ := runtime.Caller(0)
-	rootDir := filepath.Dir(filepath.Dir(currFile))
-	tempDir, err := os.MkdirTemp(rootDir, "sdk-features-java-test-")
+	tempDir, err := os.MkdirTemp(r.rootDir, "sdk-features-java-test-")
 	if err != nil {
 		return fmt.Errorf("failed creating temp dir: %w", err)
 	}
+	r.createdTempDir = &tempDir
 	r.log.Info("Building temporary Java project", tag.NewStringTag("Path", tempDir))
-	// Remove when done if configured to do so
-	if !r.config.RetainTempDir {
-		defer os.RemoveAll(tempDir)
-	}
 
 	// Create build.gradle and settings.gradle
 	temporalSDKDependency := ""

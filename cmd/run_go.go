@@ -24,11 +24,8 @@ func (r *Runner) RunGoExternal(ctx context.Context, run *cmd.Run) error {
 	if err != nil {
 		return fmt.Errorf("failed creating temp dir: %w", err)
 	}
+	r.createdTempDir = &tempDir
 	r.log.Info("Building temporary Go project", tag.NewStringTag("Path", tempDir))
-	// Remove when done if configured to do so
-	if !r.config.RetainTempDir {
-		defer os.RemoveAll(tempDir)
-	}
 
 	// Create go.mod
 	goMod := `module go.temporal.io/sdk-features-test

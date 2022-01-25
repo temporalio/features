@@ -4,8 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"os/signal"
 	"path/filepath"
 	"runtime"
+	"syscall"
 	"time"
 
 	"github.com/DataDog/temporalite"
@@ -54,7 +57,7 @@ func (r *RunConfig) flags() []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:        "version",
-			Usage:       "SDK language version to run",
+			Usage:       "SDK language version to run. Typescript versions may start with `/` to use a local SDK via an absolute path.",
 			Destination: &r.Version,
 		},
 		&cli.BoolFlag{
@@ -90,18 +93,20 @@ type Runner struct {
 	log    log.Logger
 	config RunConfig
 	// Root of the sdk-features repo
-	rootDir    string
-	createTime time.Time
+	rootDir        string
+	createTime     time.Time
+	createdTempDir *string
 }
 
 // NewRunner creates a new runner for the given config.
 func NewRunner(config RunConfig) *Runner {
 	return &Runner{
 		// TODO(cretz): Configurable logger
-		log:        log.NewCLILogger(),
-		config:     config,
-		rootDir:    rootDir(),
-		createTime: time.Now(),
+		log:            log.NewCLILogger(),
+		config:         config,
+		rootDir:        rootDir(),
+		createTime:     time.Now(),
+		createdTempDir: nil,
 	}
 }
 
@@ -161,6 +166,18 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 		r.log.Info("Started server", tag.NewStringTag("HostPort", r.config.Server))
 	}
 
+	// Ensure any created temp dir is cleaned on ctrl-c or normal exit
+	if !r.config.RetainTempDir {
+		c := make(chan os.Signal)
+		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+		go func() {
+			<-c
+			r.destroyTempDir()
+			os.Exit(1)
+		}()
+		defer r.destroyTempDir()
+	}
+
 	err = nil
 	switch r.config.Lang {
 	case "go":
@@ -172,6 +189,8 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 		}
 	case "java":
 		err = r.RunJavaExternal(ctx, run)
+	case "ts":
+		err = r.RunTypeScriptExternal(ctx, run)
 	default:
 		err = fmt.Errorf("unrecognized language")
 	}
@@ -286,4 +305,10 @@ func (r *Runner) handleSingleHistory(ctx context.Context, client client.Client, 
 func rootDir() string {
 	_, currFile, _, _ := runtime.Caller(0)
 	return filepath.Dir(filepath.Dir(currFile))
+}
+
+func (r *Runner) destroyTempDir() {
+	if r.createdTempDir != nil {
+		_ = os.RemoveAll(*r.createdTempDir)
+	}
 }

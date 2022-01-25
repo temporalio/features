@@ -1,6 +1,6 @@
 import { Connection, WorkflowClient, WorkflowHandleWithRunId } from '@temporalio/client';
 import { ActivityInterface, Workflow } from '@temporalio/common';
-import { Worker } from '@temporalio/worker';
+import { Worker, WorkerOptions } from '@temporalio/worker';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
@@ -79,6 +79,8 @@ export interface RunnerOptions {
   address: string;
   namespace: string;
   taskQueue: string;
+  // Path to a local SDK project's node_modules to be used for this runner
+  nodeModulesPath?: string;
 }
 
 export class Runner<W extends Workflow, A extends ActivityInterface> {
@@ -97,14 +99,18 @@ export class Runner<W extends Workflow, A extends ActivityInterface> {
     // Create and start the worker
     const workflowsPath =
       feature.options.workflowsPath ?? require.resolve(path.join(source.absDir, 'feature.workflow.ts'));
-    const worker = await Worker.create({
+    let workerOpts: WorkerOptions = {
       workflowsPath,
       activities: feature.activities,
       taskQueue: options.taskQueue,
-    });
+    };
+    if (options.nodeModulesPath) {
+      workerOpts.nodeModulesPaths = [options.nodeModulesPath];
+    }
+    const worker = await Worker.create(workerOpts);
     const workerRunPromise = worker.run().finally(() => conn.client.close());
 
-    return new Runner(source, feature, workflowsPath, options, conn, client, worker, workerRunPromise);
+    return new Runner(source, feature, workflowsPath, options, client, worker, workerRunPromise);
   }
 
   private constructor(
@@ -112,7 +118,6 @@ export class Runner<W extends Workflow, A extends ActivityInterface> {
     readonly feature: Feature<W, A>,
     readonly workflowsPath: string,
     readonly options: RunnerOptions,
-    readonly conn: Connection,
     readonly client: WorkflowClient,
     readonly worker: Worker,
     readonly workerRunPromise: Promise<void>
@@ -136,6 +141,7 @@ export class Runner<W extends Workflow, A extends ActivityInterface> {
     // Result check
     console.log(`Checking result on feature ${this.source.relDir}`);
     if (this.feature.options.checkResult) {
+      console.log('Using custom result checker');
       await this.feature.options.checkResult(this, handle);
     } else {
       await this.waitForRunResult(handle);
@@ -160,7 +166,8 @@ export class Runner<W extends Workflow, A extends ActivityInterface> {
     return await run.result();
   }
 
-  close() {
+  async close() {
     this.worker.shutdown();
+    await this.workerRunPromise;
   }
 }

@@ -1,5 +1,5 @@
 import { Connection, WorkflowClient, WorkflowHandleWithRunId } from '@temporalio/client';
-import { ActivityInterface, Workflow } from '@temporalio/common';
+import { ActivityInterface, Workflow, WorkflowResultType } from '@temporalio/common';
 import { Worker, WorkerOptions } from '@temporalio/worker';
 import { promises as fs } from 'fs';
 import * as path from 'path';
@@ -71,6 +71,7 @@ export class FeatureSource {
   ) {}
 
   loadFeature<W extends Workflow, A extends ActivityInterface>(): Feature<W, A> {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     return require(path.join(this.absDir, 'feature.ts')).feature;
   }
 }
@@ -84,7 +85,7 @@ export interface RunnerOptions {
 }
 
 export class Runner<W extends Workflow, A extends ActivityInterface> {
-  static async create(source: FeatureSource, options: RunnerOptions) {
+  static async create(source: FeatureSource, options: RunnerOptions): Promise<Runner<Workflow, ActivityInterface>> {
     // Load the feature
     const feature = source.loadFeature();
 
@@ -99,7 +100,7 @@ export class Runner<W extends Workflow, A extends ActivityInterface> {
     // Create and start the worker
     const workflowsPath =
       feature.options.workflowsPath ?? require.resolve(path.join(source.absDir, 'feature.workflow.ts'));
-    let workerOpts: WorkerOptions = {
+    const workerOpts: WorkerOptions = {
       workflowsPath,
       activities: feature.activities,
       taskQueue: options.taskQueue,
@@ -123,7 +124,7 @@ export class Runner<W extends Workflow, A extends ActivityInterface> {
     readonly workerRunPromise: Promise<void>
   ) {}
 
-  async run() {
+  async run(): Promise<void> {
     // Run the workflow and fail if workflow or worker fails
     return await Promise.race([this.workerRunPromise, this.runWorkflow()]);
   }
@@ -154,7 +155,8 @@ export class Runner<W extends Workflow, A extends ActivityInterface> {
     }
   }
 
-  async executeSingleParameterlessWorkflow() {
+  async executeSingleParameterlessWorkflow(): Promise<WorkflowHandleWithRunId> {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const workflow = this.feature.options.workflow ?? require(this.workflowsPath).workflow;
     return await this.client.start<() => any>(workflow, {
       taskQueue: this.options.taskQueue,
@@ -162,11 +164,11 @@ export class Runner<W extends Workflow, A extends ActivityInterface> {
     });
   }
 
-  async waitForRunResult<W extends Workflow>(run: WorkflowHandleWithRunId<W>) {
+  async waitForRunResult<W extends Workflow>(run: WorkflowHandleWithRunId<W>): Promise<WorkflowResultType<W>> {
     return await run.result();
   }
 
-  async close() {
+  async close(): Promise<void> {
     this.worker.shutdown();
     await this.workerRunPromise;
   }

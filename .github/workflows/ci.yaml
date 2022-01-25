@@ -24,7 +24,6 @@ jobs:
 
       - run: go build
       - run: npm ci
-      - run: npm install
       - run: npm run build
       - run: npm run lint
 

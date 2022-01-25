@@ -8,10 +8,8 @@ import (
 	"go.temporal.io/server/common/log/tag"
 	"os"
 	"os/exec"
-	"os/signal"
 	"path/filepath"
 	"strings"
-	"syscall"
 	"text/template"
 )
 
@@ -29,20 +27,8 @@ func (r *Runner) RunTypeScriptExternal(ctx context.Context, run *cmd.Run) error 
 	if err != nil {
 		return fmt.Errorf("failed creating temp dir: %w", err)
 	}
+	r.createdTempDir = &tempDir
 	r.log.Info("Building temporary Typescript project", tag.NewStringTag("Path", tempDir))
-
-	// Remove when done if configured to do so
-	// TODO: Dedupe
-	if !r.config.RetainTempDir {
-		c := make(chan os.Signal)
-		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-		go func() {
-			<-c
-			_ = os.RemoveAll(tempDir)
-			os.Exit(1)
-		}()
-		defer os.RemoveAll(tempDir)
-	}
 
 	harnessPath, err := filepath.Abs(filepath.Join(r.rootDir, "harness", "ts"))
 	if err != nil {

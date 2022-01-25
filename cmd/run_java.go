@@ -24,11 +24,8 @@ func (r *Runner) RunJavaExternal(ctx context.Context, run *cmd.Run) error {
 	if err != nil {
 		return fmt.Errorf("failed creating temp dir: %w", err)
 	}
+	r.createdTempDir = &tempDir
 	r.log.Info("Building temporary Java project", tag.NewStringTag("Path", tempDir))
-	// Remove when done if configured to do so
-	if !r.config.RetainTempDir {
-		defer os.RemoveAll(tempDir)
-	}
 
 	// Create build.gradle and settings.gradle
 	temporalSDKDependency := ""

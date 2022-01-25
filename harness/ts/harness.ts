@@ -1,6 +1,6 @@
 import { Connection, WorkflowClient, WorkflowHandleWithRunId } from '@temporalio/client';
 import { ActivityInterface, Workflow } from '@temporalio/common';
-import { Worker } from '@temporalio/worker';
+import { Worker, WorkerOptions } from '@temporalio/worker';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
@@ -79,6 +79,8 @@ export interface RunnerOptions {
   address: string;
   namespace: string;
   taskQueue: string;
+  // Path to a local SDK project's node_modules to be used for this runner
+  nodeModulesPath?: string;
 }
 
 export class Runner<W extends Workflow, A extends ActivityInterface> {
@@ -97,13 +99,16 @@ export class Runner<W extends Workflow, A extends ActivityInterface> {
     // Create and start the worker
     const workflowsPath =
       feature.options.workflowsPath ?? require.resolve(path.join(source.absDir, 'feature.workflow.ts'));
-    const worker = await Worker.create({
+    let workerOpts: WorkerOptions = {
       workflowsPath,
-      // TODO: Pass these in -- second is only if using local SDK
-      nodeModulesPaths: ['../../node_modules', '/home/sushi/dev/temporal/sdk-node/node_modules'],
       activities: feature.activities,
       taskQueue: options.taskQueue,
-    });
+    };
+    console.log(options);
+    if (options.nodeModulesPath) {
+      workerOpts.nodeModulesPaths = [options.nodeModulesPath];
+    }
+    const worker = await Worker.create(workerOpts);
     const workerRunPromise = worker.run().finally(() => conn.client.close());
 
     return new Runner(source, feature, workflowsPath, options, client, worker, workerRunPromise);

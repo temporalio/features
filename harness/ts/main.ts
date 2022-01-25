@@ -9,11 +9,17 @@ async function run() {
   program
     .requiredOption('--server <address>', 'The host:port of the server')
     .requiredOption('--namespace <namespace>', 'The namespace to use')
+    .option(
+      '--node-modules-path <filepath>',
+      'Overrides node_modules directory that will be used for workflow bundling.' +
+        ' Is needed when using a local version of the TS SDK'
+    )
     .argument('<features...>', 'Features as dir + ":" + task queue');
 
   const opts = program.parse(process.argv).opts<{
     server: string;
     namespace: string;
+    nodeModulesPath?: string;
     featureAndTaskQueues: string[];
   }>();
   opts.featureAndTaskQueues = program.args;
@@ -24,7 +30,7 @@ async function run() {
   const logger = new DefaultLogger('DEBUG');
   await Core.install({
     logger,
-    telemetryOptions: { logForwardingLevel: 'DEBUG' },
+    telemetryOptions: { logForwardingLevel: 'INFO' },
     serverOptions: {
       address: opts.server,
       namespace: opts.namespace,
@@ -33,9 +39,7 @@ async function run() {
 
   // Collect all feature sources
   const featureRootDir = path.join(__dirname, '../../features');
-  console.log(featureRootDir);
   const sources = await FeatureSource.findAll(featureRootDir);
-  console.log(sources);
 
   // Run each
   // TODO(cretz): Concurrent with log capturing
@@ -62,6 +66,7 @@ async function run() {
         address: opts.server,
         namespace: opts.namespace,
         taskQueue,
+        nodeModulesPath: opts.nodeModulesPath
       });
       await runner.run();
     } catch (err) {

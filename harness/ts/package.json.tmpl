@@ -6,18 +6,18 @@
   },
   "dependencies": {
   {{ if .LocalSDK }}
-    "@temporalio/activity": "file:/home/sushi/dev/temporal/sdk-node/packages/activity",
-    "@temporalio/client": "file:/home/sushi/dev/temporal/sdk-node/packages/client",
-    "@temporalio/common": "file:/home/sushi/dev/temporal/sdk-node/packages/common",
-    "@temporalio/proto": "file:/home/sushi/dev/temporal/sdk-node/packages/proto",
-    "@temporalio/worker": "file:/home/sushi/dev/temporal/sdk-node/packages/worker",
-    "@temporalio/workflow": "file:/home/sushi/dev/temporal/sdk-node/packages/workflow",
+    "@temporalio/activity": "{{ .LocalSDK }}/packages/activity",
+    "@temporalio/client": "{{ .LocalSDK }}/packages/client",
+    "@temporalio/common": "{{ .LocalSDK }}/packages/common",
+    "@temporalio/proto": "{{ .LocalSDK }}/packages/proto",
+    "@temporalio/worker": "{{ .LocalSDK }}/packages/worker",
+    "@temporalio/workflow": "{{ .LocalSDK }}/packages/workflow",
+    "temporalio": "{{ .LocalSDK }}/packages/meta",
   {{ else }}
-    "@temporalio": "{{.MetaPkgVersion}}",
+    "temporalio": "{{.MetaPkgVersion}}",
   {{ end }}
 
     "commander": "^8.3.0",
-    "temporalio": "file:/home/sushi/dev/temporal/sdk-node/packages/meta",
     "uuid": "^8.3.2"
   },
   "devDependencies": {

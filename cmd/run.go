@@ -54,7 +54,7 @@ func (r *RunConfig) flags() []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:        "version",
-			Usage:       "SDK language version to run",
+			Usage:       "SDK language version to run. Typescript versions may start with `/` to use a local SDK via an absolute path.",
 			Destination: &r.Version,
 		},
 		&cli.BoolFlag{

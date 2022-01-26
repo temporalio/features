@@ -11,3 +11,4 @@ build
 # NodeJS stuff
 node_modules
 /temp-ts-proj*/
+/tslib/

@@ -63,7 +63,7 @@ async function run() {
         address: opts.server,
         namespace: opts.namespace,
         taskQueue,
-        nodeModulesPath: opts.nodeModulesPath
+        nodeModulesPath: opts.nodeModulesPath,
       });
       await runner.run();
     } catch (err) {

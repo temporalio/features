@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"go.temporal.io/sdk-features/harness/go/cmd"
 	"go.temporal.io/server/common/log/tag"
@@ -17,6 +18,10 @@ type packageJSONDetails struct {
 	PathToMainTS   string
 	MetaPkgVersion string
 	LocalSDK       string
+}
+
+type packageJsonTemporalVersion struct {
+	Dependencies struct{ Temporalio string }
 }
 
 // RunTypeScriptExternal runs the TS harness in an external process. This expects the
@@ -44,12 +49,22 @@ func (r *Runner) RunTypeScriptExternal(ctx context.Context, run *cmd.Run) error 
 	localSDK := ""
 	MetaPkgVersion := ""
 	if strings.HasPrefix(r.config.Version, "/") {
-		localSDK = r.config.Version
+		localSDK = "file:" + r.config.Version
 	} else {
+		if r.config.Version == "" {
+			// Default to version from top-level package.json
+			packageJsonBytes, err := os.ReadFile(filepath.Join(r.rootDir, "package.json"))
+			verStruct := packageJsonTemporalVersion{}
+			err = json.Unmarshal(packageJsonBytes, &verStruct)
+			if err != nil {
+				return fmt.Errorf("failed read top level package.json: %w", err)
+			}
+			r.config.Version = verStruct.Dependencies.Temporalio
+		}
 		MetaPkgVersion = r.config.Version
 	}
 	err = packageJSON.Execute(&packageJSONEvaluated, packageJSONDetails{
-		LocalSDK:       "file:" + localSDK,
+		LocalSDK:       localSDK,
 		PathToMainTS:   "../harness/ts/main.ts",
 		MetaPkgVersion: MetaPkgVersion,
 	})

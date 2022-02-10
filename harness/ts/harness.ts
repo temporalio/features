@@ -107,9 +107,10 @@ export class Runner<W extends Workflow, A extends ActivityInterface> {
       taskQueue: options.taskQueue,
     };
     if (options.nodeModulesPath) {
-      const ourNodeMods = path.join(process.cwd(), "node_modules");
+      const ourNodeMods = path.join(process.cwd(), 'node_modules');
       workerOpts.nodeModulesPaths = [options.nodeModulesPath, ourNodeMods];
-      workerOpts.typescriptContextPath = process.cwd();
+      // TODO: Remove this `as any` once published version has this addition
+      (workerOpts as any).typescriptContextPath = process.cwd();
     }
     const worker = await Worker.create(workerOpts);
     const workerRunPromise = worker.run().finally(() => conn.client.close());

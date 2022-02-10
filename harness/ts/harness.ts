@@ -3,6 +3,7 @@ import { ActivityInterface, Workflow, WorkflowResultType } from '@temporalio/com
 import { Worker, WorkerOptions } from '@temporalio/worker';
 import { promises as fs } from 'fs';
 import * as path from 'path';
+import * as process from 'process';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface FeatureOptions<W extends Workflow, A extends ActivityInterface> {
@@ -106,7 +107,10 @@ export class Runner<W extends Workflow, A extends ActivityInterface> {
       taskQueue: options.taskQueue,
     };
     if (options.nodeModulesPath) {
-      workerOpts.nodeModulesPaths = [options.nodeModulesPath];
+      const ourNodeMods = path.join(process.cwd(), 'node_modules');
+      workerOpts.nodeModulesPaths = [options.nodeModulesPath, ourNodeMods];
+      // TODO: Remove this `as any` once published version has this addition
+      (workerOpts as any).typescriptContextPath = process.cwd();
     }
     const worker = await Worker.create(workerOpts);
     const workerRunPromise = worker.run().finally(() => conn.client.close());

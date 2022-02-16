@@ -55,7 +55,7 @@ export class FeatureSource {
     const dirents = await fs.readdir(absDir, { withFileTypes: true });
     const dirs = [];
     for (const dirent of dirents) {
-      if (dirent.name === 'feature.ts') {
+      if (dirent.name === 'feature.js') {
         const relDir = path.relative(origRootDir, absDir).replaceAll(path.sep, '/');
         dirs.push(new FeatureSource(relDir, absDir));
       } else if (dirent.isDirectory()) {
@@ -73,7 +73,7 @@ export class FeatureSource {
 
   loadFeature<W extends Workflow, A extends ActivityInterface>(): Feature<W, A> {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    return require(path.join(this.absDir, 'feature.ts')).feature;
+    return require(path.join(this.absDir, 'feature.js')).feature;
   }
 }
 
@@ -100,7 +100,7 @@ export class Runner<W extends Workflow, A extends ActivityInterface> {
 
     // Create and start the worker
     const workflowsPath =
-      feature.options.workflowsPath ?? require.resolve(path.join(source.absDir, 'feature.workflow.ts'));
+      feature.options.workflowsPath ?? require.resolve(path.join(source.absDir, 'feature.workflow.js'));
     const workerOpts: WorkerOptions = {
       workflowsPath,
       activities: feature.activities,
@@ -109,8 +109,6 @@ export class Runner<W extends Workflow, A extends ActivityInterface> {
     if (options.nodeModulesPath) {
       const ourNodeMods = path.join(process.cwd(), 'node_modules');
       workerOpts.nodeModulesPaths = [options.nodeModulesPath, ourNodeMods];
-      // TODO: Remove this `as any` once published version has this addition
-      (workerOpts as any).typescriptContextPath = process.cwd();
     }
     const worker = await Worker.create(workerOpts);
     const workerRunPromise = worker.run().finally(() => conn.client.close());

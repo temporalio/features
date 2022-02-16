@@ -15,7 +15,7 @@ import (
 )
 
 type packageJSONDetails struct {
-	PathToMainTS   string
+	PathToMainJS   string
 	MetaPkgVersion string
 	LocalSDK       string
 }
@@ -63,9 +63,13 @@ func (r *Runner) RunTypeScriptExternal(ctx context.Context, run *cmd.Run) error 
 		}
 		MetaPkgVersion = r.config.Version
 	}
+	var maybeLocalSDK string
+	if localSDK != "" {
+		maybeLocalSDK = "file:" + localSDK
+	}
 	err = packageJSON.Execute(&packageJSONEvaluated, packageJSONDetails{
-		LocalSDK:       "file:" + localSDK,
-		PathToMainTS:   "../harness/ts/main.ts",
+		LocalSDK:       maybeLocalSDK,
+		PathToMainJS:   "./tslib/harness/ts/main.js",
 		MetaPkgVersion: MetaPkgVersion,
 	})
 	if err != nil {
@@ -94,6 +98,14 @@ func (r *Runner) RunTypeScriptExternal(ctx context.Context, run *cmd.Run) error 
 	npmCmd.Stdin, npmCmd.Stdout, npmCmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	if err := npmCmd.Run(); err != nil {
 		return fmt.Errorf("failed running npm install: %w", err)
+	}
+
+	// Compile typescript
+	npmCmd = exec.CommandContext(ctx, "npm", "run", "build")
+	npmCmd.Dir = tempDir
+	npmCmd.Stdin, npmCmd.Stdout, npmCmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+	if err := npmCmd.Run(); err != nil {
+		return fmt.Errorf("failed running npm run build: %w", err)
 	}
 
 	// Run the harness

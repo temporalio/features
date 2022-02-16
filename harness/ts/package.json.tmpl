@@ -2,7 +2,8 @@
   "name": "sdk-features",
   "private": true,
   "scripts": {
-    "start": "ts-node -P ./tsconfig.json -r tsconfig-paths/register {{ .PathToMainTS }}"
+    "build": "tsc -P ./tsconfig.json",
+    "start": "node -r tsconfig-paths/register {{ .PathToMainJS }}"
   },
   "dependencies": {
   {{ if .LocalSDK }}

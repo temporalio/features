@@ -2,6 +2,10 @@ name: Typescript Features Testing
 on:
   workflow_call:
     inputs:
+      typescript-repo-path:
+        required: true
+        type: string
+        default: 'temporalio/sdk-typescript'
       typescript-repo-ref:
         required: true
         type: string
@@ -28,7 +32,7 @@ jobs:
       - name: Checkout typescript SDK repo
         uses: actions/checkout@v2
         with:
-          repository: temporalio/sdk-typescript
+          repository: ${{ inputs.typescript-repo-path }}
           submodules: recursive
           path: sdk-ts
           ref: ${{ inputs.typescript-repo-ref }}

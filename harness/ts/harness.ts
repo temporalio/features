@@ -3,7 +3,6 @@ import { ActivityInterface, Workflow, WorkflowResultType } from '@temporalio/com
 import { Worker, WorkerOptions } from '@temporalio/worker';
 import { promises as fs } from 'fs';
 import * as path from 'path';
-import * as process from 'process';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface FeatureOptions<W extends Workflow, A extends ActivityInterface> {
@@ -81,8 +80,6 @@ export interface RunnerOptions {
   address: string;
   namespace: string;
   taskQueue: string;
-  // Path to a local SDK project's node_modules to be used for this runner
-  nodeModulesPath?: string;
 }
 
 export class Runner<W extends Workflow, A extends ActivityInterface> {
@@ -106,10 +103,6 @@ export class Runner<W extends Workflow, A extends ActivityInterface> {
       activities: feature.activities,
       taskQueue: options.taskQueue,
     };
-    if (options.nodeModulesPath) {
-      const ourNodeMods = path.join(process.cwd(), 'node_modules');
-      workerOpts.nodeModulesPaths = [options.nodeModulesPath, ourNodeMods];
-    }
     const worker = await Worker.create(workerOpts);
     const workerRunPromise = worker.run().finally(() => conn.client.close());
 
@@ -158,8 +151,7 @@ export class Runner<W extends Workflow, A extends ActivityInterface> {
   }
 
   async executeSingleParameterlessWorkflow(): Promise<WorkflowHandleWithRunId> {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const workflow = this.feature.options.workflow ?? require(this.workflowsPath).workflow;
+    const workflow = this.feature.options.workflow ?? 'workflow';
     return await this.client.start<() => any>(workflow, {
       taskQueue: this.options.taskQueue,
       workflowId: this.source.relDir + '-' + uuidv4(),

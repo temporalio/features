@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [ ubuntu-latest ] #  windows-latest - like 8x slower. Excluded for now since we're just building.
+        os: [ubuntu-latest] #  windows-latest - like 8x slower. Excluded for now since we're just building.
     runs-on: ${{ matrix.os }}
     steps:
       - name: Print build information
@@ -27,7 +27,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [ ubuntu-latest ] #  windows-latest - like 8x slower. Excluded for now since we're just building.
+        os: [ubuntu-latest] #  windows-latest - like 8x slower. Excluded for now since we're just building.
     runs-on: ${{ matrix.os }}
     steps:
       - name: Print build information
@@ -39,11 +39,19 @@ jobs:
       - run: npm run build
       - run: npm run lint
 
+  feature-tests-ts:
+    # GH actions is a bit limited here and won't accept the current ref.
+    # When changing typescript.yaml, make sure to update the branch name below.
+    uses: temporalio/sdk-features/.github/workflows/typescript.yaml@main
+    with:
+      typescript-repo-path: temporalio/sdk-typescript
+      typescript-repo-ref: main
+
   build-java:
     strategy:
       fail-fast: true
       matrix:
-        os: [ ubuntu-latest ] #  windows-latest - like 8x slower. Excluded for now since we're just building.
+        os: [ubuntu-latest] #  windows-latest - like 8x slower. Excluded for now since we're just building.
     runs-on: ${{ matrix.os }}
     steps:
       - name: Print build information

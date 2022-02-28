@@ -19,7 +19,6 @@ async function run() {
   const opts = program.parse(process.argv).opts<{
     server: string;
     namespace: string;
-    nodeModulesPath?: string;
     featureAndTaskQueues: string[];
   }>();
   opts.featureAndTaskQueues = program.args;
@@ -63,7 +62,6 @@ async function run() {
         address: opts.server,
         namespace: opts.namespace,
         taskQueue,
-        nodeModulesPath: opts.nodeModulesPath,
       });
       await runner.run();
     } catch (err) {

@@ -2,7 +2,7 @@
   "name": "sdk-features",
   "private": true,
   "scripts": {
-    "build": "tsc -P ./tsconfig.json",
+    "build": "tsc --build",
     "start": "node -r tsconfig-paths/register {{ .PathToMainJS }}"
   },
   "dependencies": {
@@ -10,6 +10,8 @@
     "@temporalio/activity": "{{ .LocalSDK }}/packages/activity",
     "@temporalio/client": "{{ .LocalSDK }}/packages/client",
     "@temporalio/common": "{{ .LocalSDK }}/packages/common",
+    "@temporalio/internal-workflow-common": "{{ .LocalSDK }}/packages/internal-workflow-common",
+    "@temporalio/internal-non-workflow-common": "{{ .LocalSDK }}/packages/internal-non-workflow-common",
     "@temporalio/proto": "{{ .LocalSDK }}/packages/proto",
     "@temporalio/worker": "{{ .LocalSDK }}/packages/worker",
     "@temporalio/workflow": "{{ .LocalSDK }}/packages/workflow",

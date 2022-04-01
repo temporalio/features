@@ -1,6 +1,6 @@
 import { Connection, WorkflowClient, WorkflowHandleWithRunId } from '@temporalio/client';
 import { ActivityInterface, Workflow, WorkflowResultType } from '@temporalio/common';
-import { Worker, WorkerOptions } from '@temporalio/worker';
+import { Worker, WorkerOptions, NativeConnection } from '@temporalio/worker';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
@@ -95,10 +95,17 @@ export class Runner<W extends Workflow, A extends ActivityInterface> {
       namespace: options.namespace,
     });
 
+    // Create a connection for the Worker
+    const nativeConn = await NativeConnection.create({
+      address: options.address,
+    });
+
     // Create and start the worker
     const workflowsPath =
       feature.options.workflowsPath ?? require.resolve(path.join(source.absDir, 'feature.workflow.js'));
     const workerOpts: WorkerOptions = {
+      connection: nativeConn,
+      namespace: options.namespace,
       workflowsPath,
       activities: feature.activities,
       taskQueue: options.taskQueue,

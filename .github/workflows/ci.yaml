@@ -45,7 +45,7 @@ jobs:
     uses: temporalio/sdk-features/.github/workflows/typescript.yaml@main
     with:
       typescript-repo-path: temporalio/sdk-typescript
-      typescript-repo-ref: main
+      typescript-repo-ref: core-client-refactor
 
   build-java:
     strategy:

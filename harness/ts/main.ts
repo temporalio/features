@@ -1,5 +1,5 @@
 import { FeatureSource, Runner } from './harness';
-import { Core, DefaultLogger } from '@temporalio/worker';
+import { Runtime, DefaultLogger } from '@temporalio/worker';
 import pkg from '@temporalio/worker/lib/pkg';
 import { Command } from 'commander';
 import * as path from 'path';
@@ -27,13 +27,9 @@ async function run() {
 
   // Install core with our address and namespace
   const logger = new DefaultLogger('DEBUG');
-  await Core.install({
+  Runtime.install({
     logger,
     telemetryOptions: { logForwardingLevel: 'INFO' },
-    serverOptions: {
-      address: opts.server,
-      namespace: opts.namespace,
-    },
   });
 
   // Collect all feature sources

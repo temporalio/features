@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "commander": "^8.3.0",
-    "temporalio": "0.17.2",
+    "temporalio": "0.20.0",
     "uuid": "^8.3.2"
   },
   "devDependencies": {

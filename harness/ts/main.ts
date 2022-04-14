@@ -29,7 +29,7 @@ async function run() {
   const logger = new DefaultLogger('DEBUG');
   Runtime.install({
     logger,
-    telemetryOptions: { logForwardingLevel: 'INFO' },
+    telemetryOptions: { logForwardingLevel: 'OFF' },
   });
 
   // Collect all feature sources

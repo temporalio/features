@@ -113,7 +113,7 @@ export class Runner<W extends Workflow, A extends ActivityInterface> {
     const worker = await Worker.create(workerOpts);
     const workerRunPromise = worker.run().finally(() => conn.client.close());
 
-    return new Runner(source, feature, workflowsPath, options, client, worker, workerRunPromise);
+    return new Runner(source, feature, workflowsPath, options, client, nativeConn, worker, workerRunPromise);
   }
 
   private constructor(
@@ -122,6 +122,7 @@ export class Runner<W extends Workflow, A extends ActivityInterface> {
     readonly workflowsPath: string,
     readonly options: RunnerOptions,
     readonly client: WorkflowClient,
+    readonly nativeConnection: NativeConnection,
     readonly worker: Worker,
     readonly workerRunPromise: Promise<void>
   ) {}
@@ -172,5 +173,8 @@ export class Runner<W extends Workflow, A extends ActivityInterface> {
   async close(): Promise<void> {
     this.worker.shutdown();
     await this.workerRunPromise;
+    // TODO: In the current release of TS SDK (0.20.1) NativeConnection does not have a close method.
+    // This nonsense is here for future compatibility and should be straightened out once we release a new version.
+    await (this.nativeConnection as any).close?.();
   }
 }

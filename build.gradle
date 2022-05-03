@@ -15,7 +15,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'ch.qos.logback:logback-classic:1.2.6'
+    implementation 'ch.qos.logback:logback-classic:1.2.8'
     implementation 'com.google.guava:guava:31.0.1-jre'
     implementation 'com.google.code.gson:gson:2.8.8'
     implementation 'com.jayway.jsonpath:json-path:2.6.0'

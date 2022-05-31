@@ -1,4 +1,4 @@
-import { Connection, WorkflowClient, WorkflowHandleWithRunId } from '@temporalio/client';
+import { Connection, WorkflowClient, WorkflowHandleWithFirstExecutionRunId } from '@temporalio/client';
 import { ActivityInterface, Workflow, WorkflowResultType } from '@temporalio/common';
 import { Worker, WorkerOptions, NativeConnection } from '@temporalio/worker';
 import { promises as fs } from 'fs';
@@ -27,18 +27,18 @@ export interface FeatureOptions<W extends Workflow, A extends ActivityInterface>
    * Execute the workflow. If unset, defaults to
    * Runner.executeSingleParameterlessWorkflow.
    */
-  execute?: (runner: Runner<W, A>) => Promise<WorkflowHandleWithRunId<W>>;
+  execute?: (runner: Runner<W, A>) => Promise<WorkflowHandleWithFirstExecutionRunId<W>>;
 
   /**
    * Wait on and check the result of the workflow. If unset, defaults to
    * Runner.waitForRunResult.
    */
-  checkResult?: (runner: Runner<W, A>, handle: WorkflowHandleWithRunId<W>) => Promise<void>;
+  checkResult?: (runner: Runner<W, A>, handle: WorkflowHandleWithFirstExecutionRunId<W>) => Promise<void>;
 
   /**
    * Check the history of the workflow run. TODO(cretz): Unhandled currently
    */
-  checkHistory?: (runner: Runner<W, A>, handle: WorkflowHandleWithRunId<W>) => Promise<void>;
+  checkHistory?: (runner: Runner<W, A>, handle: WorkflowHandleWithFirstExecutionRunId<W>) => Promise<void>;
 }
 
 export class Feature<W extends Workflow, A extends ActivityInterface> {
@@ -158,7 +158,7 @@ export class Runner<W extends Workflow, A extends ActivityInterface> {
     }
   }
 
-  async executeSingleParameterlessWorkflow(): Promise<WorkflowHandleWithRunId> {
+  async executeSingleParameterlessWorkflow(): Promise<WorkflowHandleWithFirstExecutionRunId> {
     const workflow = this.feature.options.workflow ?? 'workflow';
     return await this.client.start<() => any>(workflow, {
       taskQueue: this.options.taskQueue,
@@ -166,7 +166,9 @@ export class Runner<W extends Workflow, A extends ActivityInterface> {
     });
   }
 
-  async waitForRunResult<W extends Workflow>(run: WorkflowHandleWithRunId<W>): Promise<WorkflowResultType<W>> {
+  async waitForRunResult<W extends Workflow>(
+    run: WorkflowHandleWithFirstExecutionRunId<W>
+  ): Promise<WorkflowResultType<W>> {
     return await run.result();
   }
 

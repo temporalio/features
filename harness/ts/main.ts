@@ -9,11 +9,6 @@ async function run() {
   program
     .requiredOption('--server <address>', 'The host:port of the server')
     .requiredOption('--namespace <namespace>', 'The namespace to use')
-    .option(
-      '--node-modules-path <filepath>',
-      'Overrides node_modules directory that will be used for workflow bundling.' +
-        ' Is needed when using a local version of the TS SDK'
-    )
     .argument('<features...>', 'Features as dir + ":" + task queue');
 
   const opts = program.parse(process.argv).opts<{

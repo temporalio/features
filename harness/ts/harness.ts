@@ -88,10 +88,11 @@ export class Runner<W extends Workflow, A extends ActivityInterface> {
     const feature = source.loadFeature();
 
     // Connect to client
-    const conn = new Connection({
+    const connection = await Connection.connect({
       address: options.address,
     });
-    const client = new WorkflowClient(conn.service, {
+    const client = new WorkflowClient({
+      connection,
       namespace: options.namespace,
     });
 
@@ -111,7 +112,13 @@ export class Runner<W extends Workflow, A extends ActivityInterface> {
       taskQueue: options.taskQueue,
     };
     const worker = await Worker.create(workerOpts);
-    const workerRunPromise = worker.run().finally(() => conn.client.close());
+    const workerRunPromise = (async () => {
+      try {
+        await worker.run();
+      } finally {
+        await connection.close();
+      }
+    })();
 
     return new Runner(source, feature, workflowsPath, options, client, nativeConn, worker, workerRunPromise);
   }

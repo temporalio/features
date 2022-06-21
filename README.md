@@ -41,9 +41,6 @@ in this repository.
 Several other options are available, some of which are described below. Run `sdk-features run --help` to see all
 options.
 
-**NOTE** There is [currently a bug](https://github.com/temporalio/temporal/issues/2207) with Temporalite that causes
-history checks to fail. Until it is fixed, the external server as shown below must be used.
-
 ### External Server and Namespace
 
 By default, a [temporalite](https://github.com/DataDog/temporalite) is dynamically started at runtime to handle all

@@ -193,7 +193,6 @@ func scrubRunSpecificScalars(v interface{}) {
 	case *history.ActivityTaskScheduledEventAttributes:
 		// These are UUIDs in Java, even though they are deterministic numbers in Go
 		v.ActivityId = ""
-		v.Namespace = ""
 	case *history.ActivityTaskStartedEventAttributes:
 		v.Identity = ""
 		v.RequestId = ""

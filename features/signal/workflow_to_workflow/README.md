@@ -5,5 +5,5 @@ same namespace via the language's Temporal SDK API.
 
 # Detailed spec
 
-Signals sent from within one workflow via the are transmitted to the target
+Signals sent from within one workflow via the workflow api are transmitted to the target
 workflow execution and delivered for processing.

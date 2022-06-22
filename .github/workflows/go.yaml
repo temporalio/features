@@ -12,7 +12,7 @@ on:
         default: 'master'
 
 jobs:
-  build-ts:
+  test:
     runs-on: ubuntu-latest
     defaults:
       run:

@@ -7,5 +7,9 @@ This feature:
 - starts a Child Workflow with `ABANDON`
 - cancels the start context
 - verifies that:
-  - start throws
+  - start throws immediately
   - the Child does not receive a cancellation request
+
+# Detailed spec
+
+TODO

@@ -6,3 +6,9 @@ This feature executes a Workflow that:
 
 - executes a Child Workflow 
 - returns the Child's result
+
+# Detailed spec
+
+Equivalent to waiting on start and `handle.result()`.
+
+TODO

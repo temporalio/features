@@ -9,3 +9,7 @@ This feature:
 - verifies that:
   - the Child ignores cancellatiion
   - start doesn't throw
+
+# Detailed spec
+
+TODO

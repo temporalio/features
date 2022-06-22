@@ -14,3 +14,7 @@ This feature starts a Workflow with these Search Attributes:
 ```
 
 The Search Attributes in Workflow Info should match. Those in Workflow Description should match, with an added `BinaryChecksums` Search Attribute.
+
+# Detailed spec
+
+`WorkflowExecutionStartedEvent.attributes.searchAttributes`

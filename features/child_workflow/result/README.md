@@ -7,3 +7,7 @@ This feature executes a Workflow that:
 - starts a Child Workflow 
 - gets the result of the Child
 - returns the result
+
+# Detailed spec
+
+TODO

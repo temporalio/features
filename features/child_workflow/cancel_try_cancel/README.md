@@ -9,3 +9,7 @@ This feature:
 - verifies that:
   - start throws immediately
   - the Child receives a cancellation request
+
+# Detailed spec
+
+TODO

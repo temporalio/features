@@ -37,3 +37,13 @@ The Workflow Description and Workflow Info should have:
 ```
 
 The Workflow Description should also have a `BinaryChecksums` Search Attribute.
+
+# Detailed spec
+
+`WorkflowInfo.searchAttributes`: 
+
+- is originally set with `WorkflowExecutionStartedEvent.attributes.searchAttributes`
+- is updated whenever upsert is called
+- is not updated with `BinaryChecksums`
+
+TODO?

@@ -9,3 +9,7 @@ This feature:
 - verifies that:
   - start throws once the server receives the cancellation request
   - the Child then receives a cancellation request
+
+# Detailed spec
+
+TODO

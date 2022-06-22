@@ -8,3 +8,7 @@ This feature:
 - queries the Parent for the Child's Workflow Id and Run Id
 - terminates the Child
 - verifies that `child.result()` throws
+
+# Detailed spec
+
+TODO

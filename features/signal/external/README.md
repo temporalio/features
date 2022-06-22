@@ -7,6 +7,6 @@ not necessarily another workflow.
 
 The gRPC `WorkflowService` exposes an rpc call, `SignalWorkflowExecution`, which
 can be invoked from code external to a Temporal system. If the RPC invocation
-completes successfully, the system guarantees tha the signal will be delivered
+completes successfully, the system guarantees that the signal will be delivered
 to the referenced workflow execution. An error is returned if the specified
 workflow execution does not exist.

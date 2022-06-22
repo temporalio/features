@@ -1,6 +1,6 @@
 # Update a workflow from a gRPC client returning the update response directly
 
-In Temporal we can invoke a registered workflow update function and by
+We can invoke a registered workflow update function and by
 indicating that the call should include the update result "inline," the value
 returned by the function call is returned as part of the gRPC response.
 

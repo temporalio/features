@@ -1,6 +1,6 @@
 # Workflow-to-workflow signals
 
-In Temporal, signals can be sent from one workflow to another workflow in the
+Signals can be sent from one workflow to another workflow in the
 same namespace via the language's Temporal SDK API.
 
 # Detailed spec

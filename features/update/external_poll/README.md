@@ -1,6 +1,6 @@
 # Update a workflow from a gRPC client and poll for a response
 
-In Temporal we can invoke a registered workflow update function and indicate
+We can invoke a registered workflow update function and indicate
 that the client will poll the server for the result of the workflow update at
 some point in the future. The server will preserve the result of the update
 function and return it as the result of the poll call.

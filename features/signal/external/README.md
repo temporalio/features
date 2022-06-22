@@ -1,6 +1,6 @@
 # Signals can be sent to a workflow execution from non-workflow code
 
-In Temporal, signals can be sent to a workflow execution from any gRPC client,
+Signals can be sent to a workflow execution from any gRPC client,
 not necessarily another workflow.
 
 # Detailed spec

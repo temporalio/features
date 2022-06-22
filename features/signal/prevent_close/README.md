@@ -1,6 +1,6 @@
 # Pending signals prevents workflows from closing
 
-In Temporal, any pending signal for a given workflow execution will prevent that
+Any pending signal for a given workflow execution will prevent that
 workflow execution from completing.
 
 This feature tests that a signal queued for processing at the time that a

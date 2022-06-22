@@ -1,6 +1,6 @@
 # Signal with start
 
-In Temporal, one can send a signal that will start a workflow execution if the
+One can send a signal that will start a workflow execution if the
 specified workflow execution is not already running. In such cases the signal is
 immediately delivered to the newly started workflow.
 

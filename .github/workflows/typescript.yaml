@@ -12,7 +12,7 @@ on:
         default: 'main'
 
 jobs:
-  build-ts:
+  test:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -53,13 +53,6 @@ jobs:
         run: go build
         working-directory: ./sdk-features
 
-      - name: Get Temporal docker-compose.yml
-        run: wget https://raw.githubusercontent.com/temporalio/docker-compose/v1.13.0/docker-compose.yml
-      - name: Start Temporal Server
-        run: docker-compose up -d
-      - name: Wait for Temporal Server
-        run: npm run wait-namespace
-
       - name: Run SDK-features tests
-        run: go run . run --lang ts --server localhost:7233 --namespace default --version "$(realpath ../sdk-ts)"
+        run: go run . run --lang ts --version "$(realpath ../sdk-ts)"
         working-directory: ./sdk-features

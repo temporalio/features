@@ -20,12 +20,8 @@ async function run() {
 
   console.log('Running TypeScript SDK version ' + pkg.version, 'against', opts.server);
 
-  // Install core with our address and namespace
-  const logger = new DefaultLogger('DEBUG');
-  Runtime.install({
-    logger,
-    telemetryOptions: { logForwardingLevel: 'OFF' },
-  });
+  // Set logging to debug
+  Runtime.install({ logger: new DefaultLogger('DEBUG') });
 
   // Collect all feature sources
   const featureRootDir = path.join(__dirname, '../../features');

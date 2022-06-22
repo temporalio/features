@@ -50,7 +50,8 @@ jobs:
   feature-tests-go:
     # GH actions is a bit limited here and won't accept the current ref.
     # When changing go.yaml, make sure to update the branch name below.
-    uses: temporalio/sdk-features/.github/workflows/go.yaml@main
+    # uses: temporalio/sdk-features/.github/workflows/go.yaml@main
+    uses: cretz/temporal-sdk-features/.github/workflows/go.yaml@update-sdk
     with:
       go-repo-path: temporalio/sdk-go
       go-repo-ref: master

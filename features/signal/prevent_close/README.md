@@ -10,9 +10,10 @@ signal has been delivered and processed.
 # Detailed spec
 
 In most cases, having run the workflow function to completion, the SDK will send
-a `RespondWorkflowTaskCompletedRequest` to the server containing a command of
-type `COMMAND_TYPE_COMPLETE_WORKFLOW_EXECUTION` to indicate that the workflow
-execution should complete. However, if the server has a pending signal it must
-refuse to end the workflow execution and return an error from the
-`RespondWorkflowTaskComplete` call. The SDK will evict the workflow and replay
-it, finding and delivering the pending signal in the process.
+a `RespondWorkflowTaskCompletedRequest` to the server containing a command that
+completes the workflow (most often `COMMAND_TYPE_COMPLETE_WORKFLOW_EXECUTION`)
+to indicate that the workflow execution should complete. However, if the server
+has a pending signal it must refuse to end the workflow execution and return an
+error from the `RespondWorkflowTaskComplete` call. The SDK will evict the
+workflow and replay it, finding and delivering the pending signal in the
+process.

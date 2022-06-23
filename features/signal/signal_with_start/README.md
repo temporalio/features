@@ -16,4 +16,5 @@ existing workflow execution with the supplied workflow ID and run ID. If that
 workflow execution does not exist then it is started. The first event for the
 new workflow other than the workflow-started event will be the signal-received
 event and consequently the signal will be delivered to the workflow immediately
-after it is started.
+after it is started. If the referenced workflow already exists, the signal is
+delivered as though `SignalWorkflowExecution` were called.

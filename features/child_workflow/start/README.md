@@ -9,4 +9,11 @@ This feature:
 
 # Detailed spec
 
-TODO
+Worker sends the start command to the Server, which creates these two events:
+
+```
+WorkflowTaskCompleted
+StartChildWorkflowExecutionInitiated
+```
+
+and then responds to the Worker, and then the start call completes.

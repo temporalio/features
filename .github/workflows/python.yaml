@@ -1,0 +1,64 @@
+name: Python Features Testing
+on:
+  workflow_call:
+    inputs:
+      python-repo-path:
+        required: true
+        type: string
+        default: 'temporalio/sdk-python'
+      python-repo-ref:
+        required: true
+        type: string
+        default: 'main'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./sdk-python
+    steps:
+      - name: Print git info
+        run: 'echo head_ref: ${{ github.head_ref }}, ref: ${{ github.ref }}, python repo ref: ${{ inputs.python-repo-ref }}'
+        working-directory: '.'
+
+      - name: Checkout SDK features repo
+        uses: actions/checkout@v2
+        with:
+          # Weirdly, this must be specified otherwise if the workflow is re-used from an sdk repo
+          # this will just check out the SDK repo.
+          repository: temporalio/sdk-features
+          path: sdk-features
+      - name: Checkout Python SDK repo
+        uses: actions/checkout@v2
+        with:
+          repository: ${{ inputs.python-repo-path }}
+          submodules: recursive
+          path: sdk-python
+          ref: ${{ inputs.python-repo-ref }}
+
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '^1.17'
+
+      # Build SDK
+      - uses: Swatinem/rust-cache@v1
+      - uses: actions/setup-python@v1
+        with:
+          python-version: '3.10'
+      - run: python -m pip install --upgrade wheel poetry poethepoet
+        working-directory: sdk-python
+      - run: poetry install --no-root
+        working-directory: sdk-python
+      - run: poetry build
+        working-directory: sdk-python
+      - run: poe fix-wheel
+        working-directory: sdk-python
+
+      - name: Build sdk-features go
+        run: go build
+        working-directory: ./sdk-features
+
+      - name: Run SDK-features tests
+        run: go run . run --lang py --version "$(realpath ../sdk-python)"
+        working-directory: ./sdk-features

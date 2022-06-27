@@ -39,6 +39,23 @@ jobs:
       - run: npm run build
       - run: npm run lint
 
+  build-python:
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-latest] #  windows-latest - like 8x slower. Excluded for now since we're just building.
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Print build information
+        run: 'echo head_ref: ${{ github.head_ref }}, ref: ${{ github.ref }}, os: ${{ matrix.os }}'
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v1
+        with:
+          python-version: '3.10'
+      - run: python -m pip install --upgrade wheel poetry poethepoet
+      - run: poetry install --no-root
+      - run: poe lint
+
   feature-tests-ts:
     # GH actions is a bit limited here and won't accept the current ref.
     # When changing typescript.yaml, make sure to update the branch name below.
@@ -54,6 +71,14 @@ jobs:
     with:
       go-repo-path: temporalio/sdk-go
       go-repo-ref: master
+
+  feature-tests-python:
+    # GH actions is a bit limited here and won't accept the current ref.
+    # When changing python.yaml, make sure to update the branch name below.
+    uses: cretz/temporal-sdk-features/.github/workflows/python.yaml@python
+    with:
+      python-repo-path: temporalio/sdk-python
+      python-repo-ref: main
 
   build-java:
     strategy:

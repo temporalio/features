@@ -15,10 +15,14 @@ async def run():
     parser = argparse.ArgumentParser()
     parser.add_argument("--server", help="The host:port of the server", required=True)
     parser.add_argument("--namespace", help="The namespace to use", required=True)
+    parser.add_argument("--log-level", help="Log level", default="INFO")
     parser.add_argument(
         "features", help="Features as dir + ':' + task queue", nargs="+"
     )
     args = parser.parse_args()
+
+    # Configure logging
+    logging.basicConfig(level=getattr(logging, args.log_level.upper()))
 
     # Collect all feature paths
     root_dir = Path(__file__, "../../../features").resolve()
@@ -42,9 +46,12 @@ async def run():
         if rel_dir not in features:
             raise ValueError(f"Cannot find registered feature for {rel_dir}")
         # Run
+        address = args.server
+        if "://" not in address:
+            address = f"http://{address}"
         try:
             await Runner(
-                address=args.server,
+                address=address,
                 namespace=args.namespace,
                 task_queue=task_queue,
                 feature=features[rel_dir],

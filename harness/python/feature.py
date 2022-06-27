@@ -64,7 +64,7 @@ class Runner:
         self.feature = feature
 
     async def run(self) -> None:
-        logger.debug("Executing feature %s", self.feature.rel_dir)
+        logger.info("Executing feature %s", self.feature.rel_dir)
 
         # Connect client
         self.client = await Client.connect(self.address, namespace=self.namespace)

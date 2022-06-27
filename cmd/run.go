@@ -51,7 +51,7 @@ func (r *RunConfig) flags() []cli.Flag {
 	return []cli.Flag{
 		&cli.StringFlag{
 			Name:        "lang",
-			Usage:       "SDK language to run ('go' or 'java' or 'ts')",
+			Usage:       "SDK language to run ('go' or 'java' or 'ts' or 'python')",
 			Required:    true,
 			Destination: &r.Lang,
 		},
@@ -113,8 +113,8 @@ func NewRunner(config RunConfig) *Runner {
 // Run runs all matching features for the given patterns (or all if no patterns
 // given).
 func (r *Runner) Run(ctx context.Context, patterns []string) error {
-	if r.config.Lang != "go" && r.config.Lang != "java" && r.config.Lang != "ts" {
-		return fmt.Errorf("invalid language %q, must be one of: go or java or ts", r.config.Lang)
+	if r.config.Lang != "go" && r.config.Lang != "java" && r.config.Lang != "ts" && r.config.Lang != "python" {
+		return fmt.Errorf("invalid language %q, must be one of: go or java or ts or python", r.config.Lang)
 	}
 
 	// Cannot generate history if a version isn't provided explicitly
@@ -191,6 +191,8 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 		err = r.RunJavaExternal(ctx, run)
 	case "ts":
 		err = r.RunTypeScriptExternal(ctx, run)
+	case "python":
+		err = r.RunPythonExternal(ctx, run)
 	default:
 		err = fmt.Errorf("unrecognized language")
 	}

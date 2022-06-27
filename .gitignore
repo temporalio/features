@@ -12,3 +12,6 @@ build
 node_modules
 /temp-ts-proj*/
 /tslib/
+
+# Python stuff
+__pycache__

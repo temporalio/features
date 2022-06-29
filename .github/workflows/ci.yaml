@@ -75,7 +75,7 @@ jobs:
   feature-tests-python:
     # GH actions is a bit limited here and won't accept the current ref.
     # When changing python.yaml, make sure to update the branch name below.
-    uses: cretz/temporal-sdk-features/.github/workflows/python.yaml@python
+    uses: ./.github/workflows/python.yaml
     with:
       python-repo-path: temporalio/sdk-python
       python-repo-ref: main

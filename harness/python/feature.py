@@ -30,7 +30,8 @@ def register_feature(
         file = inspect.stack()[1].filename
     # Split the file path to get the last two dirs if present
     parts = Path(file).parts
-    assert len(parts) >= 3, "Expected at least three parts to the file path"
+    if len(parts) <= 3:
+        raise ValueError(f"Expected at least 3 path parts to file: {file}")
     rel_dir = f"{parts[-3]}/{parts[-2]}"
     features[rel_dir] = Feature(
         file=file,

@@ -5,13 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"go.temporal.io/sdk-features/harness/go/cmd"
-	"go.temporal.io/server/common/log/tag"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"text/template"
+
+	"go.temporal.io/sdk-features/harness/go/cmd"
+	"go.temporal.io/server/common/log/tag"
 )
 
 type packageJSONDetails struct {
@@ -111,9 +112,6 @@ func (r *Runner) RunTypeScriptExternal(ctx context.Context, run *cmd.Run) error 
 	// Run the harness
 	runArgs := []string{"run", "start", "--",
 		"--server", r.config.Server, "--namespace", r.config.Namespace}
-	if localSDK != "" {
-		runArgs = append(runArgs, "--node-modules-path", filepath.Join(localSDK, "node_modules"))
-	}
 	runArgs = append(runArgs, run.ToArgs()...)
 	npmRun := exec.CommandContext(ctx, "npm", runArgs...)
 	npmRun.Dir = tempDir

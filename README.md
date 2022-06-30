@@ -31,8 +31,8 @@ Command:
 
 Note, `go run .` can be used in place of `go build` + `sdk-features` to save on the build step.
 
-`LANG` can be `go`, `java`, or `ts`. `VERSION` is per SDK and if left off, uses the latest version set for the language
-in this repository.
+`LANG` can be `go`, `java`, `ts`, or `py`. `VERSION` is per SDK and if left off, uses the latest version set for the
+language in this repository.
 
 `PATTERN` must match either the features relative directory _or_ the relative directory + `/feature.<ext>` via
 [Go path match rules](https://pkg.go.dev/path#Match) which notably does not include recursive depth matching. If
@@ -83,9 +83,10 @@ There are also files in the `history/` subdirectory which contain history files 
   * No need to over-assert on a bunch of values, just confirm that the feature does what is expected via its output.
 * A Go feature should be in `feature.go`.
   * For incompatible versions, different files like `feature_pre1.11.0.go` can be present using build tags
-* A Java feature in `feature.java`.
+* A Java feature should be in `feature.java`.
 * A TypeScript feature should be in `feature.ts` for all non-workflow code and `feature.workflow.ts` for all workflow
   code.
+* A Python feature should be in `feature.py`.
 * Add a README.md to each feature directory.
   * README should have a title summarizing the feature (only first letter needs to be in title case), then a short
     paragraph explaining the feature and its purpose, and then optionally another paragraph explaining details of the

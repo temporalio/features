@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -39,7 +40,16 @@ func (r *Runner) RunPythonExternal(ctx context.Context, run *cmd.Run) error {
 			} else if len(wheels) != 1 {
 				return fmt.Errorf("expected single dist wheel, found %v", len(wheels))
 			}
-			versionStr = "{ path = " + strconv.Quote(wheels[0]) + " }"
+			absWheel, err := filepath.Abs(wheels[0])
+			if err != nil {
+				return fmt.Errorf("unable to make wheel path absolute: %w", err)
+			}
+			// There's a strange bug in Poetry or somewhere deeper where, on Windows,
+			// the single drive letter has to be capitalized
+			if runtime.GOOS == "windows" && absWheel[1] == ':' {
+				absWheel = strings.ToUpper(absWheel[:1]) + absWheel[1:]
+			}
+			versionStr = "{ path = " + strconv.Quote(absWheel) + " }"
 		}
 		pyProjectTOML := `
 [tool.poetry]
@@ -61,7 +71,7 @@ build-backend = "poetry.core.masonry.api"`
 		}
 
 		// Install
-		cmd := exec.CommandContext(ctx, "poetry", "install", "--no-dev", "--no-root")
+		cmd := exec.CommandContext(ctx, "poetry", "install", "--no-dev", "--no-root", "-v")
 		cmd.Dir = runDir
 		cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 		if err := cmd.Run(); err != nil {

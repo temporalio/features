@@ -65,16 +65,12 @@ jobs:
       typescript-repo-ref: main
 
   feature-tests-go:
-    # GH actions is a bit limited here and won't accept the current ref.
-    # When changing go.yaml, make sure to update the branch name below.
-    uses: temporalio/sdk-features/.github/workflows/go.yaml@main
+    uses: ./.github/workflows/go.yaml
     with:
       go-repo-path: temporalio/sdk-go
       go-repo-ref: master
 
   feature-tests-python:
-    # GH actions is a bit limited here and won't accept the current ref.
-    # When changing python.yaml, make sure to update the branch name below.
     uses: ./.github/workflows/python.yaml
     with:
       python-repo-path: temporalio/sdk-python

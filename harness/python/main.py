@@ -27,10 +27,8 @@ async def run():
     # Collect all feature paths
     root_dir = Path(__file__, "../../../features").resolve()
     rel_dirs = sorted(
-        [
-            v.relative_to(root_dir).parent.as_posix()
-            for v in root_dir.glob("**/feature.py")
-        ]
+        v.relative_to(root_dir).parent.as_posix()
+        for v in root_dir.glob("**/feature.py")
     )
 
     # Run each feature

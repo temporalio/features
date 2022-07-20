@@ -5,6 +5,7 @@ import io.temporal.common.metadata.POJOWorkflowImplMetadata;
 public class PreparedFeature {
 
   static PreparedFeature[] ALL = PreparedFeature.prepareFeatures(
+          activity.cancel_try_cancel.feature.Impl.class,
           activity.retry_on_error.feature.Impl.class
   );
 

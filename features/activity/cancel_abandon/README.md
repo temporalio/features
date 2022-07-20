@@ -13,3 +13,6 @@ cancelled
   immediately unblocks, the activity result being cancelled.
 * Nothing is sent to the server, the activity worker never is notified of the
   cancellation attempt
+
+
+**NOTE:** This feature does not exist in the Go SDK

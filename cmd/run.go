@@ -113,7 +113,15 @@ func NewRunner(config RunConfig) *Runner {
 // Run runs all matching features for the given patterns (or all if no patterns
 // given).
 func (r *Runner) Run(ctx context.Context, patterns []string) error {
-	if r.config.Lang != "go" && r.config.Lang != "java" && r.config.Lang != "ts" && r.config.Lang != "py" {
+	switch r.config.Lang {
+	case "go", "java", "ts", "py":
+		// Allow the full typescript or python word, but we need to match the file
+		// extension for the rest of run
+	case "typescript":
+		r.config.Lang = "ts"
+	case "python":
+		r.config.Lang = "py"
+	default:
 		return fmt.Errorf("invalid language %q, must be one of: go or java or ts or py", r.config.Lang)
 	}
 

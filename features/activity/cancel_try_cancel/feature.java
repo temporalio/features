@@ -18,8 +18,6 @@ import io.temporal.workflow.*;
 
 import java.time.Duration;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
 @ActivityInterface
@@ -31,11 +29,10 @@ public interface feature extends Feature, SimpleWorkflow {
   void cancellableActivity();
 
   class Impl implements feature {
-    private CompletablePromise<String> activityResult;
+    private String activityResult;
 
     @Override
     public void workflow() {
-      activityResult = Workflow.newPromise();
       var activities = activities(feature.class, builder -> builder
               .setScheduleToCloseTimeout(Duration.ofMinutes(1))
               .setHeartbeatTimeout(Duration.ofSeconds(5))
@@ -57,7 +54,7 @@ public interface feature extends Feature, SimpleWorkflow {
       scope.cancel();
       try {
         activityPromise.get().get();
-        throw ApplicationFailure.newFailure("No error", "NoError");
+        throw ApplicationFailure.newFailure("Activity should have thrown cancellation error", "NoError");
       } catch (ActivityFailure e) {
         if (!(e.getCause() instanceof CanceledFailure)) {
           throw e;
@@ -65,19 +62,15 @@ public interface feature extends Feature, SimpleWorkflow {
       }
 
       // Confirm activity was cancelled
-      try {
-        var result = activityResult.get(10, TimeUnit.SECONDS);
-        if (!"cancelled".equals(result)) {
-          throw ApplicationFailure.newFailure("Expected cancelled, got: " + result, "BadResult");
-        }
-      } catch (TimeoutException e) {
-        throw ApplicationFailure.newFailureWithCause("Timeout", "Timeout", e);
+      Workflow.await(() -> activityResult != null);
+      if (!"cancelled".equals(activityResult)) {
+        throw ApplicationFailure.newFailure("Expected cancelled, got: " + activityResult, "BadResult");
       }
     }
 
     @Override
     public void activityResult(String result) {
-      activityResult.complete(result);
+      activityResult = result;
     }
 
     private WorkflowClient client;

@@ -35,7 +35,7 @@ export async function workflow(): Promise<void> {
       CancellationScope.current().cancel();
       await actPromise;
     });
-    throw new Error('No error');
+    throw new Error('Activity should have thrown cancellation error');
   } catch (e) {
     // Confirm the activity was cancelled
     if (!(e instanceof ActivityFailure) || !(e.cause instanceof CancelledFailure)) {
@@ -45,9 +45,7 @@ export async function workflow(): Promise<void> {
   }
 
   // Confirm signal is received saying the activity got the cancel
-  let activityResult: string | undefined;
-  setHandler(activityResultSignal, (v) => void (activityResult = v));
-  await condition(() => !!activityResult, 10000);
+  const activityResult = await new Promise<string>((resolve) => setHandler(activityResultSignal, resolve));
   if (activityResult != 'cancelled') {
     throw ApplicationFailure.nonRetryable(`Expected cancelled, got ${activityResult}`);
   }

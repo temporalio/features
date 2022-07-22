@@ -170,6 +170,7 @@ export class Runner<W extends Workflow, A extends ActivityInterface> {
     return await this.client.start<() => any>(workflow, {
       taskQueue: this.options.taskQueue,
       workflowId: this.source.relDir + '-' + uuidv4(),
+      workflowExecutionTimeout: 60000,
     });
   }
 

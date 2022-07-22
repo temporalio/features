@@ -34,15 +34,13 @@ class Workflow:
         handle.cancel()
         try:
             await handle
-            raise ApplicationError("No error")
+            raise ApplicationError("Activity should have thrown cancellation error")
         except ActivityError as err:
             if not isinstance(err.cause, CancelledError):
                 raise ApplicationError("Expected activity cancel") from err
 
         # Confirm signal is cancelled
-        await workflow.wait_condition(
-            lambda: self._activity_result is not None, timeout=10
-        )
+        await workflow.wait_condition(lambda: self._activity_result is not None)
         if self._activity_result != "cancelled":
             raise ApplicationError(f"Expected cancelled, got {self._activity_result}")
 

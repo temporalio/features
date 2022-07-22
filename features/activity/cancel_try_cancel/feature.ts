@@ -28,7 +28,7 @@ async function cancellableActivity() {
   for (let i = 0; i < 60; i++) {
     // Wait for a second or until cancelled
     try {
-      await Promise.race([Context.current().sleep(1000), Context.current().cancelled]);
+      await Context.current().sleep(1000);
     } catch (e) {
       // Exit loop if cancelled or rethrow if other error
       if (e instanceof CancelledFailure) {
@@ -37,7 +37,6 @@ async function cancellableActivity() {
       }
       throw e;
     }
-    await Context.current().sleep(1000);
 
     // Heartbeat
     Context.current().heartbeat();

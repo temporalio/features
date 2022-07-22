@@ -14,7 +14,7 @@ immediately should proceed with the activity result being cancelled.
 * The workflow immediately resolves the activity with its result being cancelled
 * Server will notify the activity cancellation has been requested via a response
   to activity heartbeating
-* The activity may ignore the cancellation request if it explicitly chooses to do
+* The activity may ignore the cancellation request if it explicitly chooses to
 
 ## Feature implementation
 

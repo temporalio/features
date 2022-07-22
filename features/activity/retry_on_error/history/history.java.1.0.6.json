@@ -14,8 +14,8 @@
             "name": "sdk-features-activity/retry_on_error-e61e3c9a-61a8-4713-ad90-1b3d68351cc0",
             "kind": "Normal"
           },
-          "workflowExecutionTimeout": "0s",
-          "workflowRunTimeout": "0s",
+          "workflowExecutionTimeout": "60s",
+          "workflowRunTimeout": "60s",
           "workflowTaskTimeout": "10s",
           "originalExecutionRunId": "4182981a-a0b3-473b-9d90-12e3380bfde6",
           "identity": "20044@cretz-laptop",

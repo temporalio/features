@@ -4,6 +4,7 @@ import inspect
 import logging
 import uuid
 from dataclasses import dataclass
+from datetime import timedelta
 from pathlib import Path
 from typing import Awaitable, Callable, Dict, List, Optional, Type
 
@@ -102,6 +103,7 @@ class Runner:
             defn.name,
             id=f"{self.feature.rel_dir}-{uuid.uuid4()}",
             task_queue=self.task_queue,
+            execution_timeout=timedelta(minutes=1),
         )
 
     async def check_result(self, handle: WorkflowHandle) -> None:

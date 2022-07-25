@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -125,8 +126,10 @@ public class Runner implements Closeable {
   }
 
   public WorkflowExecution executeWorkflow(String workflowType, Object... args) {
-    var stub = client.newUntypedWorkflowStub(workflowType,
-            WorkflowOptions.newBuilder().setTaskQueue(config.taskQueue).build());
+    var stub = client.newUntypedWorkflowStub(workflowType, WorkflowOptions.newBuilder()
+            .setTaskQueue(config.taskQueue)
+            .setWorkflowExecutionTimeout(Duration.ofMinutes(1))
+            .build());
     return stub.start(args);
   }
 

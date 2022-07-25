@@ -97,19 +97,19 @@ export class Runner<W extends Workflow, A extends ActivityInterface> {
     });
 
     // Create a connection for the Worker
-    const nativeConn = await NativeConnection.create({
+    const nativeConn = await NativeConnection.connect({
       address: options.address,
     });
 
     // Create and start the worker
-    const workflowsPath =
-      feature.options.workflowsPath ?? require.resolve(path.join(source.absDir, 'feature.workflow.js'));
+    const workflowsPath = feature.options.workflowsPath ?? require.resolve(path.join(source.absDir, 'feature.js'));
     const workerOpts: WorkerOptions = {
       connection: nativeConn,
       namespace: options.namespace,
       workflowsPath,
       activities: feature.activities,
       taskQueue: options.taskQueue,
+      bundlerOptions: { ignoreModules: ['@temporalio/activity', '@temporalio/client', '@temporalio/harness'] },
     };
     const worker = await Worker.create(workerOpts);
     const workerRunPromise = (async () => {

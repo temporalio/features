@@ -100,8 +100,10 @@ func NewRunner(config RunnerConfig, feature *PreparedFeature) (*Runner, error) {
 	return r, nil
 }
 
-// Run executes a single feature.
+// Run executes a single feature and then closes the worker/client.
 func (r *Runner) Run(ctx context.Context) error {
+	defer r.Close()
+
 	// Do normal run
 	r.Log.Debug("Executing feature", "Feature", r.Feature.Dir)
 	var run client.WorkflowRun
@@ -140,8 +142,8 @@ func (r *Runner) Run(ctx context.Context) error {
 // ExecuteDefault is the default execution that just runs the first workflow and
 // assumes it takes no parameters.
 func (r *Runner) ExecuteDefault(ctx context.Context) (client.WorkflowRun, error) {
-	return r.Client.ExecuteWorkflow(ctx,
-		client.StartWorkflowOptions{TaskQueue: r.TaskQueue}, r.Feature.Workflows[0])
+	opts := client.StartWorkflowOptions{TaskQueue: r.TaskQueue, WorkflowExecutionTimeout: 1 * time.Minute}
+	return r.Client.ExecuteWorkflow(ctx, opts, r.Feature.Workflows[0])
 }
 
 // CheckResultDefault performs the default result checks which just waits on
@@ -164,6 +166,8 @@ func (r *Runner) CheckResultDefault(ctx context.Context, run client.WorkflowRun)
 		} else if !r.Assert.EqualError(actErr.Unwrap(), r.Feature.ExpectActivityError) {
 			return fmt.Errorf("activity error string mismatch, error: %w", err)
 		}
+	} else if err != nil {
+		return fmt.Errorf("expected success, got: %w", err)
 	}
 
 	// If result is expected, check it

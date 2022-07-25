@@ -1,11 +1,16 @@
-import { Connection, WorkflowClient, WorkflowHandleWithFirstExecutionRunId } from '@temporalio/client';
-import { ActivityInterface, Workflow, WorkflowResultType } from '@temporalio/common';
-import { Worker, WorkerOptions, NativeConnection } from '@temporalio/worker';
+import { randomUUID } from 'node:crypto';
+import { Connection, WorkflowClient, WorkflowHandleWithFirstExecutionRunId, WorkflowHandle } from '@temporalio/client';
+import * as proto from '@temporalio/proto';
+import { JSONPayload, Payload } from '@temporalio/common/lib/proto-utils';
+import { UntypedActivities, Workflow, WorkflowResultType } from '@temporalio/common';
+import { Worker, WorkerOptions, NativeConnection, appendDefaultInterceptors } from '@temporalio/worker';
 import { promises as fs } from 'fs';
 import * as path from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import { ConnectionInjectorInterceptor } from './activity-interceptors';
 
-export interface FeatureOptions<W extends Workflow, A extends ActivityInterface> {
+export { getConnection, getWorkflowClient, Context } from './activity-interceptors';
+
+export interface FeatureOptions<W extends Workflow, A extends UntypedActivities> {
   /**
    * Workflow to execute. This defaults to `import(workflowsPath).workflow` if
    * unset.
@@ -41,10 +46,10 @@ export interface FeatureOptions<W extends Workflow, A extends ActivityInterface>
   checkHistory?: (runner: Runner<W, A>, handle: WorkflowHandleWithFirstExecutionRunId<W>) => Promise<void>;
 }
 
-export class Feature<W extends Workflow, A extends ActivityInterface> {
+export class Feature<W extends Workflow, A extends UntypedActivities> {
   constructor(readonly options: FeatureOptions<W, A>) {}
 
-  public get activities(): A | ActivityInterface {
+  public get activities(): A | UntypedActivities {
     return this.options.activities ?? {};
   }
 }
@@ -70,7 +75,7 @@ export class FeatureSource {
     readonly absDir: string
   ) {}
 
-  loadFeature<W extends Workflow, A extends ActivityInterface>(): Feature<W, A> {
+  loadFeature<W extends Workflow, A extends UntypedActivities>(): Feature<W, A> {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     return require(path.join(this.absDir, 'feature.js')).feature;
   }
@@ -82,8 +87,8 @@ export interface RunnerOptions {
   taskQueue: string;
 }
 
-export class Runner<W extends Workflow, A extends ActivityInterface> {
-  static async create(source: FeatureSource, options: RunnerOptions): Promise<Runner<Workflow, ActivityInterface>> {
+export class Runner<W extends Workflow, A extends UntypedActivities> {
+  static async create(source: FeatureSource, options: RunnerOptions): Promise<Runner<Workflow, UntypedActivities>> {
     // Load the feature
     const feature = source.loadFeature();
 
@@ -97,19 +102,22 @@ export class Runner<W extends Workflow, A extends ActivityInterface> {
     });
 
     // Create a connection for the Worker
-    const nativeConn = await NativeConnection.create({
+    const nativeConn = await NativeConnection.connect({
       address: options.address,
     });
 
     // Create and start the worker
-    const workflowsPath =
-      feature.options.workflowsPath ?? require.resolve(path.join(source.absDir, 'feature.workflow.js'));
+    const workflowsPath = feature.options.workflowsPath ?? require.resolve(path.join(source.absDir, 'feature.js'));
     const workerOpts: WorkerOptions = {
       connection: nativeConn,
       namespace: options.namespace,
       workflowsPath,
       activities: feature.activities,
       taskQueue: options.taskQueue,
+      bundlerOptions: { ignoreModules: ['@temporalio/activity', '@temporalio/client', '@temporalio/harness'] },
+      interceptors: appendDefaultInterceptors({
+        activityInbound: [() => new ConnectionInjectorInterceptor(connection, client)],
+      }),
     };
     const worker = await Worker.create(workerOpts);
     const workerRunPromise = (async () => {
@@ -169,7 +177,8 @@ export class Runner<W extends Workflow, A extends ActivityInterface> {
     const workflow = this.feature.options.workflow ?? 'workflow';
     return await this.client.start<() => any>(workflow, {
       taskQueue: this.options.taskQueue,
-      workflowId: this.source.relDir + '-' + uuidv4(),
+      workflowId: `${this.source.relDir}-${randomUUID()}`,
+      workflowExecutionTimeout: 60000,
     });
   }
 
@@ -183,5 +192,37 @@ export class Runner<W extends Workflow, A extends ActivityInterface> {
     this.worker.shutdown();
     await this.workerRunPromise;
     await this.nativeConnection.close();
+  }
+
+  /**
+   * Temporary workaround for the buggy implmentation of this method in the SDK.
+   * TODO(bergundy): remove this when SDK issue is fixed (https://github.com/temporalio/sdk-typescript/issues/773)
+   */
+  payloadToJSON({ metadata, data }: Payload): JSONPayload {
+    return {
+      metadata:
+        metadata &&
+        Object.fromEntries(
+          Object.entries(metadata).map(([k, v]): [string, string] => [k, Buffer.from(v).toString('base64')])
+        ),
+      data: data ? Buffer.from(data).toString('base64') : undefined,
+    };
+  }
+
+  async getHistoryEvents(handle: WorkflowHandle): Promise<proto.temporal.api.history.v1.IHistoryEvent[]> {
+    let nextPageToken: Uint8Array | undefined = undefined;
+    const history = Array<proto.temporal.api.history.v1.IHistoryEvent>();
+    for (;;) {
+      const response: proto.temporal.api.workflowservice.v1.GetWorkflowExecutionHistoryResponse =
+        await this.client.connection.workflowService.getWorkflowExecutionHistory({
+          nextPageToken,
+          namespace: this.options.namespace,
+          execution: { workflowId: handle.workflowId },
+        });
+      history.push(...(response.history?.events ?? []));
+      if (response.nextPageToken == null || response.nextPageToken.length === 0) break;
+      nextPageToken = response.nextPageToken;
+    }
+    return history;
   }
 }

@@ -3,7 +3,9 @@
 Failed activities can retry in a number of ways. This is configurable by retry policies that govern if and
 how a failed activity may retry.
 
-This feature contains an activity that always fails. It is started with a retry policy that does not backoff and only
-retries 4 times for a total attempt count of 5. It is then confirmed that only 5 attempts were made before the activity
-error bubbled up through the workflow.
+## Feature implementation
 
+* Workflow executes activity with 5 max attempts and low backoff
+* Activity errors every time with the attempt that failed
+* Workflow waits on activity and re-bubbles its same error
+* Confirm the right attempt error message is present

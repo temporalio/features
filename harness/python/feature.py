@@ -1,13 +1,19 @@
 from __future__ import annotations
 
+import base64
 import inspect
+import json
 import logging
 import uuid
 from dataclasses import dataclass
+from datetime import timedelta
 from pathlib import Path
-from typing import Awaitable, Callable, Dict, List, Optional, Type
+from typing import Awaitable, Callable, Dict, List, Mapping, Optional, Type, TypedDict
 
 from temporalio import workflow
+from temporalio.api.workflowservice.v1 import GetWorkflowExecutionHistoryRequest
+from temporalio.api.common.v1 import Payload, WorkflowExecution
+from temporalio.api.history.v1 import HistoryEvent
 from temporalio.client import Client, WorkflowFailureError, WorkflowHandle
 from temporalio.exceptions import ActivityError, ApplicationError
 from temporalio.worker import Worker
@@ -102,6 +108,7 @@ class Runner:
             defn.name,
             id=f"{self.feature.rel_dir}-{uuid.uuid4()}",
             task_queue=self.task_queue,
+            execution_timeout=timedelta(minutes=1),
         )
 
     async def check_result(self, handle: WorkflowHandle) -> None:
@@ -119,3 +126,38 @@ class Runner:
                     raise TypeError("Unexpected activity error") from err
             else:
                 raise err
+
+    async def get_history_events(self, handle: WorkflowHandle) -> list[HistoryEvent]:
+        next_page_token = b''
+        history: list[HistoryEvent] = []
+        request = GetWorkflowExecutionHistoryRequest()
+        request.namespace = self.namespace
+        request.execution.workflow_id = handle.id
+
+        while True:
+            request.next_page_token = next_page_token
+            response = await self.client.service.get_workflow_execution_history(request)
+            history.extend(response.history.events)
+            next_page_token = response.next_page_token
+            if not next_page_token:
+                break
+        return history
+
+
+class JSONPayload(TypedDict):
+    """
+    JSON proto Payload representation.
+    data and metadata values are base64 encoded
+    """
+    metadata: Mapping[str, str]
+    data: str
+
+
+def to_json_payload(payload: Payload) -> JSONPayload:
+    """
+    Convert a proto Payload object to its JSON representation
+    """
+    return {
+        'data': base64.b64encode(payload.data).decode('ascii'),
+        'metadata': {k: base64.b64encode(v).decode('ascii') for k, v in payload.metadata.items()}
+    }

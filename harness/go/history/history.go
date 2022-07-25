@@ -171,6 +171,7 @@ func scrubRunSpecificScalars(v interface{}) {
 		v.OriginalExecutionRunId = ""
 		v.Identity = ""
 		v.FirstExecutionRunId = ""
+		v.WorkflowExecutionExpirationTime = nil
 	case *history.WorkflowExecutionCompletedEventAttributes:
 		// TODO(cretz): Do we want something to show it is set or not though?
 		v.NewExecutionRunId = ""

@@ -14,8 +14,8 @@
             "name": "sdk-features-telemetry/tally_metrics-be5d3a6d-a38b-4a18-8d59-ebf75c86999a",
             "kind": "Normal"
           },
-          "workflowExecutionTimeout": "0s",
-          "workflowRunTimeout": "0s",
+          "workflowExecutionTimeout": "60s",
+          "workflowRunTimeout": "60s",
           "workflowTaskTimeout": "10s",
           "originalExecutionRunId": "5f9839f5-430c-44d0-b43b-4d1c41b0820c",
           "identity": "16984@cretz-laptop@",

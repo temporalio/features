@@ -83,7 +83,7 @@ public class Runner implements Closeable {
       // Register workflow class and activity impl
       worker.registerWorkflowImplementationTypes(featureInfo.factoryClass);
       if(feature.getClass().isAnnotationPresent(ActivityInterface.class)) {
-          worker.registerActivitiesImplementations(feature);
+        worker.registerActivitiesImplementations(feature);
       }
 
       // Start the worker factory

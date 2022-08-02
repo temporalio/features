@@ -12,6 +12,7 @@ packages = [
 [tool.poetry.dependencies]
 python = "^3.7"
 temporalio = "^0.1a2"
+setuptools = "^63.3"
 
 [tool.poetry.dev-dependencies]
 mypy = "^0.961"

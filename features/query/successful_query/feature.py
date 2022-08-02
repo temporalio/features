@@ -3,12 +3,11 @@ from __future__ import annotations
 from temporalio import workflow
 from temporalio.client import WorkflowHandle
 
-from harness.python.feature import register_feature, Runner
+from harness.python.feature import Runner, register_feature
 
 
 @workflow.defn
 class Workflow:
-
     def __init__(self):
         self.counter = 0
         self.be_done = False
@@ -46,7 +45,4 @@ async def checker(_: Runner, handle: WorkflowHandle):
     await handle.result()
 
 
-register_feature(
-    workflows=[Workflow],
-    check_result=checker
-)
+register_feature(workflows=[Workflow], check_result=checker)

@@ -6,7 +6,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
-from typing import Awaitable, Callable, Dict, List, Optional, Type, Any
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Type
 
 from temporalio import workflow
 from temporalio.client import Client, WorkflowFailureError, WorkflowHandle
@@ -20,13 +20,13 @@ features: Dict[str, Feature] = {}
 
 def register_feature(
     *,
-        workflows: List[Type],
-        activities: List[Callable] = [],
-        expect_activity_error: Optional[str] = None,
-        expect_run_result: Optional[Any] = None,
-        file: Optional[str] = None,
-        start: Optional[Callable[[Runner], Awaitable[WorkflowHandle]]] = None,
-        check_result: Optional[Callable[[Runner, WorkflowHandle], Awaitable[None]]] = None,
+    workflows: List[Type],
+    activities: List[Callable] = [],
+    expect_activity_error: Optional[str] = None,
+    expect_run_result: Optional[Any] = None,
+    file: Optional[str] = None,
+    start: Optional[Callable[[Runner], Awaitable[WorkflowHandle]]] = None,
+    check_result: Optional[Callable[[Runner, WorkflowHandle], Awaitable[None]]] = None,
 ) -> None:
     if not file:
         file = inspect.stack()[1].filename
@@ -54,7 +54,7 @@ class Feature:
     workflows: List[Type]
     activities: List[Callable]
     expect_activity_error: Optional[str]
-    expect_run_result: Optional[Type]
+    expect_run_result: Optional[Any]
     start: Optional[Callable[[Runner], Awaitable[WorkflowHandle]]]
     check_result: Optional[Callable[[Runner, WorkflowHandle], Awaitable[None]]]
 

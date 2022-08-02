@@ -6,6 +6,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.uber.m3.tally.NoopScope;
 import com.uber.m3.tally.Scope;
+import io.temporal.activity.ActivityInterface;
 import io.temporal.api.common.v1.WorkflowExecution;
 import io.temporal.api.history.v1.History;
 import io.temporal.client.WorkflowClient;
@@ -81,7 +82,9 @@ public class Runner implements Closeable {
 
       // Register workflow class and activity impl
       worker.registerWorkflowImplementationTypes(featureInfo.factoryClass);
-      worker.registerActivitiesImplementations(feature);
+      if(feature.getClass().isAnnotationPresent(ActivityInterface.class)) {
+          worker.registerActivitiesImplementations(feature);
+      }
 
       // Start the worker factory
       workerFactory.start();

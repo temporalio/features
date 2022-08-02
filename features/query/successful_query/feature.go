@@ -10,26 +10,29 @@ import (
 var Feature = harness.Feature{
 	Workflows: Workflow,
 	CheckResult: func(ctx context.Context, r *harness.Runner, run client.WorkflowRun) error {
+		var qRes int
 		q1, err := r.Client.QueryWorkflow(ctx, run.GetID(), run.GetRunID(), "counterQ")
-		r.Assert.Nil(err)
-		r.Assert.Equal(0, q1)
+		r.Assert.NoError(err)
+		r.Assert.NoError(q1.Get(&qRes))
+		r.Require.Equal(0, qRes)
 		err = r.Client.SignalWorkflow(ctx, run.GetID(), run.GetRunID(), "counterInc", nil)
-		r.Assert.Nil(err)
+		r.Assert.NoError(err)
 		q2, err := r.Client.QueryWorkflow(ctx, run.GetID(), run.GetRunID(), "counterQ")
-		r.Assert.Nil(err)
-		r.Assert.Equal(1, q2)
+		r.Assert.NoError(err)
+		r.Assert.NoError(q2.Get(&qRes))
+		r.Require.Equal(1, qRes)
 		err = r.Client.SignalWorkflow(ctx, run.GetID(), run.GetRunID(), "counterInc", nil)
-		r.Assert.Nil(err)
+		r.Assert.NoError(err)
 		err = r.Client.SignalWorkflow(ctx, run.GetID(), run.GetRunID(), "counterInc", nil)
-		r.Assert.Nil(err)
+		r.Assert.NoError(err)
 		err = r.Client.SignalWorkflow(ctx, run.GetID(), run.GetRunID(), "counterInc", nil)
-		r.Assert.Nil(err)
+		r.Assert.NoError(err)
 		q3, err := r.Client.QueryWorkflow(ctx, run.GetID(), run.GetRunID(), "counterQ")
-		r.Assert.Nil(err)
-		// TODO: Something isn't right with go runner. This should fail and it does not
-		r.Assert.Equal(50, q3)
+		r.Assert.NoError(err)
+		r.Assert.NoError(q3.Get(&qRes))
+		r.Require.Equal(4, qRes)
 		err = r.Client.SignalWorkflow(ctx, run.GetID(), run.GetRunID(), "counterInc", nil)
-		r.Assert.Nil(err)
+		r.Assert.NoError(err)
 		return r.CheckResultDefault(ctx, run)
 	},
 }

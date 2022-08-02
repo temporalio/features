@@ -6,7 +6,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
-from typing import Awaitable, Callable, Dict, List, Optional, Type
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Type
 
 from temporalio import workflow
 from temporalio.client import Client, WorkflowFailureError, WorkflowHandle
@@ -23,6 +23,7 @@ def register_feature(
     workflows: List[Type],
     activities: List[Callable] = [],
     expect_activity_error: Optional[str] = None,
+    expect_run_result: Optional[Any] = None,
     file: Optional[str] = None,
     start: Optional[Callable[[Runner], Awaitable[WorkflowHandle]]] = None,
     check_result: Optional[Callable[[Runner, WorkflowHandle], Awaitable[None]]] = None,
@@ -40,6 +41,7 @@ def register_feature(
         workflows=workflows,
         activities=activities,
         expect_activity_error=expect_activity_error,
+        expect_run_result=expect_run_result,
         start=start,
         check_result=check_result,
     )
@@ -52,6 +54,7 @@ class Feature:
     workflows: List[Type]
     activities: List[Callable]
     expect_activity_error: Optional[str]
+    expect_run_result: Optional[Any]
     start: Optional[Callable[[Runner], Awaitable[WorkflowHandle]]]
     check_result: Optional[Callable[[Runner, WorkflowHandle], Awaitable[None]]]
 
@@ -108,7 +111,10 @@ class Runner:
 
     async def check_result(self, handle: WorkflowHandle) -> None:
         try:
-            await handle.result()
+            result = await handle.result()
+            if self.feature.expect_run_result:
+                assert result == self.feature.expect_run_result
+
         except Exception as err:
             if self.feature.expect_activity_error:
                 if not isinstance(err, WorkflowFailureError):

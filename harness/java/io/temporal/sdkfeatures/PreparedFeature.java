@@ -5,9 +5,12 @@ import io.temporal.common.metadata.POJOWorkflowImplMetadata;
 public class PreparedFeature {
 
   static PreparedFeature[] ALL = PreparedFeature.prepareFeatures(
-          activity.cancel_try_cancel.feature.Impl.class,
-          activity.retry_on_error.feature.Impl.class,
-          signal.external.feature.Impl.class
+      activity.cancel_try_cancel.feature.Impl.class,
+      activity.retry_on_error.feature.Impl.class,
+      query.successful_query.feature.Impl.class,
+      activity.cancel_try_cancel.feature.Impl.class,
+      activity.retry_on_error.feature.Impl.class,
+      signal.external.feature.Impl.class
   );
 
   @SafeVarargs

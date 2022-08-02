@@ -22,6 +22,7 @@ func (r *Runner) RunPythonExternal(ctx context.Context, run *cmd.Run) error {
 	// use this directory.
 
 	runDir := r.rootDir
+	r.log.Info("Python version selected: " + r.config.Version)
 	if r.config.Version != "" {
 		// Put pyproject.toml in temp dir
 		var err error

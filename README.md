@@ -24,6 +24,9 @@ Prerequisites:
 * [Go](https://golang.org/) 1.17+
 * [JDK](https://adoptium.net/?variant=openjdk11&jvmVariant=hotspot) 11+
 * [Node](https://nodejs.org) 16+
+* [Python](https://www.python.org/) 3.10+
+  * [Poetry](https://python-poetry.org/)
+  * `setuptools`: `python -m pip install -U setuptools`
 
 Command:
 

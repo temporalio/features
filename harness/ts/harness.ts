@@ -1,11 +1,11 @@
 import { Connection, WorkflowClient, WorkflowHandleWithFirstExecutionRunId } from '@temporalio/client';
-import { ActivityInterface, Workflow, WorkflowResultType } from '@temporalio/common';
+import { UntypedActivities, Workflow, WorkflowResultType } from '@temporalio/common';
 import { Worker, WorkerOptions, NativeConnection } from '@temporalio/worker';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
-export interface FeatureOptions<W extends Workflow, A extends ActivityInterface> {
+export interface FeatureOptions<W extends Workflow, A extends UntypedActivities> {
   /**
    * Workflow to execute. This defaults to `import(workflowsPath).workflow` if
    * unset.
@@ -41,10 +41,10 @@ export interface FeatureOptions<W extends Workflow, A extends ActivityInterface>
   checkHistory?: (runner: Runner<W, A>, handle: WorkflowHandleWithFirstExecutionRunId<W>) => Promise<void>;
 }
 
-export class Feature<W extends Workflow, A extends ActivityInterface> {
+export class Feature<W extends Workflow, A extends UntypedActivities> {
   constructor(readonly options: FeatureOptions<W, A>) {}
 
-  public get activities(): A | ActivityInterface {
+  public get activities(): A | UntypedActivities {
     return this.options.activities ?? {};
   }
 }
@@ -70,7 +70,7 @@ export class FeatureSource {
     readonly absDir: string
   ) {}
 
-  loadFeature<W extends Workflow, A extends ActivityInterface>(): Feature<W, A> {
+  loadFeature<W extends Workflow, A extends UntypedActivities>(): Feature<W, A> {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     return require(path.join(this.absDir, 'feature.js')).feature;
   }
@@ -82,8 +82,8 @@ export interface RunnerOptions {
   taskQueue: string;
 }
 
-export class Runner<W extends Workflow, A extends ActivityInterface> {
-  static async create(source: FeatureSource, options: RunnerOptions): Promise<Runner<Workflow, ActivityInterface>> {
+export class Runner<W extends Workflow, A extends UntypedActivities> {
+  static async create(source: FeatureSource, options: RunnerOptions): Promise<Runner<Workflow, UntypedActivities>> {
     // Load the feature
     const feature = source.loadFeature();
 

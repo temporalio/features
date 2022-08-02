@@ -285,11 +285,11 @@ func (r *Runner) QueryUntilEventually(
 
 // Close closes this runner.
 func (r *Runner) Close() {
-	if r.Worker == nil {
+	if r.Worker != nil {
 		r.Worker.Stop()
 		r.Worker = nil
 	}
-	if r.Client == nil {
+	if r.Client != nil {
 		r.Client.Close()
 		r.Client = nil
 	}

@@ -23,7 +23,7 @@ export const feature =
     workflow,
     execute: async (runner) => {
       const handle = await runner.executeSingleParameterlessWorkflow();
-      handle.signal(externalSignal, signalData);
+      await handle.signal(externalSignal, signalData);
       return handle;
     },
     checkResult: async (runner, run) => {

@@ -18,6 +18,7 @@ func Execute() {
 func NewApp() *cli.App {
 	return &cli.App{
 		Commands: []*cli.Command{
+			prepareCmd(),
 			runCmd(),
 		},
 	}

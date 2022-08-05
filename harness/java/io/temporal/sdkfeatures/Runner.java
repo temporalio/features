@@ -28,10 +28,7 @@ import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 public class Runner implements Closeable {
   private static final Logger log = LoggerFactory.getLogger(Main.class);
@@ -80,9 +77,11 @@ public class Runner implements Closeable {
       feature.workerOptions(workerBuild);
       worker = workerFactory.newWorker(config.taskQueue, workerBuild.build());
 
-      // Register workflow class and activity impl
+      // Register workflow class
       worker.registerWorkflowImplementationTypes(featureInfo.factoryClass);
-      if(feature.getClass().isAnnotationPresent(ActivityInterface.class)) {
+
+      // Register activity impl if any direct interfaces have the annotation
+      if (Arrays.stream(feature.getClass().getInterfaces()).anyMatch(i -> i.isAnnotationPresent(ActivityInterface.class))) {
         worker.registerActivitiesImplementations(feature);
       }
 

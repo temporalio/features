@@ -44,6 +44,20 @@ language in this repository.
 Several other options are available, some of which are described below. Run `sdk-features run --help` to see all
 options.
 
+### Preparing
+
+By default when using `run` and a version, a temporary directory is created with a temporary project, the project is
+built, and then the features are run. To separate the steps, the `prepare` command can be used to prebuild the project
+in a directory. Then `run` can use the `--prepared-dir` to reference that directory.
+
+The command to prepare is:
+
+    sdk-features prepare --lang LANG --version VERSION --dir DIR
+
+The version is required and the directory is a simple string name of a not-yet-existing directory to be created directly
+beneath this SDK features directory. That same directory value can then be provided as `--prepared-dir` to `run`. When
+using a prepared directory on `run`, a version cannot be specified.
+
 ### External Server and Namespace
 
 By default, a [temporalite](https://github.com/DataDog/temporalite) is dynamically started at runtime to handle all

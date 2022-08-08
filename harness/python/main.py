@@ -3,9 +3,9 @@ import asyncio
 import importlib
 import logging
 from pathlib import Path
-from typing import List, Optional, cast
+from typing import List, cast
 
-from harness.python.feature import Feature, Runner, features
+from harness.python.feature import Runner, features
 
 logger = logging.getLogger(__name__)
 
@@ -44,12 +44,9 @@ async def run():
         if rel_dir not in features:
             raise ValueError(f"Cannot find registered feature for {rel_dir}")
         # Run
-        address = args.server
-        if "://" not in address:
-            address = f"http://{address}"
         try:
             await Runner(
-                address=address,
+                address=args.server,
                 namespace=args.namespace,
                 task_queue=task_queue,
                 feature=features[rel_dir],

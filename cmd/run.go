@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"syscall"
 	"time"
 
@@ -36,15 +37,12 @@ func runCmd() *cli.Command {
 
 // RunConfig is configuration for NewRunner.
 type RunConfig struct {
-	Lang                string
-	Version             string
+	PrepareConfig
+	Server              string
+	Namespace           string
 	GenerateHistory     bool
 	DisableHistoryCheck bool
-	// If not set, defaults to creating one
-	Server string
-	// Defaults to unique value
-	Namespace     string
-	RetainTempDir bool
+	RetainTempDir       bool
 }
 
 func (r *RunConfig) flags() []cli.Flag {
@@ -56,8 +54,9 @@ func (r *RunConfig) flags() []cli.Flag {
 			Destination: &r.Lang,
 		},
 		&cli.StringFlag{
-			Name:        "version",
-			Usage:       "SDK language version to run. Most languages support versions as paths.",
+			Name: "version",
+			Usage: "SDK language version to run. Most languages support versions as paths. " +
+				"Version cannot be present if prepared directory is.",
 			Destination: &r.Version,
 		},
 		&cli.BoolFlag{
@@ -84,6 +83,11 @@ func (r *RunConfig) flags() []cli.Flag {
 			Name:        "retain-temp-dir",
 			Usage:       "Do not delete the temp directory after the run",
 			Destination: &r.RetainTempDir,
+		},
+		&cli.StringFlag{
+			Name:        "prepared-dir",
+			Usage:       "Relative directory already prepared. Cannot include version with this.",
+			Destination: &r.Dir,
 		},
 	}
 }
@@ -113,21 +117,28 @@ func NewRunner(config RunConfig) *Runner {
 // Run runs all matching features for the given patterns (or all if no patterns
 // given).
 func (r *Runner) Run(ctx context.Context, patterns []string) error {
-	switch r.config.Lang {
-	case "go", "java", "ts", "py":
-		// Allow the full typescript or python word, but we need to match the file
-		// extension for the rest of run
-	case "typescript":
-		r.config.Lang = "ts"
-	case "python":
-		r.config.Lang = "py"
-	default:
-		return fmt.Errorf("invalid language %q, must be one of: go or java or ts or py", r.config.Lang)
+	var err error
+	if r.config.Lang, err = normalizeLangName(r.config.Lang); err != nil {
+		return err
 	}
 
 	// Cannot generate history if a version isn't provided explicitly
 	if r.config.GenerateHistory && r.config.Version == "" {
 		return fmt.Errorf("must have explicit version to generate history")
+	}
+
+	// If prepared dir given, validate and make absolute
+	if r.config.Dir != "" {
+		if strings.ContainsAny(r.config.Dir, `\/`) {
+			return fmt.Errorf("prepared directory must not have path separators, it is always relative to the SDK features root")
+		} else if r.config.Version != "" {
+			return fmt.Errorf("cannot provide version with prepared directory")
+		}
+		// Make the dir absolute
+		r.config.Dir = filepath.Join(r.rootDir, r.config.Dir)
+		if _, err := os.Stat(r.config.Dir); err != nil {
+			return fmt.Errorf("failed checking prepared directory: %w", err)
+		}
 	}
 
 	// If the namespace is not set, set it ourselves
@@ -321,4 +332,19 @@ func (r *Runner) destroyTempDir() {
 	if r.createdTempDir != nil {
 		_ = os.RemoveAll(*r.createdTempDir)
 	}
+}
+
+func normalizeLangName(lang string) (string, error) {
+	switch lang {
+	case "go", "java", "ts", "py":
+		// Allow the full typescript or python word, but we need to match the file
+		// extension for the rest of run
+	case "typescript":
+		lang = "ts"
+	case "python":
+		lang = "py"
+	default:
+		return "", fmt.Errorf("invalid language %q, must be one of: go or java or ts or py", lang)
+	}
+	return lang, nil
 }

@@ -54,8 +54,9 @@ func (r *RunConfig) flags() []cli.Flag {
 			Destination: &r.Lang,
 		},
 		&cli.StringFlag{
-			Name:        "version",
-			Usage:       "SDK language version to run. Most languages support versions as paths.",
+			Name: "version",
+			Usage: "SDK language version to run. Most languages support versions as paths. " +
+				"Version cannot be present if prepared directory is.",
 			Destination: &r.Version,
 		},
 		&cli.BoolFlag{

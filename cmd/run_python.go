@@ -80,7 +80,7 @@ func (r *Runner) RunPythonExternal(ctx context.Context, run *cmd.Run) error {
 			return fmt.Errorf("failed creating temp dir: %w", err)
 		}
 		r.createdTempDir = &r.config.Dir
-		if err := NewPreparer(r.config.PrepareConfig).PrepareTypeScriptExternal(ctx); err != nil {
+		if err := NewPreparer(r.config.PrepareConfig).PreparePythonExternal(ctx); err != nil {
 			return err
 		}
 	}

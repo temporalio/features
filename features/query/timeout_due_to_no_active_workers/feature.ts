@@ -1,6 +1,6 @@
 import * as wf from '@temporalio/workflow';
 import { Feature } from '@temporalio/harness';
-import { ServiceError } from '@temporalio/client'
+import { ServiceError } from '@temporalio/client';
 import * as assert from 'assert';
 
 const finishSignal = wf.defineSignal('finish');
@@ -18,7 +18,7 @@ export const feature =
   !wf.inWorkflowContext() &&
   new Feature({
     workflow,
-    alternateRun: async runner => {
+    alternateRun: async (runner) => {
       // Start the workflow
       const wfHandle = await runner.executeSingleParameterlessWorkflow();
       // Query to make sure the workflow has processed one task
@@ -38,6 +38,6 @@ export const feature =
       // Restart worker to finish the workflow
       await runner.restartWorker();
       await wfHandle.signal(finishSignal);
-      return await Promise.race([runner.workerRunPromise, runner.checkWorkflowResults(wfHandle)])
-    }
+      return await Promise.race([runner.workerRunPromise, runner.checkWorkflowResults(wfHandle)]);
+    },
   });

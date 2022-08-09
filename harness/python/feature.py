@@ -27,6 +27,7 @@ def register_feature(
     file: Optional[str] = None,
     start: Optional[Callable[[Runner], Awaitable[WorkflowHandle]]] = None,
     check_result: Optional[Callable[[Runner, WorkflowHandle], Awaitable[None]]] = None,
+    worker_starter: Optional[Callable[[Runner], Awaitable[None]]] = None,
 ) -> None:
     if not file:
         file = inspect.stack()[1].filename
@@ -44,6 +45,7 @@ def register_feature(
         expect_run_result=expect_run_result,
         start=start,
         check_result=check_result,
+        worker_starter=worker_starter,
     )
 
 
@@ -57,6 +59,7 @@ class Feature:
     expect_run_result: Optional[Any]
     start: Optional[Callable[[Runner], Awaitable[WorkflowHandle]]]
     check_result: Optional[Callable[[Runner, WorkflowHandle], Awaitable[None]]]
+    worker_starter: Optional[Callable[[Runner], Awaitable[None]]]
 
 
 class Runner:
@@ -75,12 +78,13 @@ class Runner:
         self.client = await Client.connect(self.address, namespace=self.namespace)
 
         # Run worker
-        self.worker = Worker(
-            self.client,
-            task_queue=self.task_queue,
-            workflows=self.feature.workflows,
-            activities=self.feature.activities,
-        )
+        self.worker = self.create_worker()
+        if self.feature.worker_starter:
+            await self.feature.worker_starter(self)
+        else:
+            await self.start_worker_and_check_wf()
+
+    async def start_worker_and_check_wf(self):
         async with self.worker:
             # Start and get handle
             handle: WorkflowHandle
@@ -127,3 +131,13 @@ class Runner:
                     raise TypeError("Unexpected activity error") from err
             else:
                 raise err
+
+    def create_worker(self) -> Worker:
+        """Creates a worker with the task queue & workflows/ activities set. Useful if you need
+        to stop/start the worker"""
+        return Worker(
+            self.client,
+            task_queue=self.task_queue,
+            workflows=self.feature.workflows,
+            activities=self.feature.activities,
+        )

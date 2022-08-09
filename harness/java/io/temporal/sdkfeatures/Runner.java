@@ -60,7 +60,7 @@ public class Runner implements Closeable {
     var serviceBuild = WorkflowServiceStubsOptions.newBuilder()
             .setTarget(config.serverHostPort).setMetricsScope(config.metricsScope);
     feature.workflowServiceOptions(serviceBuild);
-    service = WorkflowServiceStubs.newInstance(serviceBuild.build());
+    service = WorkflowServiceStubs.newServiceStubs(serviceBuild.build());
     // Shutdown service on failure
     try {
       // Build client

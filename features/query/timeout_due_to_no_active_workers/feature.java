@@ -1,7 +1,10 @@
 package query.timeout_due_to_no_active_workers;
 
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowClientOptions;
+import io.temporal.client.WorkflowServiceException;
 import io.temporal.sdkfeatures.Feature;
 import io.temporal.sdkfeatures.Run;
 import io.temporal.sdkfeatures.Runner;
@@ -12,6 +15,7 @@ import io.temporal.serviceclient.WorkflowServiceStubsOptions;
 import io.temporal.workflow.QueryMethod;
 import io.temporal.workflow.SignalMethod;
 import io.temporal.workflow.Workflow;
+import java.time.Duration;
 import java.util.Optional;
 import org.junit.jupiter.api.Assertions;
 
@@ -45,7 +49,8 @@ public interface feature extends Feature, SimpleWorkflow {
       var serviceStubs = runner.client.getWorkflowServiceStubs();
       var newStubOpts = WorkflowServiceStubsOptions.newBuilder(serviceStubs.getOptions());
       newStubOpts.setRpcRetryOptions(RpcRetryOptions.newBuilder().setMaximumAttempts(1).build());
-      var newStubs = WorkflowServiceStubs.newInstance(newStubOpts.build());
+      newStubOpts.setRpcQueryTimeout(Duration.ofSeconds(1));
+      var newStubs = WorkflowServiceStubs.newServiceStubs(newStubOpts.build());
       var noRetryClient = WorkflowClient.newInstance(newStubs,
           WorkflowClientOptions.newBuilder().setNamespace(runner.config.namespace).build());
       var stub = noRetryClient.newWorkflowStub(feature.class,
@@ -54,9 +59,11 @@ public interface feature extends Feature, SimpleWorkflow {
       runner.getWorkerFactory().shutdownNow();
       try {
         stub.someQuery();
-        System.out.println("query workerd???");
       } catch (Exception e) {
-        System.out.println("query err: " + e);
+        Assertions.assertInstanceOf(WorkflowServiceException.class, e);
+        Assertions.assertInstanceOf(StatusRuntimeException.class, e.getCause());
+        StatusRuntimeException s = (StatusRuntimeException) e.getCause();
+        Assertions.assertEquals(Status.DEADLINE_EXCEEDED.getCode(), s.getStatus().getCode());
       }
       runner.restartWorker();
       stub.finish();

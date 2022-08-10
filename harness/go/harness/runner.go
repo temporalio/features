@@ -81,7 +81,7 @@ func NewRunner(config RunnerConfig, feature *PreparedFeature) (*Runner, error) {
 	// Create worker
 	r.CreateTime = time.Now()
 	r.Feature.WorkerOptions.WorkflowPanicPolicy = worker.FailWorkflow
-	err = r.RestartWorker()
+	err = r.StartWorker()
 	if err != nil {
 		return nil, err
 	}
@@ -294,7 +294,17 @@ func (r *Runner) CheckAssertion(result bool) error {
 	return nil
 }
 
-func (r *Runner) RestartWorker() error {
+func (r *Runner) StopWorker() {
+	if r.Worker != nil {
+		r.Worker.Stop()
+		r.Worker = nil
+	}
+}
+
+func (r *Runner) StartWorker() error {
+	if r.Worker != nil {
+		return errors.New("worker is currently running, cannot start a new one")
+	}
 	r.Worker = worker.New(r.Client, r.RunnerConfig.TaskQueue, r.Feature.WorkerOptions)
 
 	// Register the workflows and activities

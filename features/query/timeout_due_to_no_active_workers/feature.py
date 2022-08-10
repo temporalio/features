@@ -28,12 +28,9 @@ class Workflow:
         self.be_done = True
 
 
-async def worker_starter(runner: Runner):
-    handle: WorkflowHandle
-    async with runner.worker:
-        handle = await runner.start_single_parameterless_workflow()
-        await asyncio.sleep(0.5)
-    # worker is not stopped so we can query while no workers are available
+async def check_result(runner: Runner, handle: WorkflowHandle):
+    # Stop worker
+    await runner.stop_worker()
     try:
         # TODO: Override deadline once that's exposed
         await handle.query(Workflow.simple_query)
@@ -41,10 +38,9 @@ async def worker_starter(runner: Runner):
         # Cancelled rather than deadline exceeded since the timeout is client-side
         assert e.status == RPCStatusCode.CANCELLED
     # Restart the worker and finish the wf
-    runner.worker = runner.create_worker()
-    async with runner.worker:
-        await handle.signal(Workflow.finish_sig)
-        await runner.check_result(handle)
+    runner.start_worker()
+    await handle.signal(Workflow.finish_sig)
+    await runner.check_result(handle)
 
 
-register_feature(workflows=[Workflow], worker_starter=worker_starter)
+register_feature(workflows=[Workflow], check_result=check_result)

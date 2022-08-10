@@ -13,7 +13,7 @@ var Feature = harness.Feature{
 	Workflows: Workflow,
 	CheckResult: func(ctx context.Context, r *harness.Runner, run client.WorkflowRun) error {
 		// Shut off the worker
-		r.Worker.Stop()
+		r.StopWorker()
 
 		oneSecCtx, cf := context.WithDeadline(ctx, time.Now().Add(time.Second))
 		defer cf()
@@ -22,7 +22,7 @@ var Feature = harness.Feature{
 		_, ok := err.(*serviceerror.DeadlineExceeded)
 		r.Require.True(ok)
 
-		err = r.RestartWorker()
+		err = r.StartWorker()
 		if err != nil {
 			return err
 		}

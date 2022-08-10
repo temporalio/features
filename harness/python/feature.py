@@ -58,6 +58,7 @@ class Feature:
     start: Optional[Callable[[Runner], Awaitable[WorkflowHandle]]]
     check_result: Optional[Callable[[Runner, WorkflowHandle], Awaitable[None]]]
 
+
 class Runner:
     def __init__(
         self, *, address: str, namespace: str, task_queue: str, feature: Feature
@@ -142,4 +143,3 @@ class Runner:
         if self.worker is not None:
             await self.worker.shutdown()
             self.worker = None
-

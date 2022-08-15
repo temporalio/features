@@ -67,6 +67,7 @@ class Runner:
         self.namespace = namespace
         self.task_queue = task_queue
         self.feature = feature
+        self.worker: Optional[Worker] = None
 
     async def run(self) -> None:
         logger.info("Executing feature %s", self.feature.rel_dir)
@@ -75,13 +76,8 @@ class Runner:
         self.client = await Client.connect(self.address, namespace=self.namespace)
 
         # Run worker
-        self.worker = Worker(
-            self.client,
-            task_queue=self.task_queue,
-            workflows=self.feature.workflows,
-            activities=self.feature.activities,
-        )
-        async with self.worker:
+        self.start_worker()
+        try:
             # Start and get handle
             handle: WorkflowHandle
             if self.feature.start:
@@ -97,6 +93,8 @@ class Runner:
                 await self.check_result(handle)
 
             # TODO(cretz): History check
+        finally:
+            await self.stop_worker()
 
     async def start_single_parameterless_workflow(self) -> WorkflowHandle:
         if len(self.feature.workflows) != 1:
@@ -127,3 +125,20 @@ class Runner:
                     raise TypeError("Unexpected activity error") from err
             else:
                 raise err
+
+    def start_worker(self):
+        """Creates and starts worker with the task queue & workflows/ activities set, if it is not
+        already running"""
+        if self.worker is None:
+            self.worker = Worker(
+                self.client,
+                task_queue=self.task_queue,
+                workflows=self.feature.workflows,
+                activities=self.feature.activities,
+            )
+            self.worker._start()
+
+    async def stop_worker(self):
+        if self.worker is not None:
+            await self.worker.shutdown()
+            self.worker = None

@@ -81,19 +81,9 @@ func NewRunner(config RunnerConfig, feature *PreparedFeature) (*Runner, error) {
 	// Create worker
 	r.CreateTime = time.Now()
 	r.Feature.WorkerOptions.WorkflowPanicPolicy = worker.FailWorkflow
-	r.Worker = worker.New(r.Client, config.TaskQueue, r.Feature.WorkerOptions)
-
-	// Register the workflows and activities
-	for _, workflow := range r.Feature.Workflows {
-		r.Worker.RegisterWorkflow(workflow)
-	}
-	for _, activity := range r.Feature.Activities {
-		r.Worker.RegisterActivity(activity)
-	}
-
-	// Start the worker
-	if err := r.Worker.Start(); err != nil {
-		return nil, fmt.Errorf("failed starting worker: %w", err)
+	err = r.StartWorker()
+	if err != nil {
+		return nil, err
 	}
 
 	success = true
@@ -300,6 +290,34 @@ func (r *Runner) Close() {
 func (r *Runner) CheckAssertion(result bool) error {
 	if !result {
 		return r.LastAssertErr
+	}
+	return nil
+}
+
+func (r *Runner) StopWorker() {
+	if r.Worker != nil {
+		r.Worker.Stop()
+		r.Worker = nil
+	}
+}
+
+func (r *Runner) StartWorker() error {
+	if r.Worker != nil {
+		return errors.New("worker is currently running, cannot start a new one")
+	}
+	r.Worker = worker.New(r.Client, r.RunnerConfig.TaskQueue, r.Feature.WorkerOptions)
+
+	// Register the workflows and activities
+	for _, workflow := range r.Feature.Workflows {
+		r.Worker.RegisterWorkflow(workflow)
+	}
+	for _, activity := range r.Feature.Activities {
+		r.Worker.RegisterActivity(activity)
+	}
+
+	// Start the worker
+	if err := r.Worker.Start(); err != nil {
+		return fmt.Errorf("failed starting worker: %w", err)
 	}
 	return nil
 }

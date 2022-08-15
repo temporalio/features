@@ -45,8 +45,8 @@ public class Runner implements Closeable {
   public final Feature feature;
   public final WorkflowServiceStubs service;
   public final WorkflowClient client;
-  public final WorkerFactory workerFactory;
-  public final Worker worker;
+  private WorkerFactory workerFactory;
+  private Worker worker;
 
   Runner(Config config, PreparedFeature featureInfo) {
     Objects.requireNonNull(config.serverHostPort);
@@ -60,7 +60,7 @@ public class Runner implements Closeable {
     var serviceBuild = WorkflowServiceStubsOptions.newBuilder()
             .setTarget(config.serverHostPort).setMetricsScope(config.metricsScope);
     feature.workflowServiceOptions(serviceBuild);
-    service = WorkflowServiceStubs.newInstance(serviceBuild.build());
+    service = WorkflowServiceStubs.newServiceStubs(serviceBuild.build());
     // Shutdown service on failure
     try {
       // Build client
@@ -70,27 +70,35 @@ public class Runner implements Closeable {
       client = WorkflowClient.newInstance(service, clientBuild.build());
 
       // Build worker
-      var factoryBuild = WorkerFactoryOptions.newBuilder();
-      feature.workerFactoryOptions(factoryBuild);
-      workerFactory = WorkerFactory.newInstance(client, factoryBuild.build());
-      var workerBuild = WorkerOptions.newBuilder();
-      feature.workerOptions(workerBuild);
-      worker = workerFactory.newWorker(config.taskQueue, workerBuild.build());
+      restartWorker();
+    } catch (Throwable e) {
+      service.shutdownNow();
+      throw e;
+    }
+  }
+
+  /**
+   * Instantiates a new worker, replacing the existing worker and workerFactory. You should
+   * shut down the worker factory before calling this.
+   */
+  public void restartWorker() {
+    var factoryBuild = WorkerFactoryOptions.newBuilder();
+    feature.workerFactoryOptions(factoryBuild);
+    this.workerFactory = WorkerFactory.newInstance(client, factoryBuild.build());
+    var workerBuild = WorkerOptions.newBuilder();
+    feature.workerOptions(workerBuild);
+    this.worker = workerFactory.newWorker(config.taskQueue, workerBuild.build());
 
       // Register workflow class
       worker.registerWorkflowImplementationTypes(featureInfo.factoryClass);
 
       // Register activity impl if any direct interfaces have the annotation
       if (Arrays.stream(feature.getClass().getInterfaces()).anyMatch(i -> i.isAnnotationPresent(ActivityInterface.class))) {
-        worker.registerActivitiesImplementations(feature);
-      }
-
-      // Start the worker factory
-      workerFactory.start();
-    } catch (Throwable e) {
-      service.shutdownNow();
-      throw e;
+      worker.registerActivitiesImplementations(feature);
     }
+
+    // Start the worker factory
+    workerFactory.start();
   }
 
   void run() throws Exception {
@@ -212,5 +220,13 @@ public class Runner implements Closeable {
       throw e;
     }
     service.shutdownNow();
+  }
+
+  public WorkerFactory getWorkerFactory() {
+    return workerFactory;
+  }
+
+  public Worker getWorker() {
+    return worker;
   }
 }

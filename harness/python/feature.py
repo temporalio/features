@@ -67,6 +67,7 @@ class Runner:
         self.namespace = namespace
         self.task_queue = task_queue
         self.feature = feature
+        self.worker: Optional[Worker] = None
 
     async def run(self) -> None:
         logger.info("Executing feature %s", self.feature.rel_dir)

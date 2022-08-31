@@ -8,11 +8,11 @@
     "start": "ts-node -r tsconfig-paths/register harness/ts/main.ts"
   },
   "dependencies": {
-    "@temporalio/activity": "^1.0.0",
-    "@temporalio/client": "^1.0.0",
-    "@temporalio/common": "^1.0.0",
-    "@temporalio/worker": "^1.0.0",
-    "@temporalio/workflow": "^1.0.0",
+    "@temporalio/activity": "^1.1.0",
+    "@temporalio/client": "^1.1.0",
+    "@temporalio/common": "^1.1.0",
+    "@temporalio/worker": "^1.1.0",
+    "@temporalio/workflow": "^1.1.0",
     "commander": "^8.3.0"
   },
   "devDependencies": {

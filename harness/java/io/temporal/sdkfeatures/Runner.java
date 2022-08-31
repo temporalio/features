@@ -6,6 +6,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.uber.m3.tally.NoopScope;
 import com.uber.m3.tally.Scope;
+import io.temporal.activity.ActivityInterface;
 import io.temporal.api.common.v1.WorkflowExecution;
 import io.temporal.api.history.v1.History;
 import io.temporal.client.WorkflowClient;
@@ -27,10 +28,7 @@ import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 public class Runner implements Closeable {
   private static final Logger log = LoggerFactory.getLogger(Main.class);
@@ -47,8 +45,8 @@ public class Runner implements Closeable {
   public final Feature feature;
   public final WorkflowServiceStubs service;
   public final WorkflowClient client;
-  public final WorkerFactory workerFactory;
-  public final Worker worker;
+  private WorkerFactory workerFactory;
+  private Worker worker;
 
   Runner(Config config, PreparedFeature featureInfo) {
     Objects.requireNonNull(config.serverHostPort);
@@ -62,7 +60,7 @@ public class Runner implements Closeable {
     var serviceBuild = WorkflowServiceStubsOptions.newBuilder()
             .setTarget(config.serverHostPort).setMetricsScope(config.metricsScope);
     feature.workflowServiceOptions(serviceBuild);
-    service = WorkflowServiceStubs.newInstance(serviceBuild.build());
+    service = WorkflowServiceStubs.newServiceStubs(serviceBuild.build());
     // Shutdown service on failure
     try {
       // Build client
@@ -72,23 +70,35 @@ public class Runner implements Closeable {
       client = WorkflowClient.newInstance(service, clientBuild.build());
 
       // Build worker
-      var factoryBuild = WorkerFactoryOptions.newBuilder();
-      feature.workerFactoryOptions(factoryBuild);
-      workerFactory = WorkerFactory.newInstance(client, factoryBuild.build());
-      var workerBuild = WorkerOptions.newBuilder();
-      feature.workerOptions(workerBuild);
-      worker = workerFactory.newWorker(config.taskQueue, workerBuild.build());
-
-      // Register workflow class and activity impl
-      worker.registerWorkflowImplementationTypes(featureInfo.factoryClass);
-      worker.registerActivitiesImplementations(feature);
-
-      // Start the worker factory
-      workerFactory.start();
+      restartWorker();
     } catch (Throwable e) {
       service.shutdownNow();
       throw e;
     }
+  }
+
+  /**
+   * Instantiates a new worker, replacing the existing worker and workerFactory. You should
+   * shut down the worker factory before calling this.
+   */
+  public void restartWorker() {
+    var factoryBuild = WorkerFactoryOptions.newBuilder();
+    feature.workerFactoryOptions(factoryBuild);
+    this.workerFactory = WorkerFactory.newInstance(client, factoryBuild.build());
+    var workerBuild = WorkerOptions.newBuilder();
+    feature.workerOptions(workerBuild);
+    this.worker = workerFactory.newWorker(config.taskQueue, workerBuild.build());
+
+      // Register workflow class
+      worker.registerWorkflowImplementationTypes(featureInfo.factoryClass);
+
+      // Register activity impl if any direct interfaces have the annotation
+      if (Arrays.stream(feature.getClass().getInterfaces()).anyMatch(i -> i.isAnnotationPresent(ActivityInterface.class))) {
+      worker.registerActivitiesImplementations(feature);
+    }
+
+    // Start the worker factory
+    workerFactory.start();
   }
 
   void run() throws Exception {
@@ -210,5 +220,13 @@ public class Runner implements Closeable {
       throw e;
     }
     service.shutdownNow();
+  }
+
+  public WorkerFactory getWorkerFactory() {
+    return workerFactory;
+  }
+
+  public Worker getWorker() {
+    return worker;
   }
 }

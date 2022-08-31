@@ -34,9 +34,10 @@ public class Main implements Runnable {
       var pieces = featureWithTaskQueue.split(":", 2);
       // Find feature
       var feature = Arrays.stream(PreparedFeature.ALL)
-              .filter(p -> p.dir.equals(pieces[0]))
-              .findAny()
-              .orElseThrow(() -> new NoSuchElementException("feature " + pieces[0] + " not found"));
+          .filter(p -> p.dir.equals(pieces[0]))
+          .findAny()
+          .orElseThrow(() -> new NoSuchElementException(
+              "feature " + pieces[0] + " not found. Make sure you add it to PreparedFeature.ALL"));
 
       log.info("Running feature {}", feature.dir);
       var config = new Runner.Config();

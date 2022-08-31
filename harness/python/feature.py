@@ -28,6 +28,7 @@ def register_feature(
     workflows: List[Type],
     activities: List[Callable] = [],
     expect_activity_error: Optional[str] = None,
+    expect_run_result: Optional[Any] = None,
     file: Optional[str] = None,
     start: Optional[Callable[[Runner], Awaitable[WorkflowHandle]]] = None,
     check_result: Optional[Callable[[Runner, WorkflowHandle], Awaitable[None]]] = None,
@@ -45,6 +46,7 @@ def register_feature(
         workflows=workflows,
         activities=activities,
         expect_activity_error=expect_activity_error,
+        expect_run_result=expect_run_result,
         start=start,
         check_result=check_result,
     )
@@ -57,6 +59,7 @@ class Feature:
     workflows: List[Type]
     activities: List[Callable]
     expect_activity_error: Optional[str]
+    expect_run_result: Optional[Any]
     start: Optional[Callable[[Runner], Awaitable[WorkflowHandle]]]
     check_result: Optional[Callable[[Runner, WorkflowHandle], Awaitable[None]]]
 
@@ -69,6 +72,7 @@ class Runner:
         self.namespace = namespace
         self.task_queue = task_queue
         self.feature = feature
+        self.worker: Optional[Worker] = None
 
     async def run(self) -> None:
         logger.info("Executing feature %s", self.feature.rel_dir)
@@ -77,13 +81,8 @@ class Runner:
         self.client = await Client.connect(self.address, namespace=self.namespace)
 
         # Run worker
-        self.worker = Worker(
-            self.client,
-            task_queue=self.task_queue,
-            workflows=self.feature.workflows,
-            activities=self.feature.activities,
-        )
-        async with self.worker:
+        self.start_worker()
+        try:
             # Start and get handle
             handle: WorkflowHandle
             if self.feature.start:
@@ -99,6 +98,8 @@ class Runner:
                 await self.check_result(handle)
 
             # TODO(cretz): History check
+        finally:
+            await self.stop_worker()
 
     async def start_single_parameterless_workflow(self) -> WorkflowHandle:
         if len(self.feature.workflows) != 1:
@@ -113,7 +114,10 @@ class Runner:
 
     async def check_result(self, handle: WorkflowHandle) -> None:
         try:
-            await handle.result()
+            result = await handle.result()
+            if self.feature.expect_run_result:
+                assert result == self.feature.expect_run_result
+
         except Exception as err:
             if self.feature.expect_activity_error:
                 if not isinstance(err, WorkflowFailureError):
@@ -127,8 +131,25 @@ class Runner:
             else:
                 raise err
 
+    def start_worker(self):
+        """Creates and starts worker with the task queue & workflows/ activities set, if it is not
+        already running"""
+        if self.worker is None:
+            self.worker = Worker(
+                self.client,
+                task_queue=self.task_queue,
+                workflows=self.feature.workflows,
+                activities=self.feature.activities,
+            )
+            self.worker._start()
+
+    async def stop_worker(self):
+        if self.worker is not None:
+            await self.worker.shutdown()
+            self.worker = None
+
     async def get_history_events(self, handle: WorkflowHandle) -> list[HistoryEvent]:
-        next_page_token = b''
+        next_page_token = b""
         history: list[HistoryEvent] = []
         request = GetWorkflowExecutionHistoryRequest()
         request.namespace = self.namespace
@@ -149,6 +170,7 @@ class JSONPayload(TypedDict):
     JSON proto Payload representation.
     data and metadata values are base64 encoded
     """
+
     metadata: Mapping[str, str]
     data: str
 
@@ -158,6 +180,8 @@ def to_json_payload(payload: Payload) -> JSONPayload:
     Convert a proto Payload object to its JSON representation
     """
     return {
-        'data': base64.b64encode(payload.data).decode('ascii'),
-        'metadata': {k: base64.b64encode(v).decode('ascii') for k, v in payload.metadata.items()}
+        "data": base64.b64encode(payload.data).decode("ascii"),
+        "metadata": {
+            k: base64.b64encode(v).decode("ascii") for k, v in payload.metadata.items()
+        },
     }

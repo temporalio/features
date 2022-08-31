@@ -7,7 +7,6 @@ import { Worker, WorkerOptions, NativeConnection, appendDefaultInterceptors } fr
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { ConnectionInjectorInterceptor } from './activity-interceptors';
-
 export { getConnection, getWorkflowClient, Context } from './activity-interceptors';
 
 export interface FeatureOptions<W extends Workflow, A extends UntypedActivities> {
@@ -44,6 +43,12 @@ export interface FeatureOptions<W extends Workflow, A extends UntypedActivities>
    * Check the history of the workflow run. TODO(cretz): Unhandled currently
    */
   checkHistory?: (runner: Runner<W, A>, handle: WorkflowHandleWithFirstExecutionRunId<W>) => Promise<void>;
+
+  /**
+   * If set, use this instead of the default run function which races the
+   * worker run & workflow run.
+   */
+  alternateRun?: (runner: Runner<W, A>) => Promise<void>;
 }
 
 export class Feature<W extends Workflow, A extends UntypedActivities> {
@@ -121,30 +126,30 @@ export class Runner<W extends Workflow, A extends UntypedActivities> {
     };
     const worker = await Worker.create(workerOpts);
     const workerRunPromise = (async () => {
-      try {
-        await worker.run();
-      } finally {
-        await connection.close();
-      }
+      await worker.run();
     })();
 
-    return new Runner(source, feature, workflowsPath, options, client, nativeConn, worker, workerRunPromise);
+    return new Runner(source, feature, options, client, nativeConn, worker, workerOpts, workerRunPromise);
   }
 
   private constructor(
     readonly source: FeatureSource,
     readonly feature: Feature<W, A>,
-    readonly workflowsPath: string,
     readonly options: RunnerOptions,
     readonly client: WorkflowClient,
     readonly nativeConnection: NativeConnection,
-    readonly worker: Worker,
-    readonly workerRunPromise: Promise<void>
+    private _worker: Worker,
+    readonly workerOpts: WorkerOptions,
+    private _workerRunPromise: Promise<void>
   ) {}
 
   async run(): Promise<void> {
-    // Run the workflow and fail if workflow or worker fails
-    return await Promise.race([this.workerRunPromise, this.runWorkflow()]);
+    if (this.feature.options.alternateRun) {
+      return await this.feature.options.alternateRun(this);
+    } else {
+      // Run the workflow and fail if workflow or worker fails
+      return await Promise.race([this._workerRunPromise, this.runWorkflow()]);
+    }
   }
 
   private async runWorkflow() {
@@ -156,7 +161,14 @@ export class Runner<W extends Workflow, A extends UntypedActivities> {
     } else {
       handle = await this.executeSingleParameterlessWorkflow();
     }
+    await this.checkWorkflowResults(handle);
+  }
 
+  /**
+   * Performs checks for the workflow result / history with overrides if specified in the feature.
+   * You don't need to call this unless you're overriding run.
+   */
+  async checkWorkflowResults(handle: WorkflowHandleWithFirstExecutionRunId): Promise<void> {
     // Result check
     console.log(`Checking result on feature ${this.source.relDir}`);
     if (this.feature.options.checkResult) {
@@ -171,6 +183,20 @@ export class Runner<W extends Workflow, A extends UntypedActivities> {
     if (this.feature.options.checkHistory) {
       await this.feature.options.checkHistory(this, handle);
     }
+  }
+
+  get worker(): Worker {
+    return this._worker;
+  }
+  get workerRunPromise(): Promise<void> {
+    return this._workerRunPromise;
+  }
+
+  async restartWorker(): Promise<void> {
+    this._worker = await Worker.create(this.workerOpts);
+    this._workerRunPromise = (async () => {
+      await this._worker.run();
+    })();
   }
 
   async executeSingleParameterlessWorkflow(): Promise<WorkflowHandleWithFirstExecutionRunId> {
@@ -189,9 +215,13 @@ export class Runner<W extends Workflow, A extends UntypedActivities> {
   }
 
   async close(): Promise<void> {
-    this.worker.shutdown();
-    await this.workerRunPromise;
-    await this.nativeConnection.close();
+    this._worker.shutdown();
+    try {
+      await this._workerRunPromise;
+    } finally {
+      await this.client.connection.close();
+      await this.nativeConnection.close();
+    }
   }
 
   /**

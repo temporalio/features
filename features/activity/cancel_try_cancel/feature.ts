@@ -72,9 +72,7 @@ const activitiesImpl = {
   },
 };
 
-export const feature =
-  wf.inWorkflowContext() ||
-  new Feature({
-    workflow,
-    activities: activitiesImpl,
-  });
+export const feature = new Feature({
+  workflow,
+  activities: activitiesImpl,
+});

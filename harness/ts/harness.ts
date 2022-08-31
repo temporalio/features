@@ -119,9 +119,22 @@ export class Runner<W extends Workflow, A extends UntypedActivities> {
       workflowsPath,
       activities: feature.activities,
       taskQueue: options.taskQueue,
-      bundlerOptions: { ignoreModules: ['@temporalio/activity', '@temporalio/client', '@temporalio/harness'] },
+      bundlerOptions: {
+        webpackConfigHook(config) {
+          return {
+            ...config,
+            // Map these "unsafe" modules to global variables that will be injected by the interceptor below
+            externals: {
+              '@temporalio/harness': 'temporalioHarness',
+              '@temporalio/client': 'temporalioClient',
+              '@temporalio/activity': 'temporalioActivity',
+            },
+          };
+        },
+      },
       interceptors: appendDefaultInterceptors({
         activityInbound: [() => new ConnectionInjectorInterceptor(connection, client)],
+        workflowModules: [require.resolve('./workflow-globals-injection-interceptors')],
       }),
     };
     const worker = await Worker.create(workerOpts);

@@ -1,7 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { Connection, WorkflowClient, WorkflowHandleWithFirstExecutionRunId, WorkflowHandle } from '@temporalio/client';
 import * as proto from '@temporalio/proto';
-import { JSONPayload, Payload } from '@temporalio/common/lib/proto-utils';
 import { UntypedActivities, Workflow, WorkflowResultType } from '@temporalio/common';
 import { Worker, WorkerOptions, NativeConnection, appendDefaultInterceptors } from '@temporalio/worker';
 import { promises as fs } from 'fs';
@@ -235,21 +234,6 @@ export class Runner<W extends Workflow, A extends UntypedActivities> {
       await this.client.connection.close();
       await this.nativeConnection.close();
     }
-  }
-
-  /**
-   * Temporary workaround for the buggy implmentation of this method in the SDK.
-   * TODO(bergundy): remove this when SDK issue is fixed (https://github.com/temporalio/sdk-typescript/issues/773)
-   */
-  payloadToJSON({ metadata, data }: Payload): JSONPayload {
-    return {
-      metadata:
-        metadata &&
-        Object.fromEntries(
-          Object.entries(metadata).map(([k, v]): [string, string] => [k, Buffer.from(v).toString('base64')])
-        ),
-      data: data ? Buffer.from(data).toString('base64') : undefined,
-    };
   }
 
   async getHistoryEvents(handle: WorkflowHandle): Promise<proto.temporal.api.history.v1.IHistoryEvent[]> {

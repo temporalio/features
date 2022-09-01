@@ -10,6 +10,7 @@ import (
 
 	"github.com/gogo/protobuf/jsonpb"
 	common "go.temporal.io/api/common/v1"
+	historyProto "go.temporal.io/api/history/v1"
 	"go.temporal.io/sdk-features/harness/go/harness"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/workflow"
@@ -37,31 +38,37 @@ func CheckResult(ctx context.Context, runner *harness.Runner, run client.Workflo
 		return fmt.Errorf("invalid result: %v", result)
 	}
 	history := runner.Client.GetWorkflowHistory(ctx, run.GetID(), "", false, 0)
+
+	var attrs *historyProto.WorkflowExecutionCompletedEventAttributes
+
 	for history.HasNext() {
 		ev, err := history.Next()
 		if err != nil {
 			return err
 		}
 		// get result payload of WorkflowExecutionCompleted event from workflow history
-		attrs := ev.GetWorkflowExecutionCompletedEventAttributes()
+		attrs = ev.GetWorkflowExecutionCompletedEventAttributes()
 		if attrs != nil {
-			payload := attrs.GetResult().GetPayloads()[0]
-
-			// load JSON payload from `./payload.json` and compare it to result payload
-			file, err := os.Open(path.Join(runner.Feature.AbsDir, "../../../features/data_converter/binary/payload.json"))
-			if err != nil {
-				return err
-			}
-
-			expectedPayload := &common.Payload{}
-			unmarshaler := jsonpb.Unmarshaler{}
-			err = unmarshaler.Unmarshal(file, expectedPayload)
-			if err != nil {
-				return err
-			}
-			runner.Require.Equal(expectedPayload, payload)
-			return nil
+			break
 		}
 	}
-	return errors.New("could not locate WorkflowExecutionCompleted event")
+	if attrs == nil {
+		return errors.New("could not locate WorkflowExecutionCompleted event")
+	}
+	payload := attrs.GetResult().GetPayloads()[0]
+
+	// load JSON payload from `./payload.json` and compare it to result payload
+	file, err := os.Open(path.Join(runner.Feature.AbsDir, "../../../features/data_converter/binary/payload.json"))
+	if err != nil {
+		return err
+	}
+
+	expectedPayload := &common.Payload{}
+	unmarshaler := jsonpb.Unmarshaler{}
+	err = unmarshaler.Unmarshal(file, expectedPayload)
+	if err != nil {
+		return err
+	}
+	runner.Require.Equal(expectedPayload, payload)
+	return nil
 }

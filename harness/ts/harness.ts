@@ -1,9 +1,12 @@
-import { Connection, WorkflowClient, WorkflowHandleWithFirstExecutionRunId } from '@temporalio/client';
+import { randomUUID } from 'node:crypto';
+import { Connection, WorkflowClient, WorkflowHandleWithFirstExecutionRunId, WorkflowHandle } from '@temporalio/client';
+import * as proto from '@temporalio/proto';
 import { UntypedActivities, Workflow, WorkflowResultType } from '@temporalio/common';
-import { Worker, WorkerOptions, NativeConnection } from '@temporalio/worker';
+import { Worker, WorkerOptions, NativeConnection, appendDefaultInterceptors } from '@temporalio/worker';
 import { promises as fs } from 'fs';
 import * as path from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import { ConnectionInjectorInterceptor } from './activity-interceptors';
+export { getConnection, getWorkflowClient, Context } from './activity-interceptors';
 
 export interface FeatureOptions<W extends Workflow, A extends UntypedActivities> {
   /**
@@ -115,7 +118,23 @@ export class Runner<W extends Workflow, A extends UntypedActivities> {
       workflowsPath,
       activities: feature.activities,
       taskQueue: options.taskQueue,
-      bundlerOptions: { ignoreModules: ['@temporalio/activity', '@temporalio/client', '@temporalio/harness'] },
+      bundlerOptions: {
+        webpackConfigHook(config) {
+          return {
+            ...config,
+            // Map these "unsafe" modules to global variables that will be injected by the interceptor below
+            externals: {
+              '@temporalio/harness': 'temporalioHarness',
+              '@temporalio/client': 'temporalioClient',
+              '@temporalio/activity': 'temporalioActivity',
+            },
+          };
+        },
+      },
+      interceptors: appendDefaultInterceptors({
+        activityInbound: [() => new ConnectionInjectorInterceptor(connection, client)],
+        workflowModules: [require.resolve('./workflow-globals-injection-interceptors')],
+      }),
     };
     const worker = await Worker.create(workerOpts);
     const workerRunPromise = (async () => {
@@ -196,7 +215,7 @@ export class Runner<W extends Workflow, A extends UntypedActivities> {
     const workflow = this.feature.options.workflow ?? 'workflow';
     return await this.client.start<() => any>(workflow, {
       taskQueue: this.options.taskQueue,
-      workflowId: this.source.relDir + '-' + uuidv4(),
+      workflowId: `${this.source.relDir}-${randomUUID()}`,
       workflowExecutionTimeout: 60000,
     });
   }
@@ -215,5 +234,22 @@ export class Runner<W extends Workflow, A extends UntypedActivities> {
       await this.client.connection.close();
       await this.nativeConnection.close();
     }
+  }
+
+  async getHistoryEvents(handle: WorkflowHandle): Promise<proto.temporal.api.history.v1.IHistoryEvent[]> {
+    let nextPageToken: Uint8Array | undefined = undefined;
+    const history = Array<proto.temporal.api.history.v1.IHistoryEvent>();
+    for (;;) {
+      const response: proto.temporal.api.workflowservice.v1.GetWorkflowExecutionHistoryResponse =
+        await this.client.connection.workflowService.getWorkflowExecutionHistory({
+          nextPageToken,
+          namespace: this.options.namespace,
+          execution: { workflowId: handle.workflowId },
+        });
+      history.push(...(response.history?.events ?? []));
+      if (response.nextPageToken == null || response.nextPageToken.length === 0) break;
+      nextPageToken = response.nextPageToken;
+    }
+    return history;
   }
 }

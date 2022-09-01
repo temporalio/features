@@ -15,3 +15,10 @@ node_modules
 
 # Python stuff
 __pycache__
+
+# Build Go stuff
+bin
+
+# VS Code config
+.vscode
+

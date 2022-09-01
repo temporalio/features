@@ -18,22 +18,20 @@ export async function workflow(): Promise<void> {
   await new Promise((resolve) => wf.setHandler(finishSignal, () => resolve(null)));
 }
 
-export const feature =
-  !wf.inWorkflowContext() &&
-  new Feature({
-    workflow,
-    checkResult: async (runner, handle) => {
-      const q1 = await handle.query(query);
-      assert.equal(q1, 0);
-      await handle.signal(signal);
-      const q2 = await handle.query(query);
-      assert.equal(q2, 1);
-      await handle.signal(signal);
-      await handle.signal(signal);
-      await handle.signal(signal);
-      const q3 = await handle.query(query);
-      assert.equal(q3, 4);
-      await handle.signal(finishSignal);
-      await runner.waitForRunResult(handle);
-    },
-  });
+export const feature = new Feature({
+  workflow,
+  checkResult: async (runner, handle) => {
+    const q1 = await handle.query(query);
+    assert.equal(q1, 0);
+    await handle.signal(signal);
+    const q2 = await handle.query(query);
+    assert.equal(q2, 1);
+    await handle.signal(signal);
+    await handle.signal(signal);
+    await handle.signal(signal);
+    const q3 = await handle.query(query);
+    assert.equal(q3, 4);
+    await handle.signal(finishSignal);
+    await runner.waitForRunResult(handle);
+  },
+});

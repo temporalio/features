@@ -37,7 +37,8 @@ async def check_result(runner: Runner, handle: WorkflowHandle) -> None:
 
     # load JSON payload from `./payload.json` and compare it to JSON representation of result payload
     with open(
-        os.path.join(os.path.dirname(__file__), "payload.json"), encoding="ascii"
+        os.path.join(os.path.dirname(runner.feature.file), "payload.json"),
+        encoding="ascii",
     ) as f:
         expected_payload = Parse(f.read(), Payload())
     assert payload == expected_payload

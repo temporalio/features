@@ -6,11 +6,21 @@ import uuid
 from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
-from typing import Awaitable, Callable, Dict, List, Mapping, Optional, Type, TypedDict
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Type,
+    TypedDict,
+)
 
 from temporalio import workflow
-from temporalio.api.workflowservice.v1 import GetWorkflowExecutionHistoryRequest
 from temporalio.api.history.v1 import HistoryEvent
+from temporalio.api.workflowservice.v1 import GetWorkflowExecutionHistoryRequest
 from temporalio.client import Client, WorkflowFailureError, WorkflowHandle
 from temporalio.exceptions import ActivityError, ApplicationError
 from temporalio.worker import Worker
@@ -160,4 +170,3 @@ class Runner:
             if not next_page_token:
                 break
         return history
-

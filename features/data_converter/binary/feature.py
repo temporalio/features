@@ -1,13 +1,12 @@
 import os
 
 from google.protobuf.json_format import Parse
-
 from temporalio import workflow
+from temporalio.api.common.v1 import Payload
 from temporalio.api.enums.v1 import EventType
 from temporalio.client import WorkflowHandle
-from temporalio.api.common.v1 import Payload
 
-from harness.python.feature import register_feature, Runner
+from harness.python.feature import Runner, register_feature
 
 
 @workflow.defn

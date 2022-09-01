@@ -12,9 +12,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/DataDog/temporalite"
 	"github.com/google/uuid"
 	"github.com/pmezard/go-difflib/difflib"
+	"github.com/temporalio/temporalite"
 	"github.com/urfave/cli/v2"
 	"go.temporal.io/sdk-features/harness/go/cmd"
 	"go.temporal.io/sdk-features/harness/go/history"
@@ -47,12 +47,7 @@ type RunConfig struct {
 
 func (r *RunConfig) flags() []cli.Flag {
 	return []cli.Flag{
-		&cli.StringFlag{
-			Name:        "lang",
-			Usage:       "SDK language to run ('go' or 'java' or 'ts' or 'py')",
-			Required:    true,
-			Destination: &r.Lang,
-		},
+		langFlag(&r.Lang),
 		&cli.StringFlag{
 			Name: "version",
 			Usage: "SDK language version to run. Most languages support versions as paths. " +
@@ -347,4 +342,28 @@ func normalizeLangName(lang string) (string, error) {
 		return "", fmt.Errorf("invalid language %q, must be one of: go or java or ts or py", lang)
 	}
 	return lang, nil
+}
+
+func expandLangName(lang string) (string, error) {
+	switch lang {
+	case "go", "java", "typescript", "python":
+		// Allow the full typescript or python word, but we need to match the file
+		// extension for the rest of run
+	case "ts":
+		lang = "typescript"
+	case "py":
+		lang = "python"
+	default:
+		return "", fmt.Errorf("invalid language %q, must be one of: go or java or ts or py", lang)
+	}
+	return lang, nil
+}
+
+func langFlag(destination *string) *cli.StringFlag {
+	return &cli.StringFlag{
+		Name:        "lang",
+		Usage:       "SDK language to run ('go' or 'java' or 'ts' or 'py')",
+		Required:    true,
+		Destination: destination,
+	}
 }

@@ -21,12 +21,12 @@ With latest [Go](https://golang.org/) installed, run:
 
 Prerequisites:
 
-* [Go](https://golang.org/) 1.17+
-* [JDK](https://adoptium.net/?variant=openjdk11&jvmVariant=hotspot) 11+
-* [Node](https://nodejs.org) 16+
-* [Python](https://www.python.org/) 3.10+
-  * [Poetry](https://python-poetry.org/)
-  * `setuptools`: `python -m pip install -U setuptools`
+- [Go](https://golang.org/) 1.17+
+- [JDK](https://adoptium.net/?variant=openjdk11&jvmVariant=hotspot) 11+
+- [Node](https://nodejs.org) 16+
+- [Python](https://www.python.org/) 3.10+
+  - [Poetry](https://python-poetry.org/)
+  - `setuptools`: `python -m pip install -U setuptools`
 
 Command:
 
@@ -57,6 +57,29 @@ The command to prepare is:
 The version is required and the directory is a simple string name of a not-yet-existing directory to be created directly
 beneath this SDK features directory. That same directory value can then be provided as `--prepared-dir` to `run`. When
 using a prepared directory on `run`, a version cannot be specified.
+
+### Building docker images
+
+The CLI supports building docker images from [prepared](#preparing) features.
+
+There are 2 types of image builds supported, by SDK version or by git repository ref as shown below:
+
+```
+./sdk-features build-image --lang go --repo-ref master
+```
+
+The built image will be tagged with `sdk-features:go-master`
+
+```
+./sdk-features build-image --lang go --version v1.13.1
+```
+
+The built image will be tagged with `sdk-features:go-1.13.1`
+
+- To tag as latest minor, pass `--semver-latest minor`, this will add the `go-1.13` tag.
+- To tag as latest major, pass `--semver-latest major`, this will add the `go-1.13`, `go-1` and `go` tags.
+
+> NOTE: only go images are supported at this point
 
 ### External Server and Namespace
 
@@ -148,4 +171,3 @@ incompatibility. Otherwise, history files should remain checked in and not regen
 - CI support
   - Support using a commit hash and alternative git location for an SDK to run against
   - Decide whether the matrix of different SDK versions and such is really part of this repo or part of CI tooling
-

@@ -1,0 +1,32 @@
+name: Build docker images
+on: # rebuild any PRs and main branch changes
+  # Not blocking CI for this (at least yet)
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-images:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print build information
+        run: 'echo head_ref: ${{ github.head_ref }}, ref: ${{ github.ref }}, os: ${{ matrix.os }}'
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '^1.17'
+      - name: Lint go docker image
+        run: docker run --rm -i hadolint/hadolint < dockerfiles/go.Dockerfile
+      # Just see if it runs for now, not publishing yet
+      # TODO(bergundy): run these in parallel
+      # TODO(bergundy): run against a cloud namespace
+      - name: Build go master image
+        run: go run . build-image --lang go --repo-ref master
+      - name: Run go master image
+        run: docker run --rm -i sdk-features:go-master
+
+      - name: Build go 1.16 image
+        run: go run . build-image --lang go --version v1.16
+      - name: Run go 1.16 image
+        run: docker run --rm -i sdk-features:go-1.16.0

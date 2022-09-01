@@ -160,3 +160,4 @@ class Runner:
             if not next_page_token:
                 break
         return history
+

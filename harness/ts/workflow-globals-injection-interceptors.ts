@@ -12,4 +12,4 @@ Object.assign(globalThis, {
 });
 
 // Doesn't actually do anything, just inject global variables before main workflow code is evaluated
-export const interceptors = () => ({});
+export const interceptors = (): Record<string, never> => ({});

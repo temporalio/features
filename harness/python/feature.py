@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import base64
 import inspect
-import json
 import logging
 import uuid
 from dataclasses import dataclass
@@ -12,7 +10,6 @@ from typing import Awaitable, Callable, Dict, List, Mapping, Optional, Type, Typ
 
 from temporalio import workflow
 from temporalio.api.workflowservice.v1 import GetWorkflowExecutionHistoryRequest
-from temporalio.api.common.v1 import Payload, WorkflowExecution
 from temporalio.api.history.v1 import HistoryEvent
 from temporalio.client import Client, WorkflowFailureError, WorkflowHandle
 from temporalio.exceptions import ActivityError, ApplicationError
@@ -163,25 +160,3 @@ class Runner:
             if not next_page_token:
                 break
         return history
-
-
-class JSONPayload(TypedDict):
-    """
-    JSON proto Payload representation.
-    data and metadata values are base64 encoded
-    """
-
-    metadata: Mapping[str, str]
-    data: str
-
-
-def to_json_payload(payload: Payload) -> JSONPayload:
-    """
-    Convert a proto Payload object to its JSON representation
-    """
-    return {
-        "data": base64.b64encode(payload.data).decode("ascii"),
-        "metadata": {
-            k: base64.b64encode(v).decode("ascii") for k, v in payload.metadata.items()
-        },
-    }

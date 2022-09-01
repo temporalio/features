@@ -1,11 +1,13 @@
 import os
-import json
+
+from google.protobuf.json_format import Parse
 
 from temporalio import workflow
 from temporalio.api.enums.v1 import EventType
 from temporalio.client import WorkflowHandle
+from temporalio.api.common.v1 import Payload
 
-from harness.python.feature import load_json_payload, to_json_payload, register_feature, Runner
+from harness.python.feature import register_feature, Runner
 
 
 @workflow.defn
@@ -30,8 +32,8 @@ async def check_result(runner: Runner, handle: WorkflowHandle) -> None:
 
     # load JSON payload from `./payload.json` and compare it to JSON representation of result payload
     with open(os.path.join(os.path.dirname(__file__), 'payload.json'), encoding='ascii') as f:
-        expected_payload = json.load(f)
-    assert to_json_payload(payload) == expected_payload
+        expected_payload = Parse(f.read(), Payload())
+    assert payload == expected_payload
 
 
 register_feature(

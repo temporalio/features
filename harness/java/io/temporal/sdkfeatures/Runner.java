@@ -143,11 +143,15 @@ public class Runner implements Closeable {
     return stub.start(args);
   }
 
+  public History getWorkflowHistory(Run run) throws Exception {
+    var eventIter = WorkflowClientHelper.getHistory(service, config.namespace, run.execution, config.metricsScope);
+    return History.newBuilder().addAllEvents(() -> eventIter).build();
+  }
+
   public void checkCurrentAndPastHistories(Run run) throws Exception {
     // Obtain the current history and run it through replay
     log.info("Checking current history");
-    var eventIter = WorkflowClientHelper.getHistory(service, config.namespace, run.execution, config.metricsScope);
-    var currentHistory = History.newBuilder().addAllEvents(() -> eventIter).build();
+    var currentHistory = getWorkflowHistory(run);
     worker.replayWorkflowExecution(new WorkflowExecutionHistory(currentHistory));
 
     // Replay each history

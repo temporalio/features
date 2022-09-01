@@ -1,3 +1,4 @@
+import { JSONToPayload } from '@temporalio/common/lib/proto-utils';
 import { Feature } from '@temporalio/harness';
 import * as assert from 'assert';
 import expectedPayload from './payload.json';
@@ -21,10 +22,11 @@ export const feature = new Feature({
     const completedEvent = events.find(
       ({ workflowExecutionCompletedEventAttributes }) => !!workflowExecutionCompletedEventAttributes
     );
+
     const payload = completedEvent?.workflowExecutionCompletedEventAttributes?.result?.payloads?.[0];
     assert.ok(payload);
 
-    // load JSON payload from `./payload.json` and compare it to JSON representation of result payload
-    assert.deepEqual(expectedPayload, runner.payloadToJSON(payload));
+    // load JSON payload from `./payload.json` and compare it to result payload
+    assert.deepEqual(JSONToPayload(expectedPayload), payload);
   },
 });

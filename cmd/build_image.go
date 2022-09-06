@@ -153,8 +153,11 @@ func (i *ImageBuilder) buildFromRepo(ctx context.Context) error {
 	tags := []string{fmt.Sprintf("%s-%s", i.config.Lang, i.config.RepoRef)}
 
 	return i.dockerBuild(ctx, buildConfig{
-		tags:      tags,
-		labels:    map[string]string{"SDK_REPO_URL": i.config.RepoURL, "SDK_REPO_REF": repoRef},
+		tags: tags,
+		labels: map[string]string{
+			"SDK_REPO_URL": i.config.RepoURL,
+			"SDK_REPO_REF": repoRef,
+		},
 		buildArgs: map[string]string{"SDK_VERSION": repoDir, "REPO_DIR_OR_PLACEHOLDER": repoDir},
 	})
 }

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -40,6 +41,8 @@ type RunConfig struct {
 	PrepareConfig
 	Server              string
 	Namespace           string
+	ClientCertPath      string
+	ClientKeyPath       string
 	GenerateHistory     bool
 	DisableHistoryCheck bool
 	RetainTempDir       bool
@@ -73,6 +76,16 @@ func (r *RunConfig) flags() []cli.Flag {
 			Name:        "namespace",
 			Usage:       "The namespace to use (default is random)",
 			Destination: &r.Namespace,
+		},
+		&cli.StringFlag{
+			Name:        "client-cert-path",
+			Usage:       "Path of TLS client cert to use (optional)",
+			Destination: &r.ClientCertPath,
+		},
+		&cli.StringFlag{
+			Name:        "client-key-path",
+			Usage:       "Path of TLS client key to use (optional)",
+			Destination: &r.ClientKeyPath,
 		},
 		&cli.BoolFlag{
 			Name:        "retain-temp-dir",
@@ -195,11 +208,16 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 	err = nil
 	switch r.config.Lang {
 	case "go":
-		// If there's a version we run external, otherwise we run local
-		if r.config.Version != "" {
+		// If there's a version or prepared dir we run external, otherwise we run local
+		if r.config.Version != "" || r.config.Dir != "" {
 			err = r.RunGoExternal(ctx, run)
 		} else {
-			err = cmd.NewRunner(cmd.RunConfig{Server: r.config.Server, Namespace: r.config.Namespace}).Run(ctx, run)
+			err = cmd.NewRunner(cmd.RunConfig{
+				Server:         r.config.Server,
+				Namespace:      r.config.Namespace,
+				ClientCertPath: r.config.ClientCertPath,
+				ClientKeyPath:  r.config.ClientKeyPath,
+			}).Run(ctx, run)
 		}
 	case "java":
 		err = r.RunJavaExternal(ctx, run)
@@ -219,11 +237,20 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 }
 
 func (r *Runner) handleHistory(ctx context.Context, run *cmd.Run) error {
-	cl, err := client.NewClient(client.Options{
+	opts := client.Options{
 		HostPort:  r.config.Server,
 		Namespace: r.config.Namespace,
 		Logger:    log.NewSdkLogger(r.log),
-	})
+	}
+	if r.config.ClientCertPath != "" {
+		cert, err := tls.LoadX509KeyPair(r.config.ClientCertPath, r.config.ClientKeyPath)
+		if err != nil {
+			return fmt.Errorf("failed to load certs: %s", err)
+		}
+		opts.ConnectionOptions.TLS = &tls.Config{Certificates: []tls.Certificate{cert}}
+	}
+
+	cl, err := client.NewClient(opts)
 	if err != nil {
 		return fmt.Errorf("failed creating client: %w", err)
 	}

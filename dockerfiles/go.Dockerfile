@@ -21,7 +21,7 @@ ARG REPO_DIR_OR_PLACEHOLDER
 COPY ./${REPO_DIR_OR_PLACEHOLDER} ./${REPO_DIR_OR_PLACEHOLDER}
 
 # Prepare the feature for running
-RUN ./sdk-features prepare --lang go --dir prepared --version "$SDK_VERSION"
+RUN CGO_ENABLED=0 ./sdk-features prepare --lang go --dir prepared --version "$SDK_VERSION"
 
 # Copy the CLI and prepared feature to a distroless "run" container
 FROM gcr.io/distroless/static-debian11:nonroot
@@ -29,4 +29,5 @@ FROM gcr.io/distroless/static-debian11:nonroot
 COPY --from=build /app/sdk-features /app/sdk-features
 COPY --from=build /app/features /app/features
 COPY --from=build /app/prepared /app/prepared
-CMD ["/app/sdk-features", "run", "--lang", "go", "--prepared-dir", "prepared"]
+# # Use entrypoint instead of command to "bake" the default command options
+ENTRYPOINT ["/app/sdk-features", "run", "--lang", "go", "--prepared-dir", "prepared"]

@@ -9,6 +9,13 @@ on: # rebuild any PRs and main branch changes
 jobs:
   build-images:
     runs-on: ubuntu-latest
+    env:
+      # TODO(bergundy): get a permanent cloud namespace
+      TEMPORAL_CLOUD_ADDRESS: roey.temporal-dev.tmprl.cloud:7233
+      TEMPORAL_CLOUD_NAMESPACE: roey.temporal-dev
+      # For some reason this needs to be set globally ¯\_(ツ)_/¯
+      TEMPORAL_CLIENT_CERT: ${{ secrets.TEMPORAL_CLIENT_CERT }}
+      TEMPORAL_CLIENT_KEY: ${{ secrets.TEMPORAL_CLIENT_KEY }}
     steps:
       - name: Print build information
         run: 'echo head_ref: ${{ github.head_ref }}, ref: ${{ github.ref }}, os: ${{ matrix.os }}'
@@ -18,15 +25,39 @@ jobs:
           go-version: '^1.17'
       - name: Lint go docker image
         run: docker run --rm -i hadolint/hadolint < dockerfiles/go.Dockerfile
+
+      # Downlad the certs to be mounted as a volume in the running container
+      - run: mkdir /tmp/temporal-certs
+      - run: echo "$TEMPORAL_CLIENT_CERT" > /tmp/temporal-certs/client.pem
+      - run: echo "$TEMPORAL_CLIENT_KEY" > /tmp/temporal-certs/client.key
+
       # Just see if it runs for now, not publishing yet
       # TODO(bergundy): run these in parallel
-      # TODO(bergundy): run against a cloud namespace
+
       - name: Build go master image
         run: go run . build-image --lang go --repo-ref master
-      - name: Run go master image
-        run: docker run --rm -i sdk-features:go-master
+      - name: Run go master image against Temporalite
+        run: docker run --rm -i -v /tmp/temporal-certs:/certs sdk-features:go-master
+      - name: Run go master image against Cloud
+        run: |
+          docker run --rm -i -v /tmp/temporal-certs:/certs sdk-features:go-master \
+          --server $TEMPORAL_CLOUD_ADDRESS \
+          --namespace $TEMPORAL_CLOUD_NAMESPACE \
+          --client-cert-path /certs/client.pem \
+          --client-key-path /certs/client.key
 
+      # Latest release at the time this was written
+      # TODO(bergundy): Find some way to automatically upgrade to "latest"
       - name: Build go 1.16 image
         run: go run . build-image --lang go --version v1.16
-      - name: Run go 1.16 image
-        run: docker run --rm -i sdk-features:go-1.16.0
+      - name: Run go 1.16 image against Temporalite
+        run: docker run --rm -i -v /tmp/temporal-certs:/certs sdk-features:go-1.16.0
+      - name: Run go 1.16 image against Cloud
+        run: |
+          docker run --rm -i -v /tmp/temporal-certs:/certs sdk-features:go-1.16.0 \
+          --server $TEMPORAL_CLOUD_ADDRESS \
+          --namespace $TEMPORAL_CLOUD_NAMESPACE \
+          --client-cert-path /certs/client.pem \
+          --client-key-path /certs/client.key
+
+      # TODO(bergundy): create a docker push step

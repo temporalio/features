@@ -32,18 +32,13 @@ type PrepareConfig struct {
 
 func (p *PrepareConfig) flags() []cli.Flag {
 	return []cli.Flag{
+		langFlag(&p.Lang),
 		&cli.StringFlag{
 			Name: "dir",
 			Usage: "Directory name to prepare SDK for run at. " +
 				"This will be relative to the SDK features directory and cannot exist yet.",
 			Required:    true,
 			Destination: &p.Dir,
-		},
-		&cli.StringFlag{
-			Name:        "lang",
-			Usage:       "SDK language to run ('go' or 'java' or 'ts' or 'py')",
-			Required:    true,
-			Destination: &p.Lang,
 		},
 		&cli.StringFlag{
 			Name:        "version",

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -12,9 +13,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/DataDog/temporalite"
 	"github.com/google/uuid"
 	"github.com/pmezard/go-difflib/difflib"
+	"github.com/temporalio/temporalite"
 	"github.com/urfave/cli/v2"
 	"go.temporal.io/sdk-features/harness/go/cmd"
 	"go.temporal.io/sdk-features/harness/go/history"
@@ -40,19 +41,42 @@ type RunConfig struct {
 	PrepareConfig
 	Server              string
 	Namespace           string
+	ClientCertPath      string
+	ClientKeyPath       string
 	GenerateHistory     bool
 	DisableHistoryCheck bool
 	RetainTempDir       bool
 }
 
-func (r *RunConfig) flags() []cli.Flag {
+// dockerRunFlags are a subset of flags that apply when running in a docker container
+func (r *RunConfig) dockerRunFlags() []cli.Flag {
 	return []cli.Flag{
 		&cli.StringFlag{
-			Name:        "lang",
-			Usage:       "SDK language to run ('go' or 'java' or 'ts' or 'py')",
-			Required:    true,
-			Destination: &r.Lang,
+			Name:        "server",
+			Usage:       "The host:port of the server (default is to create ephemeral in-memory server)",
+			Destination: &r.Server,
 		},
+		&cli.StringFlag{
+			Name:        "namespace",
+			Usage:       "The namespace to use (default is random)",
+			Destination: &r.Namespace,
+		},
+		&cli.StringFlag{
+			Name:        "client-cert-path",
+			Usage:       "Path of TLS client cert to use (optional)",
+			Destination: &r.ClientCertPath,
+		},
+		&cli.StringFlag{
+			Name:        "client-key-path",
+			Usage:       "Path of TLS client key to use (optional)",
+			Destination: &r.ClientKeyPath,
+		},
+	}
+}
+
+func (r *RunConfig) flags() []cli.Flag {
+	return append([]cli.Flag{
+		langFlag(&r.Lang),
 		&cli.StringFlag{
 			Name: "version",
 			Usage: "SDK language version to run. Most languages support versions as paths. " +
@@ -69,16 +93,6 @@ func (r *RunConfig) flags() []cli.Flag {
 			Usage:       "Do not verify history matches",
 			Destination: &r.DisableHistoryCheck,
 		},
-		&cli.StringFlag{
-			Name:        "server",
-			Usage:       "The host:port of the server (default is to create ephemeral in-memory server)",
-			Destination: &r.Server,
-		},
-		&cli.StringFlag{
-			Name:        "namespace",
-			Usage:       "The namespace to use (default is random)",
-			Destination: &r.Namespace,
-		},
 		&cli.BoolFlag{
 			Name:        "retain-temp-dir",
 			Usage:       "Do not delete the temp directory after the run",
@@ -89,7 +103,7 @@ func (r *RunConfig) flags() []cli.Flag {
 			Usage:       "Relative directory already prepared. Cannot include version with this.",
 			Destination: &r.Dir,
 		},
-	}
+	}, r.dockerRunFlags()...)
 }
 
 // Runner can run features.
@@ -200,11 +214,16 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 	err = nil
 	switch r.config.Lang {
 	case "go":
-		// If there's a version we run external, otherwise we run local
-		if r.config.Version != "" {
+		// If there's a version or prepared dir we run external, otherwise we run local
+		if r.config.Version != "" || r.config.Dir != "" {
 			err = r.RunGoExternal(ctx, run)
 		} else {
-			err = cmd.NewRunner(cmd.RunConfig{Server: r.config.Server, Namespace: r.config.Namespace}).Run(ctx, run)
+			err = cmd.NewRunner(cmd.RunConfig{
+				Server:         r.config.Server,
+				Namespace:      r.config.Namespace,
+				ClientCertPath: r.config.ClientCertPath,
+				ClientKeyPath:  r.config.ClientKeyPath,
+			}).Run(ctx, run)
 		}
 	case "java":
 		err = r.RunJavaExternal(ctx, run)
@@ -224,11 +243,20 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 }
 
 func (r *Runner) handleHistory(ctx context.Context, run *cmd.Run) error {
-	cl, err := client.NewClient(client.Options{
+	opts := client.Options{
 		HostPort:  r.config.Server,
 		Namespace: r.config.Namespace,
 		Logger:    log.NewSdkLogger(r.log),
-	})
+	}
+	if r.config.ClientCertPath != "" {
+		cert, err := tls.LoadX509KeyPair(r.config.ClientCertPath, r.config.ClientKeyPath)
+		if err != nil {
+			return fmt.Errorf("failed to load certs: %s", err)
+		}
+		opts.ConnectionOptions.TLS = &tls.Config{Certificates: []tls.Certificate{cert}}
+	}
+
+	cl, err := client.NewClient(opts)
 	if err != nil {
 		return fmt.Errorf("failed creating client: %w", err)
 	}
@@ -347,4 +375,28 @@ func normalizeLangName(lang string) (string, error) {
 		return "", fmt.Errorf("invalid language %q, must be one of: go or java or ts or py", lang)
 	}
 	return lang, nil
+}
+
+func expandLangName(lang string) (string, error) {
+	switch lang {
+	case "go", "java", "typescript", "python":
+		// Allow the full typescript or python word, but we need to match the file
+		// extension for the rest of run
+	case "ts":
+		lang = "typescript"
+	case "py":
+		lang = "python"
+	default:
+		return "", fmt.Errorf("invalid language %q, must be one of: go or java or ts or py", lang)
+	}
+	return lang, nil
+}
+
+func langFlag(destination *string) *cli.StringFlag {
+	return &cli.StringFlag{
+		Name:        "lang",
+		Usage:       "SDK language to run ('go' or 'java' or 'ts' or 'py')",
+		Required:    true,
+		Destination: destination,
+	}
 }

@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/urfave/cli/v2"
 	"go.temporal.io/server/common/log"
@@ -155,8 +156,8 @@ func (i *ImageBuilder) buildFromRepo(ctx context.Context) error {
 	return i.dockerBuild(ctx, buildConfig{
 		tags: tags,
 		labels: map[string]string{
-			"SDK_REPO_URL": i.config.RepoURL,
-			"SDK_REPO_REF": repoRef,
+			"io.temporal.sdk.repo-url": i.config.RepoURL,
+			"io.temporal.sdk.repo-ref": repoRef,
 		},
 		buildArgs: map[string]string{"SDK_VERSION": repoDir, "REPO_DIR_OR_PLACEHOLDER": repoDir},
 	})
@@ -186,7 +187,9 @@ func (i *ImageBuilder) buildFromVersion(ctx context.Context) error {
 	return i.dockerBuild(ctx, buildConfig{
 		tags:      tags,
 		buildArgs: map[string]string{"SDK_VERSION": version, "REPO_DIR_OR_PLACEHOLDER": "main.go"},
-		labels:    map[string]string{"SDK_VERSION": version},
+		labels: map[string]string{
+			"io.temporal.sdk.version": version,
+		},
 	})
 }
 
@@ -213,8 +216,6 @@ func (i *ImageBuilder) dockerBuild(ctx context.Context, config buildConfig) erro
 		"--pull",
 		"--file",
 		fmt.Sprintf("dockerfiles/%s.Dockerfile", i.config.Lang),
-		"--label",
-		fmt.Sprintf("SDK_FEATURES_REF=%s", gitRef),
 	}
 	if i.config.Platform != "" {
 		args = append(args, "--platform", i.config.Platform)
@@ -222,6 +223,36 @@ func (i *ImageBuilder) dockerBuild(ctx context.Context, config buildConfig) erro
 	for _, tag := range config.tags {
 		args = append(args, "--tag", fmt.Sprintf("%s:%s", imageName, tag))
 	}
+
+	// TODO(bergundy): Would be nicer to print plain text instead of markdown but this good enough for now
+	usage, err := (&cli.App{
+		Name:  "sdk-features",
+		Usage: "run a test or set of sdk-features tests",
+		Flags: (&RunConfig{}).dockerRunFlags(),
+	}).ToMarkdown()
+	if err != nil {
+		return fmt.Errorf("failed to generate usage string: %s", err)
+	}
+	repoURL := os.Getenv("REPO_URL")
+	if repoURL == "" {
+		repoURL = "https://github.com/temporalio/sdk-features"
+	}
+
+	defaultLabels := map[string]string{
+		"org.opencontainers.image.created":       time.Now().UTC().Format(time.RFC3339),
+		"org.opencontainers.image.source":        repoURL,
+		"org.opencontainers.image.vendor":        "Temporal Technologies Inc.",
+		"org.opencontainers.image.authors":       "Temporal SDK team <sdk-team@temporal.io>",
+		"org.opencontainers.image.licenses":      "MIT",
+		"org.opencontainers.image.revision":      gitRef,
+		"org.opencontainers.image.title":         fmt.Sprintf("SDK features compliance test suite for %s", i.config.Lang),
+		"org.opencontainers.image.documentation": usage,
+		"io.temporal.sdk.name":                   i.config.Lang,
+	}
+	for k, v := range defaultLabels {
+		args = append(args, "--label", fmt.Sprintf("%s=%s", k, v))
+	}
+
 	for k, v := range config.labels {
 		args = append(args, "--label", fmt.Sprintf("%s=%s", k, v))
 	}

@@ -48,25 +48,9 @@ type RunConfig struct {
 	RetainTempDir       bool
 }
 
-func (r *RunConfig) flags() []cli.Flag {
+// dockerRunFlags are a subset of flags that apply when running in a docker container
+func (r *RunConfig) dockerRunFlags() []cli.Flag {
 	return []cli.Flag{
-		langFlag(&r.Lang),
-		&cli.StringFlag{
-			Name: "version",
-			Usage: "SDK language version to run. Most languages support versions as paths. " +
-				"Version cannot be present if prepared directory is.",
-			Destination: &r.Version,
-		},
-		&cli.BoolFlag{
-			Name:        "generate-history",
-			Usage:       "Generate the history of the features that are run (overwrites any existing history)",
-			Destination: &r.GenerateHistory,
-		},
-		&cli.BoolFlag{
-			Name:        "no-history-check",
-			Usage:       "Do not verify history matches",
-			Destination: &r.DisableHistoryCheck,
-		},
 		&cli.StringFlag{
 			Name:        "server",
 			Usage:       "The host:port of the server (default is to create ephemeral in-memory server)",
@@ -87,6 +71,28 @@ func (r *RunConfig) flags() []cli.Flag {
 			Usage:       "Path of TLS client key to use (optional)",
 			Destination: &r.ClientKeyPath,
 		},
+	}
+}
+
+func (r *RunConfig) flags() []cli.Flag {
+	return append([]cli.Flag{
+		langFlag(&r.Lang),
+		&cli.StringFlag{
+			Name: "version",
+			Usage: "SDK language version to run. Most languages support versions as paths. " +
+				"Version cannot be present if prepared directory is.",
+			Destination: &r.Version,
+		},
+		&cli.BoolFlag{
+			Name:        "generate-history",
+			Usage:       "Generate the history of the features that are run (overwrites any existing history)",
+			Destination: &r.GenerateHistory,
+		},
+		&cli.BoolFlag{
+			Name:        "no-history-check",
+			Usage:       "Do not verify history matches",
+			Destination: &r.DisableHistoryCheck,
+		},
 		&cli.BoolFlag{
 			Name:        "retain-temp-dir",
 			Usage:       "Do not delete the temp directory after the run",
@@ -97,7 +103,7 @@ func (r *RunConfig) flags() []cli.Flag {
 			Usage:       "Relative directory already prepared. Cannot include version with this.",
 			Destination: &r.Dir,
 		},
-	}
+	}, r.dockerRunFlags()...)
 }
 
 // Runner can run features.

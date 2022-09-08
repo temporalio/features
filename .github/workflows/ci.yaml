@@ -93,6 +93,7 @@ jobs:
 
   build-go-master-docker-images:
     uses: ./.github/workflows/docker-images.yaml
+    secrets: inherit
     with:
       lang: go
       sdk-repo-ref: master
@@ -101,6 +102,7 @@ jobs:
 
   build-go-latest-docker-images:
     uses: ./.github/workflows/docker-images.yaml
+    secrets: inherit
     with:
       lang: go
       # Latest release at the time this was written

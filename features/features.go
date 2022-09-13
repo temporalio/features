@@ -6,6 +6,7 @@ import (
 	"go.temporal.io/sdk-features/features/bugs/go/activity_start_race"
 	"go.temporal.io/sdk-features/features/bugs/go/child_workflow_cancel_panic"
 	"go.temporal.io/sdk-features/features/data_converter/binary"
+	"go.temporal.io/sdk-features/features/data_converter/empty"
 	"go.temporal.io/sdk-features/features/query/successful_query"
 	"go.temporal.io/sdk-features/features/query/timeout_due_to_no_active_workers"
 	"go.temporal.io/sdk-features/features/signal/external"
@@ -23,6 +24,7 @@ func init() {
 		successful_query.Feature,
 		timeout_due_to_no_active_workers.Feature,
 		metrics.Feature,
+		empty.Feature,
 		external.Feature,
 	)
 }

@@ -218,7 +218,7 @@ func (i *ImageBuilder) dockerBuild(ctx context.Context, config buildConfig) erro
 		fmt.Sprintf("dockerfiles/%s.Dockerfile", i.config.Lang),
 	}
 	if i.config.Platform != "" {
-		args = append(args, "--platform", i.config.Platform)
+		args = append(args, "--platform", i.config.Platform, "--build-arg", fmt.Sprintf("PLATFORM=%s", i.config.Platform))
 	}
 	for _, tag := range config.tags {
 		args = append(args, "--tag", fmt.Sprintf("%s:%s", imageName, tag))

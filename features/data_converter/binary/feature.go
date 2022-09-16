@@ -39,19 +39,15 @@ func CheckResult(ctx context.Context, runner *harness.Runner, run client.Workflo
 	}
 	history := runner.Client.GetWorkflowHistory(ctx, run.GetID(), "", false, 0)
 
-	var attrs *historyProto.WorkflowExecutionCompletedEventAttributes
-
-	for history.HasNext() {
-		ev, err := history.Next()
-		if err != nil {
-			return err
-		}
-		// get result payload of WorkflowExecutionCompleted event from workflow history
-		attrs = ev.GetWorkflowExecutionCompletedEventAttributes()
-		if attrs != nil {
-			break
-		}
+	event, err := harness.FindEvent(history, func(ev *historyProto.HistoryEvent) bool {
+		attrs := ev.GetWorkflowExecutionCompletedEventAttributes()
+		return attrs != nil
+	})
+	if err != nil {
+		return err
 	}
+
+	attrs := event.GetWorkflowExecutionCompletedEventAttributes()
 	if attrs == nil {
 		return errors.New("could not locate WorkflowExecutionCompleted event")
 	}

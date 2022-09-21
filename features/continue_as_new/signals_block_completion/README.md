@@ -1,4 +1,4 @@
-# Continue as new
+# signals_block_completion
 
 Workflows are subject to a maximum history size. As a result, very long running or
 infinite lifetime workflows require some mechanism to avoid running into this limit.

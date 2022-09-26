@@ -165,6 +165,7 @@ func scrubRunSpecificScalars(v interface{}) {
 		// keeping same namespaces the same fixed value?
 		v.Namespace = ""
 	case *history.HistoryEvent:
+		v.Version = 0 // This field is used for global namespaces and replication conflict resolution, ignore it
 		v.EventTime = nil
 		v.TaskId = 0
 	case *history.WorkflowExecutionStartedEventAttributes:

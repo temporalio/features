@@ -2,11 +2,12 @@
 
 Binary values can be converted to and from `binary/plain` Payloads.
 
-This feature: 
+Steps:
 
-- runs the binary value `101` (5) through the default Payload Converter, writes it to `payloads/binary.[lang]`, and
-  verifies it matches the other files in `payloads/`
-- decodes all files in `payloads/` with the default Payload Converter and verifies the binary value is `101`
+- run a workflow that returns binary value `0xdeadbeef`
+- verify client result is binary `0xdeadbeef`
+- get result payload of WorkflowExecutionCompleted event from workflow history
+- load JSON payload from `./payload.json` and compare it to result payload
 
 # Detailed spec
 

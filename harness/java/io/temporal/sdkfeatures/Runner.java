@@ -9,6 +9,8 @@ import com.uber.m3.tally.Scope;
 import io.temporal.activity.ActivityInterface;
 import io.temporal.api.common.v1.WorkflowExecution;
 import io.temporal.api.history.v1.History;
+import io.temporal.api.workflow.v1.WorkflowExecutionInfo;
+import io.temporal.api.workflowservice.v1.DescribeWorkflowExecutionRequest;
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowClientOptions;
 import io.temporal.client.WorkflowOptions;
@@ -126,6 +128,18 @@ public class Runner implements Closeable {
     return new Run(methods.get(0), executeWorkflow(methods.get(0).getName()));
   }
 
+  public Run executeSingleWorkflow(WorkflowOptions options, Object... args) {
+    // Find single workflow method or fail if multiple
+    var methods = featureInfo.metadata.getWorkflowMethods();
+    Preconditions.checkState(methods.size() == 1,
+            "expected only one workflow method, got %s", methods.size());
+
+    var stub = client.newUntypedWorkflowStub(methods.get(0).getName(), options);
+
+    // Call workflow with args
+    return new Run(methods.get(0), stub.start(args));
+  }
+
   public Object waitForRunResult(Run run) {
     return waitForRunResult(run, run.method.getWorkflowMethod().getReturnType());
   }
@@ -143,11 +157,24 @@ public class Runner implements Closeable {
     return stub.start(args);
   }
 
+  public History getWorkflowHistory(Run run) throws Exception {
+    var eventIter = WorkflowClientHelper.getHistory(service, config.namespace, run.execution, config.metricsScope);
+    return History.newBuilder().addAllEvents(() -> eventIter).build();
+  }
+
+  public WorkflowExecutionInfo getWorkflowExecutionInfo(Run run) throws Exception {
+    var describeRequest = DescribeWorkflowExecutionRequest.newBuilder()
+      .setNamespace(this.config.namespace)
+      .setExecution(run.execution)
+      .build();
+    var exec = this.client.getWorkflowServiceStubs().blockingStub().describeWorkflowExecution(describeRequest);
+    return exec.getWorkflowExecutionInfo();
+  }
+
   public void checkCurrentAndPastHistories(Run run) throws Exception {
     // Obtain the current history and run it through replay
     log.info("Checking current history");
-    var eventIter = WorkflowClientHelper.getHistory(service, config.namespace, run.execution, config.metricsScope);
-    var currentHistory = History.newBuilder().addAllEvents(() -> eventIter).build();
+    var currentHistory = getWorkflowHistory(run);
     worker.replayWorkflowExecution(new WorkflowExecutionHistory(currentHistory));
 
     // Replay each history

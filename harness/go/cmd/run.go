@@ -61,8 +61,10 @@ type RunFeature struct {
 
 // RunConfig is configuration for NewRunner.
 type RunConfig struct {
-	Server    string
-	Namespace string
+	Server         string
+	Namespace      string
+	ClientCertPath string
+	ClientKeyPath  string
 }
 
 func (r *RunConfig) flags() []cli.Flag {
@@ -76,6 +78,16 @@ func (r *RunConfig) flags() []cli.Flag {
 			Name:        "namespace",
 			Usage:       "The namespace to use (default is random)",
 			Destination: &r.Namespace,
+		},
+		&cli.StringFlag{
+			Name:        "client-cert-path",
+			Usage:       "Path of TLS client cert to use (optional)",
+			Destination: &r.ClientCertPath,
+		},
+		&cli.StringFlag{
+			Name:        "client-key-path",
+			Usage:       "Path of TLS client key to use (optional)",
+			Destination: &r.ClientKeyPath,
 		},
 	}
 }
@@ -127,6 +139,8 @@ func (r *Runner) Run(ctx context.Context, run *Run) error {
 		runnerConfig := harness.RunnerConfig{
 			ServerHostPort: r.config.Server,
 			Namespace:      r.config.Namespace,
+			ClientCertPath: r.config.ClientCertPath,
+			ClientKeyPath:  r.config.ClientKeyPath,
 			TaskQueue:      runFeature.TaskQueue,
 			Log:            r.log,
 		}

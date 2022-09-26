@@ -1,5 +1,6 @@
 # No exe or temp dir
 /sdk-features*
+/cloned-repo-*
 
 # Build Java stuff
 build
@@ -15,3 +16,10 @@ node_modules
 
 # Python stuff
 __pycache__
+
+# Build stuff
+bin
+
+# VS Code config
+.vscode
+

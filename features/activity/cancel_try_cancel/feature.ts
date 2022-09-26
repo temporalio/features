@@ -1,10 +1,11 @@
 import { Context } from '@temporalio/activity';
-import { WorkflowClient } from '@temporalio/client';
-import { CancelledFailure, ActivityFailure, ApplicationFailure } from '@temporalio/common';
-import { Feature } from '@temporalio/harness';
+import { CancelledFailure } from '@temporalio/common';
+import { Feature, getWorkflowClient } from '@temporalio/harness';
+import { ActivityFailure, ApplicationFailure } from '@temporalio/common';
 import * as wf from '@temporalio/workflow';
 
-const { cancellableActivity } = wf.proxyActivities<typeof activitiesImpl>({
+// Allow 4 retries with no backoff
+const activities = wf.proxyActivities<typeof activitiesImpl>({
   startToCloseTimeout: '1 minute',
   heartbeatTimeout: '5 seconds',
   // Disable retry
@@ -18,7 +19,7 @@ export async function workflow(): Promise<void> {
   try {
     await wf.CancellationScope.cancellable(async () => {
       // Start activity
-      const actPromise = cancellableActivity();
+      const actPromise = activities.cancellableActivity();
 
       // Sleep for smallest amount of time (force task turnover)
       await wf.sleep(1);
@@ -43,14 +44,9 @@ export async function workflow(): Promise<void> {
   }
 }
 
-let client: WorkflowClient | undefined;
-
 const activitiesImpl = {
   async cancellableActivity() {
-    // Expect client to be set
-    if (!client) {
-      throw new Error('Missing client');
-    }
+    const client = getWorkflowClient();
 
     // Heartbeat every second for a minute
     let result = 'timeout';
@@ -76,13 +72,7 @@ const activitiesImpl = {
   },
 };
 
-export const feature =
-  !wf.inWorkflowContext() &&
-  new Feature({
-    workflow,
-    activities: activitiesImpl,
-    execute: async (runner) => {
-      client = runner.client;
-      return await runner.executeSingleParameterlessWorkflow();
-    },
-  });
+export const feature = new Feature({
+  workflow,
+  activities: activitiesImpl,
+});

@@ -6,9 +6,21 @@ import uuid
 from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Awaitable, Callable, Dict, List, Optional, Type
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Type,
+    TypedDict,
+)
 
 from temporalio import workflow
+from temporalio.api.history.v1 import HistoryEvent
+from temporalio.api.workflowservice.v1 import GetWorkflowExecutionHistoryRequest
 from temporalio.client import Client, WorkflowFailureError, WorkflowHandle
 from temporalio.exceptions import ActivityError, ApplicationError
 from temporalio.worker import Worker
@@ -142,3 +154,23 @@ class Runner:
         if self.worker is not None:
             await self.worker.shutdown()
             self.worker = None
+
+    async def get_history_events(self, handle: WorkflowHandle) -> list[HistoryEvent]:
+        next_page_token = b""
+        history: list[HistoryEvent] = []
+        request = GetWorkflowExecutionHistoryRequest()
+        request.namespace = self.namespace
+        request.execution.workflow_id = handle.id
+
+        while True:
+            request.next_page_token = next_page_token
+            response = (
+                await self.client.workflow_service.get_workflow_execution_history(
+                    request
+                )
+            )
+            history.extend(response.history.events)
+            next_page_token = response.next_page_token
+            if not next_page_token:
+                break
+        return history

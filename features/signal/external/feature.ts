@@ -17,17 +17,15 @@ export async function workflow(): Promise<string> {
   return result;
 }
 
-export const feature =
-  !wf.inWorkflowContext() &&
-  new Feature({
-    workflow,
-    execute: async (runner) => {
-      const handle = await runner.executeSingleParameterlessWorkflow();
-      await handle.signal(externalSignal, signalData);
-      return handle;
-    },
-    checkResult: async (runner, run) => {
-      const result = await runner.waitForRunResult(run);
-      assert.equal(result, signalData);
-    },
-  });
+export const feature = new Feature({
+  workflow,
+  execute: async (runner) => {
+    const handle = await runner.executeSingleParameterlessWorkflow();
+    await handle.signal(externalSignal, signalData);
+    return handle;
+  },
+  checkResult: async (runner, run) => {
+    const result = await runner.waitForRunResult(run);
+    assert.equal(result, signalData);
+  },
+});

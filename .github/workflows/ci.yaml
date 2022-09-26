@@ -56,26 +56,6 @@ jobs:
       - run: poetry install --no-root
       - run: poe lint
 
-  feature-tests-ts:
-    # GH actions is a bit limited here and won't accept the current ref.
-    # When changing typescript.yaml, make sure to update the branch name below.
-    uses: temporalio/sdk-features/.github/workflows/typescript.yaml@main
-    with:
-      typescript-repo-path: temporalio/sdk-typescript
-      typescript-repo-ref: main
-
-  feature-tests-go:
-    uses: ./.github/workflows/go.yaml
-    with:
-      go-repo-path: temporalio/sdk-go
-      go-repo-ref: master
-
-  feature-tests-python:
-    uses: ./.github/workflows/python.yaml
-    with:
-      python-repo-path: temporalio/sdk-python
-      python-repo-ref: main
-
   build-java:
     strategy:
       fail-fast: true
@@ -92,3 +72,41 @@ jobs:
           java-version: '17'
 
       - run: ./gradlew build
+
+  feature-tests-ts:
+    uses: ./.github/workflows/typescript.yaml
+    with:
+      typescript-repo-path: temporalio/sdk-typescript
+      typescript-repo-ref: main
+
+  feature-tests-go:
+    uses: ./.github/workflows/go.yaml
+    with:
+      go-repo-path: temporalio/sdk-go
+      go-repo-ref: master
+
+  feature-tests-python:
+    uses: ./.github/workflows/python.yaml
+    with:
+      python-repo-path: temporalio/sdk-python
+      python-repo-ref: main
+
+  build-go-master-docker-images:
+    uses: ./.github/workflows/docker-images.yaml
+    secrets: inherit
+    with:
+      lang: go
+      sdk-repo-ref: master
+      sdk-repo-url: https://github.com/temporalio/sdk-go
+      run-tag: master
+
+  build-go-latest-docker-images:
+    uses: ./.github/workflows/docker-images.yaml
+    secrets: inherit
+    with:
+      lang: go
+      # Latest release at the time this was written
+      # TODO(bergundy): Find some way to automatically upgrade to "latest"
+      sdk-version: 'v1.16'
+      semver-latest: major
+      run-tag: '1.16.0'

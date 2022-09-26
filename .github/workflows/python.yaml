@@ -22,6 +22,9 @@ jobs:
         run: 'echo head_ref: ${{ github.head_ref }}, ref: ${{ github.ref }}, python repo ref: ${{ inputs.python-repo-ref }}'
         working-directory: '.'
 
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v1
+
       - name: Checkout SDK features repo
         uses: actions/checkout@v2
         with:

@@ -1,0 +1,82 @@
+name: Build docker images
+on:
+  workflow_call:
+    inputs:
+      lang:
+        description: SDK language to build the container for (only Go is supported for now)
+        required: true
+        type: string
+      sdk-repo-ref:
+        description: Git ref of SDK repo to use to build (overrides "sdk-version")
+        required: false
+        type: string
+      sdk-repo-url:
+        description: URL of SDK repo to use to build (only used if "sdk-repo-ref" is provided)
+        required: false
+        type: string
+      sdk-version:
+        description: Version of SDK to use (ignored if "sdk-repo-ref" is provided)
+        required: false
+        type: string
+      semver-latest:
+        # TODO(bergundy): type: choice doesn't seem to work here
+        description: Tag images with major / minor versions (only used if "sdk-version" is provided - 'minor' or 'major')
+        type: string
+        default: 'none'
+      run-tag:
+        description: Docker tag suffix to use to test run the image (e.g. master or 1.16.0)
+        # TODO(bergundy): infer this from sdk-version / sdk-repo-ref
+        required: true
+        type: string
+
+jobs:
+  build-images:
+    runs-on: ubuntu-latest
+    env:
+      TEMPORAL_CLOUD_ADDRESS: sdk-ci.a2dd6.tmprl.cloud:7233
+      TEMPORAL_CLOUD_NAMESPACE: sdk-ci.a2dd6
+      REPO_URL: ${{ github.event.pull_request.head.repo.html_url }}
+    steps:
+      - name: Print build information
+        run: 'echo head_ref: ${{ github.head_ref }}, ref: ${{ github.ref }}'
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '^1.17'
+      - name: Lint go dockerfiles
+        # Add more dockerfiles here when more languages are supported
+        run: docker run --rm -i hadolint/hadolint < dockerfiles/go.Dockerfile
+
+      # Download the certs to be mounted as a volume in the running container
+      - name: Download certs to temporary directory
+        run: |
+          mkdir /tmp/temporal-certs &&
+          echo "$TEMPORAL_CLIENT_CERT" > /tmp/temporal-certs/client.pem &&
+          echo "$TEMPORAL_CLIENT_KEY" > /tmp/temporal-certs/client.key &&
+          wc /tmp/temporal-certs/client.pem /tmp/temporal-certs/client.key
+        env:
+          TEMPORAL_CLIENT_CERT: ${{ secrets.TEMPORAL_CLIENT_CERT }}
+          TEMPORAL_CLIENT_KEY: ${{ secrets.TEMPORAL_CLIENT_KEY }}
+
+      - name: Build docker image
+        run: |
+          go run . build-image --lang ${{ inputs.lang }} \
+          ${{ inputs.sdk-repo-ref && format('--repo-ref {0}', inputs.sdk-repo-ref) || '' }} \
+          ${{ inputs.sdk-repo-ref && inputs.sdk-repo-url && format('--repo-url {0}', inputs.sdk-repo-url) || '' }} \
+          ${{ !inputs.sdk-repo-ref && format('--version {0}', inputs.sdk-version) || '' }} \
+          ${{ inputs.semver-latest != 'none' && format('--semver-latest {0}', inputs.semver-latest) || '' }}
+
+      - name: Test with Temporalite
+        run: docker run --rm -i -v /tmp/temporal-certs:/certs sdk-features:${{ inputs.lang }}-${{ inputs.run-tag }}
+      - name: Test with Cloud
+        run: |
+          docker run --rm -i -v /tmp/temporal-certs:/certs sdk-features:${{ inputs.lang }}-${{ inputs.run-tag }} \
+          --server $TEMPORAL_CLOUD_ADDRESS \
+          --namespace $TEMPORAL_CLOUD_NAMESPACE \
+          --client-cert-path /certs/client.pem \
+          --client-key-path /certs/client.key
+        # Only supported in non-fork runs
+        if: ${{ github.event.pull_request.head.repo.full_name == '' || github.event.pull_request.head.repo.full_name == 'temporalio/sdk-features' }}
+
+      # TODO(bergundy): create a docker push step (only run under certain conditions - like manual trigger or main
+      # branch trigger)

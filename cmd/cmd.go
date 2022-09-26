@@ -20,6 +20,7 @@ func NewApp() *cli.App {
 		Commands: []*cli.Command{
 			prepareCmd(),
 			runCmd(),
+			buildImageCmd(),
 		},
 	}
 }

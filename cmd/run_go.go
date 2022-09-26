@@ -123,6 +123,8 @@ func (r *Runner) RunGoExternal(ctx context.Context, run *cmd.Run) error {
 		"run",
 		"--server", r.config.Server,
 		"--namespace", r.config.Namespace,
+		"--client-cert-path", r.config.ClientCertPath,
+		"--client-key-path", r.config.ClientKeyPath,
 	}, run.ToArgs()...)
 	r.log.Debug("Running Go separately", tag.NewStringsTag("Args", runArgs))
 	goCmd := exec.CommandContext(ctx, filepath.Join(r.config.Dir, exe), runArgs...)

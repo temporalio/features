@@ -4,7 +4,7 @@ import asyncio
 
 from temporalio import workflow
 from temporalio.client import WorkflowHandle
-from temporalio.workflow_service import RPCError, RPCStatusCode
+from temporalio.service import RPCError, RPCStatusCode
 
 from harness.python.feature import Runner, register_feature
 

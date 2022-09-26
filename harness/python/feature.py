@@ -164,7 +164,11 @@ class Runner:
 
         while True:
             request.next_page_token = next_page_token
-            response = await self.client.service.get_workflow_execution_history(request)
+            response = (
+                await self.client.workflow_service.get_workflow_execution_history(
+                    request
+                )
+            )
             history.extend(response.history.events)
             next_page_token = response.next_page_token
             if not next_page_token:

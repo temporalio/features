@@ -3,7 +3,9 @@ module go.temporal.io/sdk-features/features
 go 1.17
 
 require (
+	github.com/gogo/protobuf v1.3.2
 	github.com/uber-go/tally/v4 v4.1.1
+	go.temporal.io/api v1.6.1-0.20211110205628-60c98e9cbfe2
 	go.temporal.io/sdk v1.12.0
 	go.temporal.io/sdk-features/harness/go v1.0.0
 	go.temporal.io/sdk/contrib/tally v0.1.0
@@ -15,7 +17,6 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/facebookgo/clock v0.0.0-20150410010913-600d898af40a // indirect
 	github.com/gogo/googleapis v1.4.1 // indirect
-	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/gogo/status v1.1.0 // indirect
 	github.com/golang/mock v1.6.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
@@ -27,7 +28,6 @@ require (
 	github.com/stretchr/objx v0.3.0 // indirect
 	github.com/stretchr/testify v1.7.0 // indirect
 	github.com/twmb/murmur3 v1.1.6 // indirect
-	go.temporal.io/api v1.6.1-0.20211110205628-60c98e9cbfe2 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
 	go.uber.org/zap v1.19.1 // indirect

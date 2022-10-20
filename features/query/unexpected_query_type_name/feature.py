@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from temporalio import workflow
-from temporalio.client import WorkflowHandle, RPCError
+from temporalio.client import RPCError, WorkflowHandle
 
 from harness.python.feature import Runner, register_feature
 

@@ -37,9 +37,13 @@ class FakeWf:
 
 
 async def checker(_: Runner, handle: WorkflowHandle):
-    q1 = await handle.query(FakeWf.num_q)
-    # Python (at the moment) doesn't detect any type mismatch here
-    assert q1 == "hi bob"
+    try:
+        await handle.query(FakeWf.num_q)
+    except TypeError:
+        pass
+    else:
+        raise Exception("Should have raised TypeError")
+
     await handle.signal(Workflow.finish_sig)
     await handle.result()
 

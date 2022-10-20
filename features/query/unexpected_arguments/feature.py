@@ -31,17 +31,16 @@ async def checker(_: Runner, handle: WorkflowHandle):
 
     # Extra arg
     try:
-        await handle.query(Workflow.the_query, 123, True)
-    except TypeError:
+        await handle.query("the_query", args=[123, True])
+    except RPCError:
         pass
     else:
         raise Exception("Extra arg in query must fail")
 
     # Not enough arg
     try:
-        await handle.query(Workflow.the_query)
+        await handle.query("the_query")
     except RPCError:
-        # TODO: Should be TypeError like other rejection
         pass
     else:
         raise Exception("Not enough args in query must fail")

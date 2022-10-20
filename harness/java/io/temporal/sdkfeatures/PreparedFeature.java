@@ -14,6 +14,7 @@ public class PreparedFeature {
       query.timeout_due_to_no_active_workers.feature.Impl.class,
       query.unexpected_arguments.feature.Impl.class,
       query.unexpected_query_type_name.feature.Impl.class,
+      query.unexpected_return_type.feature.Impl.class,
       signal.external.feature.Impl.class
   );
 

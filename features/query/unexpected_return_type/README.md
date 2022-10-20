@@ -1,7 +1,7 @@
 # Workflow Queries: Unexpected return type
-Upon providing the name of a query handler which does not exist (yet), the SDK should reject that
-query.
+Upon returning a type different from the one expected by the query caller, the client should
+return some kind of deserialization error if the SDK has sufficient type information to do so.
 
 
 # Detailed spec
-Issue a query with an unregistered type name, expect an error.
+Query a handler which returns a string, but try to interpret it as an int.

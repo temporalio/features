@@ -7,6 +7,7 @@ public class PreparedFeature {
   static PreparedFeature[] ALL = PreparedFeature.prepareFeatures(
       activity.retry_on_error.feature.Impl.class,
       activity.cancel_try_cancel.feature.Impl.class,
+      child_workflow.result.feature.Impl.class,
       continue_as_new.continue_as_same.feature.Impl.class,
       data_converter.binary.feature.Impl.class,
       data_converter.empty.feature.Impl.class,

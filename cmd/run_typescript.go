@@ -15,7 +15,6 @@ import (
 )
 
 type packageJSONDetails struct {
-	PathToMainJS   string
 	MetaPkgVersion string
 	LocalSDK       string
 }
@@ -45,6 +44,24 @@ func (p *Preparer) PrepareTypeScriptExternal(ctx context.Context) error {
 	MetaPkgVersion := ""
 	if strings.HasPrefix(p.config.Version, "/") {
 		localSDK = p.config.Version
+		// If node_modules exists, assume the SDK is already built
+		if st, err := os.Stat(filepath.Join(localSDK, "node_modules")); err != nil || !st.IsDir() {
+			// Only install dependencies, avoid triggerring any post install build scripts
+			npmCI := exec.CommandContext(ctx, "npm", "ci", "--ignore-scripts")
+			npmCI.Dir = localSDK
+			npmCI.Stdin, npmCI.Stdout, npmCI.Stderr = os.Stdin, os.Stdout, os.Stderr
+			if err := npmCI.Run(); err != nil {
+				return fmt.Errorf("failed to install dependencies: %w", err)
+			}
+
+			// Build the SDK, ignore the unused `create` package as a mostly insignificant micro optimisation.
+			npmBuild := exec.CommandContext(ctx, "npm", "run", "build", "--", "--ignore", "@temporalio/create")
+			npmBuild.Dir = localSDK
+			npmBuild.Stdin, npmBuild.Stdout, npmBuild.Stderr = os.Stdin, os.Stdout, os.Stderr
+			if err := npmBuild.Run(); err != nil {
+				return fmt.Errorf("failed to build: %w", err)
+			}
+		}
 	} else {
 		if p.config.Version == "" {
 			// Default to version from top-level package.json
@@ -67,7 +84,6 @@ func (p *Preparer) PrepareTypeScriptExternal(ctx context.Context) error {
 	}
 	err = packageJSON.Execute(&packageJSONEvaluated, packageJSONDetails{
 		LocalSDK:       maybeLocalSDK,
-		PathToMainJS:   "./tslib/harness/ts/main.js",
 		MetaPkgVersion: MetaPkgVersion,
 	})
 	if err != nil {
@@ -126,10 +142,18 @@ func (r *Runner) RunTypeScriptExternal(ctx context.Context, run *cmd.Run) error 
 	}
 
 	// Run the harness
-	runArgs := []string{"run", "start", "--",
-		"--server", r.config.Server, "--namespace", r.config.Namespace}
+	runArgs := []string{
+		"-r",
+		"tsconfig-paths/register",
+		"./tslib/harness/ts/main.js",
+		"--server",
+		r.config.Server,
+		"--namespace",
+		r.config.Namespace,
+	}
 	runArgs = append(runArgs, run.ToArgs()...)
-	npmRun := exec.CommandContext(ctx, "npm", runArgs...)
+	// Not using the standard "npm start" to support distroless images
+	npmRun := exec.CommandContext(ctx, "node", runArgs...)
 	npmRun.Dir = r.config.Dir
 	npmRun.Stdin, npmRun.Stdout, npmRun.Stderr = os.Stdin, os.Stdout, os.Stderr
 	if err := npmRun.Run(); err != nil {

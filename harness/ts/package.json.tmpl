@@ -2,8 +2,7 @@
   "name": "sdk-features",
   "private": true,
   "scripts": {
-    "build": "tsc --build",
-    "start": "node -r tsconfig-paths/register {{ .PathToMainJS }}"
+    "build": "tsc --build"
   },
   "dependencies": {
   {{ if .LocalSDK }}
@@ -24,9 +23,8 @@
   },
   "devDependencies": {
     "@tsconfig/node16": "^1.0.0",
+    "@types/node": "^16.11.59",
     "@types/uuid": "^8.3.4",
-    "source-map-loader": "^3.0.1",
-    "ts-node": "^10.4.0",
     "tsconfig-paths": "^3.12.0",
     "typescript": "^4.4.2"
   }

@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -143,7 +144,8 @@ func (i *ImageBuilder) buildFromRepo(ctx context.Context) error {
 		return err
 	}
 
-	repoDir := filepath.Join(filepath.Base(tempDir), repoBaseDir)
+	// Not using filepath.Join because we need POSIX path on windows
+	repoDir := fmt.Sprintf("%s/%s", filepath.Base(tempDir), repoBaseDir)
 
 	// Get the actual ref (in case passed in ref is a branch name or tag)
 	repoRef, err := i.gitRef(ctx, filepath.Join(tempDir, repoBaseDir, ".git"))
@@ -159,7 +161,7 @@ func (i *ImageBuilder) buildFromRepo(ctx context.Context) error {
 			"io.temporal.sdk.repo-url": i.config.RepoURL,
 			"io.temporal.sdk.repo-ref": repoRef,
 		},
-		buildArgs: map[string]string{"SDK_VERSION": repoDir, "REPO_DIR_OR_PLACEHOLDER": repoDir},
+		buildArgs: map[string]string{"SDK_VERSION": fmt.Sprintf("/app/%s", repoDir), "REPO_DIR_OR_PLACEHOLDER": repoDir},
 	})
 }
 
@@ -217,9 +219,14 @@ func (i *ImageBuilder) dockerBuild(ctx context.Context, config buildConfig) erro
 		"--file",
 		fmt.Sprintf("dockerfiles/%s.Dockerfile", i.config.Lang),
 	}
+	platform := runtime.GOARCH
 	if i.config.Platform != "" {
-		args = append(args, "--platform", i.config.Platform, "--build-arg", fmt.Sprintf("PLATFORM=%s", i.config.Platform))
+		platform = i.config.Platform
+		args = append(args, "--platform", platform)
 	}
+
+	args = append(args, "--build-arg", fmt.Sprintf("PLATFORM=%s", platform))
+
 	for _, tag := range config.tags {
 		args = append(args, "--tag", fmt.Sprintf("%s:%s", imageName, tag))
 	}

@@ -110,3 +110,23 @@ jobs:
       sdk-version: 'v1.18.1'
       semver-latest: major
       run-tag: '1.18.1'
+
+  build-node-main-docker-images:
+    uses: ./.github/workflows/docker-images.yaml
+    secrets: inherit
+    with:
+      lang: ts
+      sdk-repo-ref: main
+      sdk-repo-url: https://github.com/temporalio/sdk-typescript
+      run-tag: main
+
+  build-node-latest-docker-images:
+    uses: ./.github/workflows/docker-images.yaml
+    secrets: inherit
+    with:
+      lang: ts
+      # Latest release at the time this was written
+      # TODO(bergundy): Find some way to automatically upgrade to "latest"
+      sdk-version: 'v1.2.0'
+      semver-latest: major
+      run-tag: '1.2.0'

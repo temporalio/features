@@ -127,6 +127,6 @@ jobs:
       lang: ts
       # Latest release at the time this was written
       # TODO(bergundy): Find some way to automatically upgrade to "latest"
-      sdk-version: 'v1.2.0'
+      sdk-version: 'v1.4.4'
       semver-latest: major
-      run-tag: '1.2.0'
+      run-tag: '1.4.4'

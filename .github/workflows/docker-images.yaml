@@ -68,6 +68,7 @@ jobs:
 
       - name: Test with Temporalite
         run: docker run --rm -i -v /tmp/temporal-certs:/certs sdk-features:${{ inputs.lang }}-${{ inputs.run-tag }}
+
       - name: Test with Cloud
         run: |
           docker run --rm -i -v /tmp/temporal-certs:/certs sdk-features:${{ inputs.lang }}-${{ inputs.run-tag }} \

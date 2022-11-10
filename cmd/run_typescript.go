@@ -150,6 +150,23 @@ func (r *Runner) RunTypeScriptExternal(ctx context.Context, run *cmd.Run) error 
 		r.config.Server,
 		"--namespace",
 		r.config.Namespace,
+		"--client-key-path",
+		r.config.ClientKeyPath,
+	}
+
+	if r.config.ClientCertPath != "" {
+		clientCertPath, err := filepath.Abs(r.config.ClientCertPath)
+		if err != nil {
+			return err
+		}
+		runArgs = append(runArgs, "--client-cert-path", clientCertPath)
+	}
+	if r.config.ClientKeyPath != "" {
+		clientKeyPath, err := filepath.Abs(r.config.ClientKeyPath)
+		if err != nil {
+			return err
+		}
+		runArgs = append(runArgs, "--client-key-path", clientKeyPath)
 	}
 	runArgs = append(runArgs, run.ToArgs()...)
 	// Not using the standard "npm start" to support distroless images

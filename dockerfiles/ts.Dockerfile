@@ -7,7 +7,7 @@ FROM node:16 as build
 RUN apt-get update \
  && DEBIAN_FRONTEND=noninteractive \
     apt-get install --no-install-recommends --assume-yes \
-      protobuf-compiler
+      protobuf-compiler libprotobuf-dev
 
 WORKDIR /app
 

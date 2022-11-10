@@ -4,6 +4,11 @@
 # Build in a full featured container
 FROM node:16 as build
 
+RUN apt-get update \
+ && DEBIAN_FRONTEND=noninteractive \
+    apt-get install --no-install-recommends --assume-yes \
+      protobuf-compiler
+
 WORKDIR /app
 
 # Copy CLI build dependencies
@@ -45,5 +50,5 @@ COPY --from=build /app/${REPO_DIR_OR_PLACEHOLDER} /app/${REPO_DIR_OR_PLACEHOLDER
 
 # Node is installed here 👇 in distroless
 ENV PATH="/nodejs/bin"
-# # Use entrypoint instead of command to "bake" the default command options
+# Use entrypoint instead of command to "bake" the default command options
 ENTRYPOINT ["/app/sdk-features", "run", "--lang", "ts", "--prepared-dir", "prepared"]

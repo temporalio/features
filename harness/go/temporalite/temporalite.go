@@ -103,13 +103,14 @@ func Start(options Options) (*Temporalite, error) {
 		if err != nil {
 			clientErr = err
 		} else {
+			clientErr = nil
 			client.Close()
 			break
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
 	if clientErr != nil {
-		return nil, fmt.Errorf("failed connecting after 5s, last error: %w", err)
+		return nil, fmt.Errorf("failed connecting after 5s, last error: %w", clientErr)
 	}
 	return &Temporalite{FrontendHostPort: "127.0.0.1:" + portStr, cmd: cmd}, nil
 }

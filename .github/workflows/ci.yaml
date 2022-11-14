@@ -107,6 +107,6 @@ jobs:
       lang: go
       # Latest release at the time this was written
       # TODO(bergundy): Find some way to automatically upgrade to "latest"
-      sdk-version: 'v1.16'
+      sdk-version: 'v1.18.1'
       semver-latest: major
-      run-tag: '1.16.0'
+      run-tag: '1.18.1'

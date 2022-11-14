@@ -5,7 +5,7 @@ import com.google.common.base.Preconditions;
 import java.util.Objects;
 
 public class Version {
-  public static final Version SDK = new Version(io.temporal.internal.Version.LIBRARY_VERSION);
+  public static final Version SDK = new Version(io.temporal.serviceclient.Version.LIBRARY_VERSION);
 
   public final int major, minor, patch;
   public final boolean hasExtra;

@@ -24,7 +24,8 @@ func (p *Preparer) PrepareJavaExternal(ctx context.Context, build bool) error {
 	// Create build.gradle and settings.gradle
 	temporalSDKDependency := ""
 	if p.config.Version != "" {
-		temporalSDKDependency = fmt.Sprintf("implementation 'io.temporal:temporal-sdk:%v'", p.config.Version)
+		temporalSDKDependency = fmt.Sprintf("implementation 'io.temporal:temporal-sdk:%v'",
+			strings.TrimPrefix(p.config.Version, "v"))
 	}
 	buildGradle := `
 plugins {

@@ -4,19 +4,13 @@
 # Build in a full featured container
 FROM node:16 as build
 
+# Install protobuf compiler
 RUN apt-get update \
  && DEBIAN_FRONTEND=noninteractive \
     apt-get install --no-install-recommends --assume-yes \
       protobuf-compiler libprotobuf-dev
 
-WORKDIR /app
-
-# Copy CLI build dependencies
-COPY features ./features
-COPY harness ./harness
-COPY cmd ./cmd
-COPY go.mod go.sum main.go ./
-
+# Get go compiler
 ARG PLATFORM=amd64
 RUN wget https://go.dev/dl/go1.19.1.linux-${PLATFORM}.tar.gz
 RUN tar -C /usr/local -xzf go1.19.1.linux-${PLATFORM}.tar.gz
@@ -25,6 +19,14 @@ RUN tar -C /usr/local -xzf go1.19.1.linux-${PLATFORM}.tar.gz
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
 ENV PATH="$PATH:/root/.cargo/bin"
+
+WORKDIR /app
+
+# Copy CLI build dependencies
+COPY features ./features
+COPY harness ./harness
+COPY cmd ./cmd
+COPY go.mod go.sum main.go ./
 
 # Build the CLI
 RUN CGO_ENABLED=0 /usr/local/go/bin/go build

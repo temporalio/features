@@ -1,9 +1,14 @@
 name: Continuous Integration
+
 on: # rebuild any PRs and main branch changes
   pull_request:
   push:
     branches:
       - main
+
+concurrency:
+  group: ${{ github.head_ref }}
+  cancel-in-progress: true
 
 jobs:
   # Build cli and harnesses
@@ -131,3 +136,23 @@ jobs:
       sdk-version: 'v1.4.4'
       semver-latest: major
       run-tag: '1.4.4'
+
+  build-java-main-docker-images:
+    uses: ./.github/workflows/docker-images.yaml
+    secrets: inherit
+    with:
+      lang: java
+      sdk-repo-ref: master
+      sdk-repo-url: https://github.com/temporalio/sdk-java
+      run-tag: master
+
+  build-java-latest-docker-images:
+    uses: ./.github/workflows/docker-images.yaml
+    secrets: inherit
+    with:
+      lang: java
+      # Latest release at the time this was written
+      # TODO(bergundy): Find some way to automatically upgrade to "latest"
+      sdk-version: 'v1.17.0'
+      semver-latest: major
+      run-tag: '1.17.0'

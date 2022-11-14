@@ -15,13 +15,13 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/pmezard/go-difflib/difflib"
-	"github.com/temporalio/temporalite"
 	"github.com/urfave/cli/v2"
 	"go.temporal.io/sdk-features/harness/go/cmd"
+	"go.temporal.io/sdk-features/harness/go/harness"
 	"go.temporal.io/sdk-features/harness/go/history"
+	"go.temporal.io/sdk-features/harness/go/temporalite"
 	"go.temporal.io/sdk/client"
-	"go.temporal.io/server/common/log"
-	"go.temporal.io/server/common/log/tag"
+	"go.temporal.io/sdk/log"
 )
 
 func runCmd() *cli.Command {
@@ -120,7 +120,7 @@ type Runner struct {
 func NewRunner(config RunConfig) *Runner {
 	return &Runner{
 		// TODO(cretz): Configurable logger
-		log:            log.NewCLILogger(),
+		log:            harness.NewCLILogger(),
 		config:         config,
 		rootDir:        rootDir(),
 		createTime:     time.Now(),
@@ -178,25 +178,18 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 
 	// If the server is not set, start it ourselves
 	if r.config.Server == "" {
-		server, err := temporalite.NewServer(
-			// TODO(cretz): Allow multiple?
-			temporalite.WithNamespaces(r.config.Namespace),
-			temporalite.WithPersistenceDisabled(),
-			temporalite.WithDynamicPorts(),
-			// TODO(cretz): Server is noisy, allow separate config
-			// temporalite.WithLogger(r.log),
-			temporalite.WithLogger(log.NewNoopLogger()),
-		)
+		server, err := temporalite.Start(temporalite.Options{
+			// Log: r.log,
+			// TODO(cretz): Configurable?
+			LogLevel:  "error",
+			Namespace: r.config.Namespace,
+		})
 		if err != nil {
-			return fmt.Errorf("failed creating server: %w", err)
-		}
-		if err := server.Start(); err != nil {
-			return fmt.Errorf("failed starting server: %w", err)
+			return fmt.Errorf("failed starting temporalite: %w", err)
 		}
 		defer server.Stop()
-		// Set server host:port
-		r.config.Server = server.FrontendHostPort()
-		r.log.Info("Started server", tag.NewStringTag("HostPort", r.config.Server))
+		r.config.Server = server.FrontendHostPort
+		r.log.Info("Started server", "HostPort", r.config.Server)
 	}
 
 	// Ensure any created temp dir is cleaned on ctrl-c or normal exit
@@ -246,7 +239,7 @@ func (r *Runner) handleHistory(ctx context.Context, run *cmd.Run) error {
 	opts := client.Options{
 		HostPort:  r.config.Server,
 		Namespace: r.config.Namespace,
-		Logger:    log.NewSdkLogger(r.log),
+		Logger:    r.log,
 	}
 	if r.config.ClientCertPath != "" {
 		cert, err := tls.LoadX509KeyPair(r.config.ClientCertPath, r.config.ClientKeyPath)
@@ -267,7 +260,7 @@ func (r *Runner) handleHistory(ctx context.Context, run *cmd.Run) error {
 	for _, feature := range run.Features {
 		if err := r.handleSingleHistory(ctx, cl, feature); err != nil {
 			failureCount++
-			r.log.Error("Feature history handling failed", tag.NewStringTag("Feature", feature.Dir), tag.NewErrorTag(err))
+			r.log.Error("Feature history handling failed", "Feature", feature.Dir, "error", err)
 		}
 	}
 	if failureCount > 0 {

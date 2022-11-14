@@ -8,7 +8,8 @@ import (
 	"strings"
 
 	"github.com/urfave/cli/v2"
-	"go.temporal.io/server/common/log"
+	"go.temporal.io/sdk-features/harness/go/harness"
+	"go.temporal.io/sdk/log"
 )
 
 func prepareCmd() *cli.Command {
@@ -58,7 +59,7 @@ type Preparer struct {
 func NewPreparer(config PrepareConfig) *Preparer {
 	return &Preparer{
 		// TODO(cretz): Configurable logger
-		log:     log.NewCLILogger(),
+		log:     harness.NewCLILogger(),
 		config:  config,
 		rootDir: rootDir(),
 	}

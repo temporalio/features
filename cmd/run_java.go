@@ -10,8 +10,7 @@ import (
 	"strings"
 
 	"go.temporal.io/sdk-features/harness/go/cmd"
-	"go.temporal.io/server/common/log"
-	"go.temporal.io/server/common/log/tag"
+	"go.temporal.io/sdk/log"
 )
 
 // PrepareJavaExternal prepares a Java run without running it. The preparer
@@ -20,7 +19,7 @@ import (
 func (p *Preparer) PrepareJavaExternal(ctx context.Context, build bool) error {
 	// To do this, we're gonna create a temporary project, --include-build this
 	// one, then gradle it
-	p.log.Info("Building Java project", tag.NewStringTag("Path", p.config.Dir))
+	p.log.Info("Building Java project", "Path", p.config.Dir)
 
 	// Create build.gradle and settings.gradle
 	temporalSDKDependency := ""
@@ -110,7 +109,7 @@ func runGradle(ctx context.Context, log log.Logger, dir string, args []string) e
 	}
 
 	// Run
-	log.Debug("Running Gradle separately", tag.NewStringTag("Exe", exe), tag.NewStringsTag("Args", args))
+	log.Debug("Running Gradle separately", "Exe", exe, "Args", args)
 	cmd := exec.CommandContext(ctx, exe, args...)
 	cmd.Dir = dir
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr

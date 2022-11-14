@@ -12,7 +12,6 @@ import (
 	"text/template"
 
 	"go.temporal.io/sdk-features/harness/go/cmd"
-	"go.temporal.io/server/common/log/tag"
 )
 
 type packageJSONDetails struct {
@@ -29,7 +28,7 @@ type packageJsonTemporalVersion struct {
 // preparer config directory is expected to be an absolute subdirectory just
 // beneath the root directory.
 func (p *Preparer) PrepareTypeScriptExternal(ctx context.Context) error {
-	p.log.Info("Building Typescript project", tag.NewStringTag("Path", p.config.Dir))
+	p.log.Info("Building Typescript project", "Path", p.config.Dir)
 
 	harnessPath, err := filepath.Abs(filepath.Join(p.rootDir, "harness", "ts"))
 	if err != nil {

@@ -11,14 +11,13 @@ import (
 	"strings"
 
 	"go.temporal.io/sdk-features/harness/go/cmd"
-	"go.temporal.io/server/common/log/tag"
 )
 
 // PreparePythonExternal prepares a Python run without running it. The preparer
 // config directory is expected to be an absolute subdirectory just beneath the
 // root directory.
 func (p *Preparer) PreparePythonExternal(ctx context.Context) error {
-	p.log.Info("Building Python project", tag.NewStringTag("Path", p.config.Dir))
+	p.log.Info("Building Python project", "Path", p.config.Dir)
 	// Use semantic version or path if it's a path
 	versionStr := strconv.Quote(p.config.Version)
 	if strings.ContainsAny(p.config.Version, "/\\") {
@@ -94,7 +93,7 @@ func (r *Runner) RunPythonExternal(ctx context.Context, run *cmd.Run) error {
 	// Run
 	args := append([]string{"run", "python", "-m", "harness.python.main",
 		"--server", r.config.Server, "--namespace", r.config.Namespace}, run.ToArgs()...)
-	r.log.Debug("Running Poetry", tag.NewStringsTag("Args", args))
+	r.log.Debug("Running Poetry", "Args", args)
 	cmd := exec.CommandContext(ctx, "poetry", args...)
 	cmd.Dir = runDir
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr

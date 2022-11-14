@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/urfave/cli/v2"
-	"go.temporal.io/server/common/log"
-	"go.temporal.io/server/common/log/tag"
+	"go.temporal.io/sdk-features/harness/go/harness"
+	"go.temporal.io/sdk/log"
 	"golang.org/x/mod/semver"
 )
 
@@ -95,7 +95,7 @@ type ImageBuilder struct {
 func NewImageBuilder(config ImageBuildConfig) *ImageBuilder {
 	return &ImageBuilder{
 		// TODO(cretz): Configurable logger
-		log:     log.NewCLILogger(),
+		log:     harness.NewCLILogger(),
 		config:  config,
 		rootDir: rootDir(),
 	}
@@ -129,7 +129,7 @@ func (i *ImageBuilder) buildFromRepo(ctx context.Context) error {
 			return err
 		}
 	}
-	i.log.Info("Building from given repo ref", tag.NewStringTag("repoURL", i.config.RepoURL), tag.NewStringTag("repoRef", i.config.RepoRef))
+	i.log.Info("Building from given repo ref", "RepoUrl", i.config.RepoURL, "RepoRef", i.config.RepoRef)
 
 	// We have to clone into rootDir because it's part of the docker context
 	tempDir, err := os.MkdirTemp(i.rootDir, "cloned-repo-*")
@@ -169,7 +169,7 @@ func (i *ImageBuilder) buildFromVersion(ctx context.Context) error {
 		// TODO: python is an exception
 		return fmt.Errorf("expected version to be valid semver")
 	}
-	i.log.Info("Building from given version", tag.NewStringTag("version", version))
+	i.log.Info("Building from given version", "Version", version)
 
 	// Build the list of tags: lang-major.minor.patch, and optionally: lang-major.minor, lang-major, lang
 	tags := []string{fmt.Sprintf("%s-%s", i.config.Lang, version[1:])}
@@ -261,7 +261,7 @@ func (i *ImageBuilder) dockerBuild(ctx context.Context, config buildConfig) erro
 	}
 	args = append(args, i.rootDir)
 
-	i.log.Info("Building docker image", tag.NewAnyTag("args", args))
+	i.log.Info("Building docker image", "Args", args)
 	dockerBuild := exec.Command("docker", args...)
 	dockerBuild.Stdout = os.Stdout
 	dockerBuild.Stderr = os.Stderr
@@ -287,7 +287,7 @@ func (i *ImageBuilder) gitClone(ctx context.Context, rootDir string) (string, er
 	repoBaseDir := fmt.Sprintf("sdk-%s", expandedLangName)
 	targetDir := filepath.Join(rootDir, repoBaseDir)
 	args := []string{"clone", "--recurse-submodules", i.config.RepoURL, targetDir}
-	i.log.Info("Fetching git repo", tag.NewAnyTag("args", args))
+	i.log.Info("Fetching git repo", "Args", args)
 	gitClone := exec.Command("git", args...)
 	gitClone.Stdout = os.Stdout
 	gitClone.Stderr = os.Stderr

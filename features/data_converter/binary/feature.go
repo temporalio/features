@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path"
+	"path/filepath"
 
 	"github.com/gogo/protobuf/jsonpb"
 	common "go.temporal.io/api/common/v1"
@@ -54,7 +54,7 @@ func CheckResult(ctx context.Context, runner *harness.Runner, run client.Workflo
 	payload := attrs.GetResult().GetPayloads()[0]
 
 	// load JSON payload from `./payload.json` and compare it to result payload
-	file, err := os.Open(path.Join(runner.Feature.AbsDir, "../../../features/data_converter/binary/payload.json"))
+	file, err := os.Open(filepath.Join(runner.Feature.AbsDir, "../../../features/data_converter/binary/payload.json"))
 	if err != nil {
 		return err
 	}

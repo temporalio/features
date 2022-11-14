@@ -10,14 +10,13 @@ import (
 	"strings"
 
 	"go.temporal.io/sdk-features/harness/go/cmd"
-	"go.temporal.io/server/common/log/tag"
 )
 
 // PrepareGoExternal prepares a Go run without running it. The preparer config
 // directory is expected to be an absolute subdirectory just beneath the root
 // directory.
 func (p *Preparer) PrepareGoExternal(ctx context.Context) error {
-	p.log.Info("Preparing Go project", tag.NewStringTag("Path", p.config.Dir))
+	p.log.Info("Preparing Go project", "Path", p.config.Dir)
 
 	// Create go.mod
 	goMod := `module go.temporal.io/sdk-features-test
@@ -126,7 +125,7 @@ func (r *Runner) RunGoExternal(ctx context.Context, run *cmd.Run) error {
 		"--client-cert-path", r.config.ClientCertPath,
 		"--client-key-path", r.config.ClientKeyPath,
 	}, run.ToArgs()...)
-	r.log.Debug("Running Go separately", tag.NewStringsTag("Args", runArgs))
+	r.log.Debug("Running Go separately", "Args", runArgs)
 	goCmd := exec.CommandContext(ctx, filepath.Join(r.config.Dir, exe), runArgs...)
 	goCmd.Dir = r.config.Dir
 	goCmd.Stdin, goCmd.Stdout, goCmd.Stderr = os.Stdin, os.Stdout, os.Stderr

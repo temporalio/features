@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"go.temporal.io/server/common/log/tag"
 	"golang.org/x/mod/semver"
 )
 
@@ -82,8 +81,8 @@ func (r *Runner) GlobFeatures(patterns []string) ([]*RunFeature, error) {
 		// If there's a min version, check we're within it
 		if r.config.Lang == "go" && r.config.Version != "" && feature.Config.Go.MinVersion != "" {
 			if semver.Compare(r.config.Version, feature.Config.Go.MinVersion) < 0 {
-				r.log.Debug("Skipping feature because version too low", tag.NewStringTag("Feature", feature.Dir),
-					tag.NewStringTag("MinVersion", feature.Config.Go.MinVersion))
+				r.log.Debug("Skipping feature because version too low", "Feature", feature.Dir,
+					"MinVersion", feature.Config.Go.MinVersion)
 				return nil
 			}
 		}

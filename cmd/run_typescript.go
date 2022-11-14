@@ -150,8 +150,6 @@ func (r *Runner) RunTypeScriptExternal(ctx context.Context, run *cmd.Run) error 
 		r.config.Server,
 		"--namespace",
 		r.config.Namespace,
-		"--client-key-path",
-		r.config.ClientKeyPath,
 	}
 
 	if r.config.ClientCertPath != "" {

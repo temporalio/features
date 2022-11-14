@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -144,8 +145,7 @@ func (i *ImageBuilder) buildFromRepo(ctx context.Context) error {
 		return err
 	}
 
-	// Not using filepath.Join because we need POSIX path on windows
-	repoDir := fmt.Sprintf("%s/%s", filepath.Base(tempDir), repoBaseDir)
+	repoDir := path.Join(filepath.Base(tempDir), repoBaseDir)
 
 	// Get the actual ref (in case passed in ref is a branch name or tag)
 	repoRef, err := i.gitRef(ctx, filepath.Join(tempDir, repoBaseDir, ".git"))
@@ -161,7 +161,7 @@ func (i *ImageBuilder) buildFromRepo(ctx context.Context) error {
 			"io.temporal.sdk.repo-url": i.config.RepoURL,
 			"io.temporal.sdk.repo-ref": repoRef,
 		},
-		buildArgs: map[string]string{"SDK_VERSION": fmt.Sprintf("/app/%s", repoDir), "REPO_DIR_OR_PLACEHOLDER": repoDir},
+		buildArgs: map[string]string{"SDK_VERSION": path.Join("/app", repoDir), "REPO_DIR_OR_PLACEHOLDER": repoDir},
 	})
 }
 

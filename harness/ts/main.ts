@@ -3,17 +3,23 @@ import { Runtime, DefaultLogger } from '@temporalio/worker';
 import pkg from '@temporalio/worker/lib/pkg';
 import { Command } from 'commander';
 import * as path from 'path';
+import { TLSConfig } from '@temporalio/client';
+import * as fs from 'fs';
 
 async function run() {
   const program = new Command();
   program
     .requiredOption('--server <address>', 'The host:port of the server')
     .requiredOption('--namespace <namespace>', 'The namespace to use')
+    .option('--client-cert-path <clientCertPath>', 'Path to a client certificate for TLS')
+    .option('--client-key-path <clientKeyPath>', 'Path to a client key for TLS')
     .argument('<features...>', 'Features as dir + ":" + task queue');
 
   const opts = program.parse(process.argv).opts<{
     server: string;
     namespace: string;
+    clientCertPath: string;
+    clientKeyPath: string;
     featureAndTaskQueues: string[];
   }>();
   opts.featureAndTaskQueues = program.args;
@@ -26,6 +32,23 @@ async function run() {
   // Collect all feature sources
   const featureRootDir = path.join(__dirname, '../../features');
   const sources = await FeatureSource.findAll(featureRootDir);
+
+  // Load TLS certs if specified
+  let tlsConfig: TLSConfig | undefined;
+  if (opts.clientCertPath) {
+    if (!opts.clientKeyPath) {
+      throw new Error('Client cert path specified but no key path!');
+    }
+    const crt = fs.readFileSync(opts.clientCertPath);
+    const key = fs.readFileSync(opts.clientKeyPath);
+    tlsConfig = {};
+    tlsConfig.clientCertPair = {
+      crt,
+      key,
+    };
+  } else if (opts.clientKeyPath && !opts.clientCertPath) {
+    throw new Error('Client key path specified but no cert path!');
+  }
 
   // Run each
   // TODO(cretz): Concurrent with log capturing
@@ -49,6 +72,7 @@ async function run() {
         address: opts.server,
         namespace: opts.namespace,
         taskQueue,
+        tlsConfig,
       });
       await runner.run();
     } catch (err) {

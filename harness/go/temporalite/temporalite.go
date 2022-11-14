@@ -85,7 +85,12 @@ func Start(options Options) (*Temporalite, error) {
 	portStr := strconv.Itoa(port)
 
 	// Start
-	args := []string{"start", "--ephemeral", "--headless", "--namespace", options.Namespace, "--port", portStr}
+	args := []string{
+		"start",
+		"--ephemeral", "--headless", "--namespace", options.Namespace, "--port", portStr,
+		"--dynamic-config-value", "system.forceSearchAttributesCacheRefreshOnRead=true",
+		"--dynamic-config-value", "system.enableActivityEagerExecution=true",
+	}
 	if options.LogLevel != "" {
 		args = append(args, "--log-level", options.LogLevel)
 	}

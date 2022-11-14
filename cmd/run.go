@@ -179,7 +179,7 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 	// If the server is not set, start it ourselves
 	if r.config.Server == "" {
 		server, err := temporalite.Start(temporalite.Options{
-			// Log: r.log,
+			Log: r.log,
 			// TODO(cretz): Configurable?
 			LogLevel:  "error",
 			Namespace: r.config.Namespace,

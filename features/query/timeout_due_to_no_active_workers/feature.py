@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import asyncio
+from datetime import timedelta
 
 from temporalio import workflow
 from temporalio.client import WorkflowHandle
@@ -32,8 +32,7 @@ async def check_result(runner: Runner, handle: WorkflowHandle):
     # Stop worker
     await runner.stop_worker()
     try:
-        # TODO: Override deadline once that's exposed
-        await handle.query(Workflow.simple_query)
+        await handle.query(Workflow.simple_query, rpc_timeout=timedelta(seconds=1))
     except RPCError as e:
         # Cancelled rather than deadline exceeded since the timeout is client-side
         assert e.status == RPCStatusCode.CANCELLED

@@ -3,7 +3,6 @@ import * as wf from '@temporalio/workflow';
 import { temporal } from '@temporalio/proto';
 
 export async function workflow(): Promise<void> {
-  console.log('CRON SCHED', wf.workflowInfo().cronSchedule);
   if (wf.workflowInfo().cronSchedule != '@every 2s') {
     throw new Error('Invalid cron schedule');
   }

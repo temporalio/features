@@ -5,6 +5,7 @@ import {
   WorkflowHandleWithFirstExecutionRunId,
   WorkflowHandle,
   WorkflowStartOptions,
+  TLSConfig,
 } from '@temporalio/client';
 import * as proto from '@temporalio/proto';
 import { UntypedActivities, Workflow, WorkflowResultType } from '@temporalio/common';
@@ -12,6 +13,7 @@ import { Worker, WorkerOptions, NativeConnection, appendDefaultInterceptors } fr
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { ConnectionInjectorInterceptor } from './activity-interceptors';
+
 export { getConnection, getWorkflowClient, Context } from './activity-interceptors';
 
 export interface FeatureOptions<W extends Workflow, A extends UntypedActivities> {
@@ -101,6 +103,7 @@ export interface RunnerOptions {
   address: string;
   namespace: string;
   taskQueue: string;
+  tlsConfig?: TLSConfig;
 }
 
 export class Runner<W extends Workflow, A extends UntypedActivities> {
@@ -111,6 +114,7 @@ export class Runner<W extends Workflow, A extends UntypedActivities> {
     // Connect to client
     const connection = await Connection.connect({
       address: options.address,
+      tls: options.tlsConfig,
     });
     const client = new WorkflowClient({
       connection,
@@ -120,6 +124,7 @@ export class Runner<W extends Workflow, A extends UntypedActivities> {
     // Create a connection for the Worker
     const nativeConn = await NativeConnection.connect({
       address: options.address,
+      tls: options.tlsConfig,
     });
 
     // Create and start the worker
@@ -212,6 +217,7 @@ export class Runner<W extends Workflow, A extends UntypedActivities> {
   get worker(): Worker {
     return this._worker;
   }
+
   get workerRunPromise(): Promise<void> {
     return this._workerRunPromise;
   }

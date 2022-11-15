@@ -41,13 +41,12 @@ async def check_result(runner: Runner, handle: WorkflowHandle) -> None:
     assert result == None
 
     # get result payload of ActivityTaskScheduled event from workflow history
-    history = await runner.get_history_events(handle)
-    e = next(
+    event = await anext(
         e
-        for e in history
+        async for e in handle.fetch_history_events()
         if e.event_type == EventType.EVENT_TYPE_ACTIVITY_TASK_SCHEDULED
     )
-    payload = e.activity_task_scheduled_event_attributes.input.payloads[0]
+    payload = event.activity_task_scheduled_event_attributes.input.payloads[0]
 
     # load JSON payload from `./payload.json` and compare it to JSON representation of result payload
     with open(

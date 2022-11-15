@@ -26,13 +26,12 @@ async def check_result(runner: Runner, handle: WorkflowHandle) -> None:
     assert result == bytes.fromhex("deadbeef")
 
     # get result payload of WorkflowExecutionCompleted event from workflow history
-    history = await runner.get_history_events(handle)
-    e = next(
+    event = await anext(
         e
-        for e in history
+        async for e in handle.fetch_history_events()
         if e.event_type == EventType.EVENT_TYPE_WORKFLOW_EXECUTION_COMPLETED
     )
-    payload = e.workflow_execution_completed_event_attributes.result.payloads[0]
+    payload = event.workflow_execution_completed_event_attributes.result.payloads[0]
 
     # load JSON payload from `./payload.json` and compare it to JSON representation of result payload
     with open(

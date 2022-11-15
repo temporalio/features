@@ -89,7 +89,8 @@ jobs:
     uses: ./.github/workflows/python.yaml
     with:
       python-repo-path: temporalio/sdk-python
-      python-repo-ref: main
+      # TODO(cretz): "main" is unstable
+      python-repo-ref: 0.1b3
 
   build-go-master-docker-images:
     uses: ./.github/workflows/docker-images.yaml

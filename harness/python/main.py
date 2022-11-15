@@ -57,6 +57,7 @@ async def run():
 
     if failure_count:
         raise RuntimeError(f"{failure_count} feature(s) failed")
+    logger.info("All features passed")
 
 
 if __name__ == "__main__":

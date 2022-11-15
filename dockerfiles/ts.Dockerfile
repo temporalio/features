@@ -8,15 +8,16 @@ FROM node:16 as build
 RUN apt-get update \
  && DEBIAN_FRONTEND=noninteractive \
     apt-get install --no-install-recommends --assume-yes \
-      protobuf-compiler libprotobuf-dev
+      protobuf-compiler=3.6.1.3-2 libprotobuf-dev=3.6.1.3-2
 
 # Get go compiler
 ARG PLATFORM=amd64
-RUN wget https://go.dev/dl/go1.19.1.linux-${PLATFORM}.tar.gz
-RUN tar -C /usr/local -xzf go1.19.1.linux-${PLATFORM}.tar.gz
+RUN wget -q https://go.dev/dl/go1.19.1.linux-${PLATFORM}.tar.gz \
+    && tar -C /usr/local -xzf go1.19.1.linux-${PLATFORM}.tar.gz
 # Install Rust for compiling the core bridge - only required for installation from a repo but is cheap enough to install
 # in the "build" container (-y is for non-interactive install)
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+# hadolint ignore=DL4006
+RUN wget -q -O - https://sh.rustup.rs | sh -s -- -y
 
 ENV PATH="$PATH:/root/.cargo/bin"
 

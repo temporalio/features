@@ -137,7 +137,7 @@ jobs:
       semver-latest: major
       run-tag: '1.4.4'
 
-  build-java-main-docker-images:
+  build-java-master-docker-images:
     uses: ./.github/workflows/docker-images.yaml
     secrets: inherit
     with:

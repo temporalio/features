@@ -2,8 +2,8 @@
 FROM eclipse-temurin:11 as build
 
 ARG PLATFORM=amd64
-RUN wget https://go.dev/dl/go1.19.1.linux-${PLATFORM}.tar.gz
-RUN tar -C /usr/local -xzf go1.19.1.linux-${PLATFORM}.tar.gz
+RUN wget -q https://go.dev/dl/go1.19.1.linux-${PLATFORM}.tar.gz \
+    && tar -C /usr/local -xzf go1.19.1.linux-${PLATFORM}.tar.gz
 
 WORKDIR /app
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from temporalio import workflow
-from temporalio.client import RPCError, WorkflowHandle
+from temporalio.client import WorkflowHandle, WorkflowQueryFailedError
 
 from harness.python.feature import Runner, register_feature
 
@@ -32,7 +32,7 @@ async def checker(_: Runner, handle: WorkflowHandle):
     # Extra arg
     try:
         await handle.query("the_query", args=[123, True])
-    except RPCError:
+    except WorkflowQueryFailedError:
         pass
     else:
         raise Exception("Extra arg in query must fail")
@@ -40,7 +40,7 @@ async def checker(_: Runner, handle: WorkflowHandle):
     # Not enough arg
     try:
         await handle.query("the_query")
-    except RPCError:
+    except WorkflowQueryFailedError:
         pass
     else:
         raise Exception("Not enough args in query must fail")

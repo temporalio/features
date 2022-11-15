@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import inspect
 import logging
 import uuid
@@ -40,6 +41,10 @@ def register_feature(
     start: Optional[Callable[[Runner], Awaitable[WorkflowHandle]]] = None,
     check_result: Optional[Callable[[Runner, WorkflowHandle], Awaitable[None]]] = None,
 ) -> None:
+    # No need to register in a sandbox
+    if workflow.unsafe.in_sandbox():
+        return
+
     if not file:
         file = inspect.stack()[1].filename
     # Split the file path to get the last two dirs if present
@@ -80,6 +85,7 @@ class Runner:
         self.task_queue = task_queue
         self.feature = feature
         self.worker: Optional[Worker] = None
+        self._worker_task: Optional[asyncio.Task] = None
 
     async def run(self) -> None:
         logger.info("Executing feature %s", self.feature.rel_dir)
@@ -139,38 +145,24 @@ class Runner:
                 raise err
 
     def start_worker(self):
-        """Creates and starts worker with the task queue & workflows/ activities set, if it is not
-        already running"""
-        if self.worker is None:
-            self.worker = Worker(
-                self.client,
-                task_queue=self.task_queue,
-                workflows=self.feature.workflows,
-                activities=self.feature.activities,
-            )
-            self.worker._start()
+        """Creates and starts worker with the task queue, workflows, and
+        activities set."""
+        if self.worker is not None:
+            raise RuntimeError("Worker already started")
+        self.worker = Worker(
+            self.client,
+            task_queue=self.task_queue,
+            workflows=self.feature.workflows,
+            activities=self.feature.activities,
+        )
+        self._worker_task = asyncio.create_task(self.worker.run())
 
     async def stop_worker(self):
+        """Stop worker if running."""
         if self.worker is not None:
-            await self.worker.shutdown()
-            self.worker = None
-
-    async def get_history_events(self, handle: WorkflowHandle) -> list[HistoryEvent]:
-        next_page_token = b""
-        history: list[HistoryEvent] = []
-        request = GetWorkflowExecutionHistoryRequest()
-        request.namespace = self.namespace
-        request.execution.workflow_id = handle.id
-
-        while True:
-            request.next_page_token = next_page_token
-            response = (
-                await self.client.workflow_service.get_workflow_execution_history(
-                    request
-                )
-            )
-            history.extend(response.history.events)
-            next_page_token = response.next_page_token
-            if not next_page_token:
-                break
-        return history
+            try:
+                await self.worker.shutdown()
+                await self._worker_task
+            finally:
+                self.worker = None
+                self._worker_task = None

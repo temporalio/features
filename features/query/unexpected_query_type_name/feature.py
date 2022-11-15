@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from temporalio import workflow
-from temporalio.client import RPCError, WorkflowHandle
+from temporalio.client import WorkflowHandle, WorkflowQueryFailedError
 
 from harness.python.feature import Runner, register_feature
 
@@ -24,7 +24,7 @@ class Workflow:
 async def checker(_: Runner, handle: WorkflowHandle):
     try:
         await handle.query("nonexistent")
-    except RPCError:
+    except WorkflowQueryFailedError:
         pass
     else:
         raise Exception("Query with nonexistent handler must fail")

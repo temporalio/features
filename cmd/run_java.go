@@ -81,7 +81,24 @@ func (r *Runner) RunJavaExternal(ctx context.Context, run *cmd.Run) error {
 	// Prepare args for gradle run. Gradle args will be single quoted or double
 	// quoted since they'll be in an argument themselves. Therefore for now to
 	// keep it simple, we won't allow either in any of the arguments.
-	runArgs := append([]string{"--server", r.config.Server, "--namespace", r.config.Namespace}, run.ToArgs()...)
+	runArgs := append([]string{"--server", r.config.Server, "--namespace", r.config.Namespace})
+
+	if r.config.ClientCertPath != "" {
+		clientCertPath, err := filepath.Abs(r.config.ClientCertPath)
+		if err != nil {
+			return err
+		}
+		runArgs = append(runArgs, "--client-cert-path", clientCertPath)
+	}
+	if r.config.ClientKeyPath != "" {
+		clientKeyPath, err := filepath.Abs(r.config.ClientKeyPath)
+		if err != nil {
+			return err
+		}
+		runArgs = append(runArgs, "--client-key-path", clientKeyPath)
+	}
+	runArgs = append(runArgs, run.ToArgs()...)
+
 	var runArgsStr string
 	for _, runArg := range runArgs {
 		if strings.ContainsAny(runArg, `"'`) {

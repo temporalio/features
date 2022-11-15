@@ -147,7 +147,13 @@ func (r *Runner) Run(ctx context.Context) error {
 // ExecuteDefault is the default execution that just runs the first workflow and
 // assumes it takes no parameters.
 func (r *Runner) ExecuteDefault(ctx context.Context) (client.WorkflowRun, error) {
-	opts := client.StartWorkflowOptions{TaskQueue: r.TaskQueue, WorkflowExecutionTimeout: 1 * time.Minute}
+	opts := r.Feature.StartWorkflowOptions
+	if opts.TaskQueue == "" {
+		opts.TaskQueue = r.TaskQueue
+	}
+	if opts.WorkflowExecutionTimeout == 0 {
+		opts.WorkflowExecutionTimeout = 1 * time.Minute
+	}
 	return r.Client.ExecuteWorkflow(ctx, opts, r.Feature.Workflows[0])
 }
 

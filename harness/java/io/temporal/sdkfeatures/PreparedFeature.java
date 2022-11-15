@@ -16,6 +16,7 @@ public class PreparedFeature {
       query.unexpected_arguments.feature.Impl.class,
       query.unexpected_query_type_name.feature.Impl.class,
       query.unexpected_return_type.feature.Impl.class,
+      schedule.cron.feature.Impl.class,
       signal.external.feature.Impl.class
   );
 

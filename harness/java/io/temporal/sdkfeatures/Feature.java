@@ -2,6 +2,7 @@ package io.temporal.sdkfeatures;
 
 import io.temporal.activity.ActivityOptions;
 import io.temporal.client.WorkflowClientOptions;
+import io.temporal.client.WorkflowOptions;
 import io.temporal.serviceclient.WorkflowServiceStubsOptions;
 import io.temporal.worker.WorkerFactoryOptions;
 import io.temporal.worker.WorkerOptions;
@@ -25,6 +26,8 @@ public interface Feature {
   default void workerFactoryOptions(WorkerFactoryOptions.Builder builder) { }
 
   default void workerOptions(WorkerOptions.Builder builder) { }
+
+  default void workflowOptions(WorkflowOptions.Builder builder) { }
 
   default Run execute(Runner runner) throws Exception {
     return runner.executeSingleParameterlessWorkflow();

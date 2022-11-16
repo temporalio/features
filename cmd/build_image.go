@@ -167,9 +167,13 @@ func (i *ImageBuilder) buildFromRepo(ctx context.Context) error {
 
 func (i *ImageBuilder) buildFromVersion(ctx context.Context) error {
 	version := semver.Canonical(i.config.Version)
-	if version == "none" {
-		// TODO: python is an exception
-		return fmt.Errorf("expected version to be valid semver")
+	if version == "none" || version == "" {
+		if i.config.Lang == "py" {
+			// Account for pre-release python versions which don't have a major ver #
+			version = i.config.Version
+		} else {
+			return fmt.Errorf("expected version to be valid semver")
+		}
 	}
 	i.log.Info("Building from given version", "Version", version)
 

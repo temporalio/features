@@ -159,3 +159,14 @@ jobs:
       sdk-version: 'v1.17.0'
       semver-latest: major
       run-tag: '1.17.0'
+
+  build-python-latest-docker-images:
+    uses: ./.github/workflows/docker-images.yaml
+    secrets: inherit
+    with:
+      lang: py
+      # Latest release at the time this was written
+      # TODO(bergundy): Find some way to automatically upgrade to "latest"
+      sdk-version: 'v0.1b3'
+      semver-latest: none
+      run-tag: '0.1b3'

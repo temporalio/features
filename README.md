@@ -79,8 +79,6 @@ The built image will be tagged with `sdk-features:go-1.13.1`
 - To tag as latest minor, pass `--semver-latest minor`, this will add the `go-1.13` tag.
 - To tag as latest major, pass `--semver-latest major`, this will add the `go-1.13`, `go-1` and `go` tags.
 
-> NOTE: only go images are supported at this point
-
 ### External Server and Namespace
 
 By default, a [temporalite](https://github.com/DataDog/temporalite) is dynamically started at runtime to handle all

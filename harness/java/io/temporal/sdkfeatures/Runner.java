@@ -6,6 +6,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.uber.m3.tally.NoopScope;
 import com.uber.m3.tally.Scope;
+import io.grpc.netty.shaded.io.netty.handler.ssl.SslContext;
 import io.temporal.activity.ActivityInterface;
 import io.temporal.api.common.v1.WorkflowExecution;
 import io.temporal.api.history.v1.History;
@@ -40,6 +41,7 @@ public class Runner implements Closeable {
     public String namespace;
     public String taskQueue;
     public Scope metricsScope = new NoopScope();
+    public SslContext sslContext;
   }
 
   public final Config config;
@@ -60,7 +62,9 @@ public class Runner implements Closeable {
 
     // Build service
     var serviceBuild = WorkflowServiceStubsOptions.newBuilder()
-            .setTarget(config.serverHostPort).setMetricsScope(config.metricsScope);
+        .setTarget(config.serverHostPort)
+        .setSslContext(config.sslContext)
+        .setMetricsScope(config.metricsScope);
     feature.workflowServiceOptions(serviceBuild);
     service = WorkflowServiceStubs.newServiceStubs(serviceBuild.build());
     // Shutdown service on failure

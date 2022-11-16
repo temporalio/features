@@ -17,13 +17,35 @@ import (
 // config directory is expected to be an absolute subdirectory just beneath the
 // root directory.
 func (p *Preparer) PrepareJavaExternal(ctx context.Context, build bool) error {
+	isPathDep := strings.HasPrefix(p.config.Version, "/")
+	sdkJarsPath := filepath.Join(p.config.Dir, "sdkjars/")
+
+	// First, if we depend on SDK via path, build it and get the jar file.
+	if isPathDep {
+		err := runGradle(ctx, p.log, p.config.Version, true, []string{"build", "-x", "test",
+			"-x", "checkLicenseMain", "-x", "checkLicenses", "-x", "spotlessCheck",
+			"-x", "spotlessApply", "-x", "spotlessJava", "-x", "nativeImage"})
+		if err != nil {
+			return fmt.Errorf("failed building Java SDK: %w", err)
+		}
+		// Copy jars locally
+		cpCmd := exec.Command("cp", "-rf",
+			filepath.Join(p.config.Version, "temporal-sdk", "build", "libs/"), sdkJarsPath)
+		err = cpCmd.Run()
+		if err != nil {
+			return fmt.Errorf("failed copying Java SDK jars: %w", err)
+		}
+	}
+
 	// To do this, we're gonna create a temporary project, --include-build this
 	// one, then gradle it
 	p.log.Info("Building Java project", "Path", p.config.Dir)
 
 	// Create build.gradle and settings.gradle
 	temporalSDKDependency := ""
-	if p.config.Version != "" {
+	if isPathDep {
+		temporalSDKDependency = "implementation fileTree(dir: 'sdkjars', include: ['*.jar'])"
+	} else if p.config.Version != "" {
 		temporalSDKDependency = fmt.Sprintf("implementation 'io.temporal:temporal-sdk:%v'",
 			strings.TrimPrefix(p.config.Version, "v"))
 	}
@@ -56,7 +78,7 @@ application {
 	if build {
 		// This is really only to prime the system-level caches. The build won't be
 		// used by run.
-		return runGradle(ctx, p.log, p.config.Dir, []string{"--no-daemon", "--include-build", "../", "build"})
+		return runGradle(ctx, p.log, p.config.Dir, false, []string{"--no-daemon", "--include-build", "../", "build"})
 	}
 	return nil
 }
@@ -112,18 +134,26 @@ func (r *Runner) RunJavaExternal(ctx context.Context, run *cmd.Run) error {
 
 	// Run. We aren't using some previous prepared build or anything. Rather
 	// preparing is just for priming the Gradle cache.
-	return runGradle(ctx, r.log, r.config.Dir, []string{"--include-build", "../", "run", "--args", runArgsStr})
+	return runGradle(ctx, r.log, r.config.Dir, false, []string{"--include-build", "../", "run", "--args", runArgsStr})
 }
 
-func runGradle(ctx context.Context, log log.Logger, dir string, args []string) error {
+func runGradle(ctx context.Context, log log.Logger, dir string, gradleSameDir bool, args []string) error {
 	// Prepare exe whether windows or not
 	var exe string
 	if runtime.GOOS == "windows" {
 		exe = "cmd.exe"
-		args = append([]string{"/C", "..\\gradlew"}, args...)
+		if gradleSameDir {
+			args = append([]string{"/C", "gradlew"}, args...)
+		} else {
+			args = append([]string{"/C", "..\\gradlew"}, args...)
+		}
 	} else {
 		exe = "/bin/sh"
-		args = append([]string{"../gradlew"}, args...)
+		if gradleSameDir {
+			args = append([]string{"gradlew"}, args...)
+		} else {
+			args = append([]string{"../gradlew"}, args...)
+		}
 	}
 
 	// Run

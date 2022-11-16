@@ -1,6 +1,12 @@
 # Build in a full featured container
 FROM eclipse-temurin:11 as build
 
+# Install protobuf compiler & git (needed if building SDK, rather than pulling it as dep)
+RUN apt-get update \
+ && DEBIAN_FRONTEND=noninteractive \
+    apt-get install --no-install-recommends --assume-yes \
+      protobuf-compiler=3.12.4-1ubuntu7 git=1:2.34.1-1ubuntu1
+
 ARG PLATFORM=amd64
 RUN wget -q https://go.dev/dl/go1.19.1.linux-${PLATFORM}.tar.gz \
     && tar -C /usr/local -xzf go1.19.1.linux-${PLATFORM}.tar.gz
@@ -8,12 +14,12 @@ RUN wget -q https://go.dev/dl/go1.19.1.linux-${PLATFORM}.tar.gz \
 WORKDIR /app
 
 # Copy CLI build dependencies
-COPY features ./features
-COPY harness ./harness
-COPY cmd ./cmd
-COPY go.mod go.sum main.go ./
 COPY gradle ./gradle
 COPY gradlew build.gradle settings.gradle ./
+COPY go.mod go.sum main.go ./
+COPY cmd ./cmd
+COPY harness ./harness
+COPY features ./features
 
 # Build the CLI
 RUN CGO_ENABLED=0 /usr/local/go/bin/go build

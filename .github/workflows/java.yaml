@@ -1,0 +1,57 @@
+name: Java Features Testing
+on:
+  workflow_call:
+    inputs:
+      java-repo-path:
+        required: true
+        type: string
+        default: 'temporalio/sdk-java'
+      java-repo-ref:
+        required: true
+        type: string
+        default: 'master'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./sdk-java
+    steps:
+      - name: Print git info
+        run: 'echo head_ref: ${{ github.head_ref }}, ref: ${{ github.ref }}, java repo ref: ${{ inputs.java-repo-ref }}'
+        working-directory: '.'
+
+      - name: Checkout SDK features repo
+        uses: actions/checkout@v2
+        with:
+          # Weirdly, this must be specified otherwise if the workflow is re-used from an sdk repo
+          # this will just check out the SDK repo.
+          repository: temporalio/sdk-features
+          path: sdk-features
+      - name: Checkout Java SDK repo
+        uses: actions/checkout@v2
+        with:
+          repository: ${{ inputs.java-repo-path }}
+          submodules: recursive
+          path: sdk-java
+          ref: ${{ inputs.java-repo-ref }}
+
+      - uses: actions/setup-java@v2
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '^1.17'
+
+      - name: Build Java SDK
+        # Not `build` -- because that will run all the SDK unit tests
+        run: ./gradlew assemble
+      - name: Build sdk-features go
+        run: go build
+        working-directory: ./sdk-features
+
+      - name: Run SDK-features tests
+        run: go run . run --lang java --version "$(realpath ../sdk-java)"
+        working-directory: ./sdk-features

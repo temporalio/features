@@ -94,18 +94,13 @@ jobs:
     uses: ./.github/workflows/python.yaml
     with:
       python-repo-path: temporalio/sdk-python
-      # TODO(cretz): "main" is unstable
       python-repo-ref: 0.1b3
 
-  # TODO(cretz): Go master is unstable
-  # build-go-master-docker-images:
-  #   uses: ./.github/workflows/docker-images.yaml
-  #   secrets: inherit
-  #   with:
-  #     lang: go
-  #     sdk-repo-ref: master
-  #     sdk-repo-url: https://github.com/temporalio/sdk-go
-  #     run-tag: master
+  feature-tests-java:
+    uses: ./.github/workflows/java.yaml
+    with:
+      java-repo-path: temporalio/sdk-java
+      java-repo-ref: v1.17.0
 
   build-go-latest-docker-images:
     uses: ./.github/workflows/docker-images.yaml
@@ -118,15 +113,6 @@ jobs:
       semver-latest: major
       run-tag: '1.18.1'
 
-  build-node-main-docker-images:
-    uses: ./.github/workflows/docker-images.yaml
-    secrets: inherit
-    with:
-      lang: ts
-      sdk-repo-ref: main
-      sdk-repo-url: https://github.com/temporalio/sdk-typescript
-      run-tag: main
-
   build-node-latest-docker-images:
     uses: ./.github/workflows/docker-images.yaml
     secrets: inherit
@@ -137,17 +123,6 @@ jobs:
       sdk-version: 'v1.4.4'
       semver-latest: major
       run-tag: '1.4.4'
-
-# TODO: Need PR to add some gradle stuff in sdk-java to simplify this, but also we're not going
-#     to be running this as a regular part of CI anyway.
-#  build-java-master-docker-images:
-#    uses: ./.github/workflows/docker-images.yaml
-#    secrets: inherit
-#    with:
-#      lang: java
-#      sdk-repo-ref: master
-#      sdk-repo-url: https://github.com/temporalio/sdk-java
-#      run-tag: master
 
   build-java-latest-docker-images:
     uses: ./.github/workflows/docker-images.yaml

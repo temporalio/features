@@ -7,21 +7,9 @@ import uuid
 from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
-from typing import (
-    Any,
-    Awaitable,
-    Callable,
-    Dict,
-    List,
-    Mapping,
-    Optional,
-    Type,
-    TypedDict,
-)
+from typing import Any, Awaitable, Callable, Dict, List, Mapping, Optional, Type
 
 from temporalio import workflow
-from temporalio.api.history.v1 import HistoryEvent
-from temporalio.api.workflowservice.v1 import GetWorkflowExecutionHistoryRequest
 from temporalio.client import Client, WorkflowFailureError, WorkflowHandle
 from temporalio.exceptions import ActivityError, ApplicationError
 from temporalio.worker import Worker
@@ -39,6 +27,7 @@ def register_feature(
     expect_run_result: Optional[Any] = None,
     file: Optional[str] = None,
     start: Optional[Callable[[Runner], Awaitable[WorkflowHandle]]] = None,
+    start_options: Mapping[str, Any] = {},
     check_result: Optional[Callable[[Runner, WorkflowHandle], Awaitable[None]]] = None,
 ) -> None:
     # No need to register in a sandbox
@@ -60,6 +49,7 @@ def register_feature(
         expect_activity_error=expect_activity_error,
         expect_run_result=expect_run_result,
         start=start,
+        start_options=start_options,
         check_result=check_result,
     )
 
@@ -73,6 +63,7 @@ class Feature:
     expect_activity_error: Optional[str]
     expect_run_result: Optional[Any]
     start: Optional[Callable[[Runner], Awaitable[WorkflowHandle]]]
+    start_options: Mapping[str, Any]
     check_result: Optional[Callable[[Runner, WorkflowHandle], Awaitable[None]]]
 
 
@@ -118,12 +109,13 @@ class Runner:
         if len(self.feature.workflows) != 1:
             raise ValueError("Must have a single workflow")
         defn = workflow._Definition.must_from_class(self.feature.workflows[0])
-        return await self.client.start_workflow(
-            defn.name,
-            id=f"{self.feature.rel_dir}-{uuid.uuid4()}",
-            task_queue=self.task_queue,
-            execution_timeout=timedelta(minutes=1),
-        )
+        start_options = {
+            "id": f"{self.feature.rel_dir}-{uuid.uuid4()}",
+            "task_queue": self.task_queue,
+            "execution_timeout": timedelta(minutes=1),
+        }
+        start_options |= self.feature.start_options
+        return await self.client.start_workflow(defn.name, **start_options)  # type: ignore
 
     async def check_result(self, handle: WorkflowHandle) -> None:
         try:

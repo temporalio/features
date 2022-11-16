@@ -88,7 +88,7 @@ jobs:
     uses: ./.github/workflows/go.yaml
     with:
       go-repo-path: temporalio/sdk-go
-      go-repo-ref: master
+      go-repo-ref: v1.18.1
 
   feature-tests-python:
     uses: ./.github/workflows/python.yaml
@@ -97,14 +97,15 @@ jobs:
       # TODO(cretz): "main" is unstable
       python-repo-ref: 0.1b3
 
-  build-go-master-docker-images:
-    uses: ./.github/workflows/docker-images.yaml
-    secrets: inherit
-    with:
-      lang: go
-      sdk-repo-ref: master
-      sdk-repo-url: https://github.com/temporalio/sdk-go
-      run-tag: master
+  # TODO(cretz): Go master is unstable
+  # build-go-master-docker-images:
+  #   uses: ./.github/workflows/docker-images.yaml
+  #   secrets: inherit
+  #   with:
+  #     lang: go
+  #     sdk-repo-ref: master
+  #     sdk-repo-url: https://github.com/temporalio/sdk-go
+  #     run-tag: master
 
   build-go-latest-docker-images:
     uses: ./.github/workflows/docker-images.yaml

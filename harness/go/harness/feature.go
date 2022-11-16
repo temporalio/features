@@ -41,6 +41,11 @@ type Feature struct {
 	// are always overridden internally.
 	WorkerOptions worker.Options
 
+	// Start workflow options that are used by the default executor. Some values
+	// such as task queue and workflow execution timeout, are set by default if
+	// not already set.
+	StartWorkflowOptions client.StartWorkflowOptions
+
 	// Default is runner.ExecuteDefault which just runs the first workflow with no
 	// params. If this returns a nil run, no replay or checks are performed. This
 	// allows for advanced tests that do not want to test history.
@@ -53,7 +58,7 @@ type Feature struct {
 	// history files from older versions.
 	CheckHistory func(ctx context.Context, runner *Runner, run client.WorkflowRun) error
 
-	// If non-empty, this feature will be skiped without checking any other
+	// If non-empty, this feature will be skipped without checking any other
 	// values.
 	SkipReason string
 }
@@ -115,6 +120,10 @@ func PrepareFeature(feature Feature) (*PreparedFeature, error) {
 		return nil, err
 	}
 	return p, nil
+}
+
+func NoHistoryCheck(context.Context, *Runner, client.WorkflowRun) error {
+	return nil
 }
 
 func rawToSlice(v interface{}) []interface{} {

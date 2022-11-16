@@ -4,6 +4,7 @@ import {
   WorkflowClient,
   WorkflowHandleWithFirstExecutionRunId,
   WorkflowHandle,
+  WorkflowStartOptions,
   TLSConfig,
 } from '@temporalio/client';
 import * as proto from '@temporalio/proto';
@@ -32,6 +33,12 @@ export interface FeatureOptions<W extends Workflow, A extends UntypedActivities>
    * + '/feature.workflow.ts'.
    */
   workflowsPath?: string;
+
+  /**
+   * Optional workflow start options for default execute. Some values are
+   * defaulted if unset (e.g. task queue and workflow execution timeout).
+   */
+  workflowStartOptions?: Partial<WorkflowStartOptions<W>>;
 
   /**
    * Execute the workflow. If unset, defaults to
@@ -224,11 +231,13 @@ export class Runner<W extends Workflow, A extends UntypedActivities> {
 
   async executeSingleParameterlessWorkflow(): Promise<WorkflowHandleWithFirstExecutionRunId> {
     const workflow = this.feature.options.workflow ?? 'workflow';
-    return await this.client.start<() => any>(workflow, {
+    const startOptions: WorkflowStartOptions = {
       taskQueue: this.options.taskQueue,
       workflowId: `${this.source.relDir}-${randomUUID()}`,
       workflowExecutionTimeout: 60000,
-    });
+      ...(this.feature.options.workflowStartOptions ?? {}),
+    };
+    return await this.client.start(workflow, startOptions);
   }
 
   async waitForRunResult<W extends Workflow>(

@@ -95,11 +95,11 @@ public class Runner implements Closeable {
     feature.workerOptions(workerBuild);
     this.worker = workerFactory.newWorker(config.taskQueue, workerBuild.build());
 
-      // Register workflow class
-      worker.registerWorkflowImplementationTypes(featureInfo.factoryClass);
+    // Register workflow class
+    worker.registerWorkflowImplementationTypes(featureInfo.factoryClass);
 
-      // Register activity impl if any direct interfaces have the annotation
-      if (Arrays.stream(feature.getClass().getInterfaces()).anyMatch(i -> i.isAnnotationPresent(ActivityInterface.class))) {
+    // Register activity impl if any direct interfaces have the annotation
+    if (Arrays.stream(feature.getClass().getInterfaces()).anyMatch(i -> i.isAnnotationPresent(ActivityInterface.class))) {
       worker.registerActivitiesImplementations(feature);
     }
 
@@ -154,10 +154,11 @@ public class Runner implements Closeable {
   }
 
   public WorkflowExecution executeWorkflow(String workflowType, Object... args) {
-    var stub = client.newUntypedWorkflowStub(workflowType, WorkflowOptions.newBuilder()
+    var builder = WorkflowOptions.newBuilder()
             .setTaskQueue(config.taskQueue)
-            .setWorkflowExecutionTimeout(Duration.ofMinutes(1))
-            .build());
+            .setWorkflowExecutionTimeout(Duration.ofMinutes(1));
+    feature.workflowOptions(builder);
+    var stub = client.newUntypedWorkflowStub(workflowType, builder.build());
     return stub.start(args);
   }
 
@@ -168,9 +169,9 @@ public class Runner implements Closeable {
 
   public WorkflowExecutionInfo getWorkflowExecutionInfo(Run run) throws Exception {
     var describeRequest = DescribeWorkflowExecutionRequest.newBuilder()
-      .setNamespace(this.config.namespace)
-      .setExecution(run.execution)
-      .build();
+            .setNamespace(this.config.namespace)
+            .setExecution(run.execution)
+            .build();
     var exec = this.client.getWorkflowServiceStubs().blockingStub().describeWorkflowExecution(describeRequest);
     return exec.getWorkflowExecutionInfo();
   }

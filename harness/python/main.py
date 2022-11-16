@@ -5,6 +5,8 @@ import logging
 from pathlib import Path
 from typing import List, cast
 
+from temporalio.service import TLSConfig
+
 from harness.python.feature import Runner, features
 
 logger = logging.getLogger(__name__)
@@ -15,11 +17,28 @@ async def run():
     parser = argparse.ArgumentParser()
     parser.add_argument("--server", help="The host:port of the server", required=True)
     parser.add_argument("--namespace", help="The namespace to use", required=True)
+    parser.add_argument(
+        "--client-cert-path", help="Path to a client certificate for TLS"
+    )
+    parser.add_argument("--client-key-path", help="Path to a client key for TLS")
     parser.add_argument("--log-level", help="Log level", default="INFO")
     parser.add_argument(
         "features", help="Features as dir + ':' + task queue", nargs="+"
     )
     args = parser.parse_args()
+
+    tls_config = None
+    if args.client_cert_path:
+        if not args.client_key_path:
+            raise ValueError("Client cert specified, but not client key!")
+
+        with open(args.client_cert_path, "rb") as f:
+            client_cert = f.read()
+        with open(args.client_key_path, "rb") as f:
+            client_key = f.read()
+        tls_config = TLSConfig(client_cert=client_cert, client_private_key=client_key)
+    elif args.client_key_path and not args.client_cert_path:
+        raise ValueError("Client key specified, but not client cert!")
 
     # Configure logging
     logging.basicConfig(level=getattr(logging, args.log_level.upper()))
@@ -45,11 +64,13 @@ async def run():
             raise ValueError(f"Cannot find registered feature for {rel_dir}")
         # Run
         try:
+            print("tls cfg", tls_config)
             await Runner(
                 address=args.server,
                 namespace=args.namespace,
                 task_queue=task_queue,
                 feature=features[rel_dir],
+                tls_config=tls_config,
             ).run()
         except Exception:
             logger.exception("Feature %s failed", rel_dir)

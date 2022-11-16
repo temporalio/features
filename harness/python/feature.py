@@ -7,11 +7,12 @@ import uuid
 from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Awaitable, Callable, Dict, List, Mapping, Optional, Type
+from typing import Any, Awaitable, Callable, Dict, List, Mapping, Optional, Type, Union
 
 from temporalio import workflow
 from temporalio.client import Client, WorkflowFailureError, WorkflowHandle
 from temporalio.exceptions import ActivityError, ApplicationError
+from temporalio.service import TLSConfig
 from temporalio.worker import Worker
 
 logger = logging.getLogger(__name__)
@@ -69,7 +70,13 @@ class Feature:
 
 class Runner:
     def __init__(
-        self, *, address: str, namespace: str, task_queue: str, feature: Feature
+        self,
+        *,
+        address: str,
+        namespace: str,
+        task_queue: str,
+        feature: Feature,
+        tls_config: Optional[TLSConfig],
     ) -> None:
         self.address = address
         self.namespace = namespace
@@ -77,12 +84,17 @@ class Runner:
         self.feature = feature
         self.worker: Optional[Worker] = None
         self._worker_task: Optional[asyncio.Task] = None
+        self.tls_config: Union[bool, TLSConfig] = False
+        if tls_config is not None:
+            self.tls_config = tls_config
 
     async def run(self) -> None:
         logger.info("Executing feature %s", self.feature.rel_dir)
 
         # Connect client
-        self.client = await Client.connect(self.address, namespace=self.namespace)
+        self.client = await Client.connect(
+            self.address, namespace=self.namespace, tls=self.tls_config
+        )
 
         # Run worker
         self.start_worker()

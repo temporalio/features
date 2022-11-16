@@ -91,8 +91,24 @@ func (r *Runner) RunPythonExternal(ctx context.Context, run *cmd.Run) error {
 	}
 
 	// Run
-	args := append([]string{"run", "python", "-m", "harness.python.main",
-		"--server", r.config.Server, "--namespace", r.config.Namespace}, run.ToArgs()...)
+	args := []string{"run", "python", "-m", "harness.python.main",
+		"--server", r.config.Server, "--namespace", r.config.Namespace}
+
+	if r.config.ClientCertPath != "" {
+		clientCertPath, err := filepath.Abs(r.config.ClientCertPath)
+		if err != nil {
+			return err
+		}
+		args = append(args, "--client-cert-path", clientCertPath)
+	}
+	if r.config.ClientKeyPath != "" {
+		clientKeyPath, err := filepath.Abs(r.config.ClientKeyPath)
+		if err != nil {
+			return err
+		}
+		args = append(args, "--client-key-path", clientKeyPath)
+	}
+	args = append(args, run.ToArgs()...)
 	r.log.Debug("Running Poetry", "Args", args)
 	cmd := exec.CommandContext(ctx, "poetry", args...)
 	cmd.Dir = runDir

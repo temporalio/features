@@ -137,14 +137,16 @@ jobs:
       semver-latest: major
       run-tag: '1.4.4'
 
-  build-java-master-docker-images:
-    uses: ./.github/workflows/docker-images.yaml
-    secrets: inherit
-    with:
-      lang: java
-      sdk-repo-ref: master
-      sdk-repo-url: https://github.com/temporalio/sdk-java
-      run-tag: master
+# TODO: Need PR to add some gradle stuff in sdk-java to simplify this, but also we're not going
+#     to be running this as a regular part of CI anyway.
+#  build-java-master-docker-images:
+#    uses: ./.github/workflows/docker-images.yaml
+#    secrets: inherit
+#    with:
+#      lang: java
+#      sdk-repo-ref: master
+#      sdk-repo-url: https://github.com/temporalio/sdk-java
+#      run-tag: master
 
   build-java-latest-docker-images:
     uses: ./.github/workflows/docker-images.yaml

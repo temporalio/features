@@ -22,9 +22,7 @@ func (p *Preparer) PrepareJavaExternal(ctx context.Context, build bool) error {
 
 	// First, if we depend on SDK via path, build it and get the jar file.
 	if isPathDep {
-		err := runGradle(ctx, p.log, p.config.Version, true, []string{"build", "-x", "test",
-			"-x", "checkLicenseMain", "-x", "checkLicenses", "-x", "spotlessCheck",
-			"-x", "spotlessApply", "-x", "spotlessJava", "-x", "nativeImage"})
+		err := runGradle(ctx, p.log, p.config.Version, true, []string{"jar"})
 		if err != nil {
 			return fmt.Errorf("failed building Java SDK: %w", err)
 		}

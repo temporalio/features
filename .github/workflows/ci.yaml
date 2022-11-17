@@ -81,26 +81,26 @@ jobs:
   feature-tests-ts:
     uses: ./.github/workflows/typescript.yaml
     with:
-      typescript-repo-path: temporalio/sdk-typescript
-      typescript-repo-ref: main
+      version: 1.4.4
+      version-is-repo-ref: false
 
   feature-tests-go:
     uses: ./.github/workflows/go.yaml
     with:
-      go-repo-path: temporalio/sdk-go
-      go-repo-ref: v1.18.1
+      version: v1.18.1
+      version-is-repo-ref: false
 
   feature-tests-python:
     uses: ./.github/workflows/python.yaml
     with:
-      python-repo-path: temporalio/sdk-python
-      python-repo-ref: 0.1b3
+      version: 0.1b3
+      version-is-repo-ref: false
 
   feature-tests-java:
     uses: ./.github/workflows/java.yaml
     with:
-      java-repo-path: temporalio/sdk-java
-      java-repo-ref: v1.17.0
+      version: v1.17.0
+      version-is-repo-ref: false
 
   build-go-latest-docker-images:
     uses: ./.github/workflows/docker-images.yaml

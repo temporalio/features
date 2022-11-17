@@ -3,23 +3,26 @@ on:
   workflow_call:
     inputs:
       java-repo-path:
-        required: true
         type: string
         default: 'temporalio/sdk-java'
-      java-repo-ref:
+      version:
         required: true
         type: string
-        default: 'master'
+      # When true, the version refers to a repo tag/ref. When false, package version downloaded via
+      # gradle.
+      version-is-repo-ref:
+        required: true
+        type: boolean
 
 jobs:
   test:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./sdk-java
+        working-directory: ./sdk-features
     steps:
       - name: Print git info
-        run: 'echo head_ref: ${{ github.head_ref }}, ref: ${{ github.ref }}, java repo ref: ${{ inputs.java-repo-ref }}'
+        run: 'echo head_ref: ${{ github.head_ref }}, ref: ${{ github.ref }}, java sdk version: ${{ inputs.version }}'
         working-directory: '.'
 
       - name: Checkout SDK features repo
@@ -31,6 +34,7 @@ jobs:
           path: sdk-features
       - name: Checkout Java SDK repo
         uses: actions/checkout@v2
+        if: ${{ inputs.version-is-repo-ref }}
         with:
           repository: ${{ inputs.java-repo-path }}
           submodules: recursive
@@ -46,12 +50,13 @@ jobs:
           go-version: '^1.17'
 
       - name: Build Java SDK
+        if: ${{ inputs.version-is-repo-ref }}
         # Not `build` -- because that will run all the SDK unit tests
         run: ./gradlew assemble
+        working-directory: ./sdk-java
+
       - name: Build sdk-features go
         run: go build
-        working-directory: ./sdk-features
 
       - name: Run SDK-features tests
-        run: go run . run --lang java --version "$(realpath ../sdk-java)"
-        working-directory: ./sdk-features
+        run: go run . run --lang java --version "${{ inputs.version-is-repo-ref && '$(realpath ../sdk-java)' || inputs.version }}"

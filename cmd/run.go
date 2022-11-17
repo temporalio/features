@@ -174,6 +174,7 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 	for i, feature := range features {
 		run.Features[i].Dir = feature.Dir
 		run.Features[i].TaskQueue = fmt.Sprintf("sdk-features-%v-%v", feature.Dir, uuid.NewString())
+		run.Features[i].Config = feature.Config
 	}
 
 	// If the server is not set, start it ourselves
@@ -236,28 +237,37 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 }
 
 func (r *Runner) handleHistory(ctx context.Context, run *cmd.Run) error {
-	opts := client.Options{
-		HostPort:  r.config.Server,
-		Namespace: r.config.Namespace,
-		Logger:    r.log,
-	}
-	if r.config.ClientCertPath != "" {
-		cert, err := tls.LoadX509KeyPair(r.config.ClientCertPath, r.config.ClientKeyPath)
-		if err != nil {
-			return fmt.Errorf("failed to load certs: %s", err)
-		}
-		opts.ConnectionOptions.TLS = &tls.Config{Certificates: []tls.Certificate{cert}}
-	}
-
-	cl, err := client.NewClient(opts)
-	if err != nil {
-		return fmt.Errorf("failed creating client: %w", err)
-	}
-	defer cl.Close()
-
 	// Handle each
+	var cl client.Client
 	var failureCount int
 	for _, feature := range run.Features {
+		// We ignore history if there are no workflows
+		if feature.Config.NoWorkflow {
+			continue
+		}
+
+		// Dial client if not already done
+		if cl == nil {
+			opts := client.Options{
+				HostPort:  r.config.Server,
+				Namespace: r.config.Namespace,
+				Logger:    r.log,
+			}
+			if r.config.ClientCertPath != "" {
+				cert, err := tls.LoadX509KeyPair(r.config.ClientCertPath, r.config.ClientKeyPath)
+				if err != nil {
+					return fmt.Errorf("failed to load certs: %s", err)
+				}
+				opts.ConnectionOptions.TLS = &tls.Config{Certificates: []tls.Certificate{cert}}
+			}
+			var err error
+			if cl, err = client.Dial(opts); err != nil {
+				return fmt.Errorf("failed creating client: %w", err)
+			}
+			defer cl.Close()
+		}
+
+		// Check history
 		if err := r.handleSingleHistory(ctx, cl, feature); err != nil {
 			failureCount++
 			r.log.Error("Feature history handling failed", "Feature", feature.Dir, "error", err)

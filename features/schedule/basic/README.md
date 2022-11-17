@@ -1,4 +1,4 @@
-# Basic workflow schedule
+# Basic schedule
 
 Workflows can be scheduled using the scheduling client. Schedules can be listed, referenced, updated, etc.
 

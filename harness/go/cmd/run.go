@@ -2,7 +2,10 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/urfave/cli/v2"
@@ -57,6 +60,18 @@ func (r *Run) FromArgs(args []string) error {
 type RunFeature struct {
 	Dir       string
 	TaskQueue string
+	Config    RunFeatureConfig
+}
+
+// RunFeatureConfig is config from .config.json.
+type RunFeatureConfig struct {
+	NoWorkflow bool               `json:"noWorkflow"`
+	Go         RunFeatureConfigGo `json:"go"`
+}
+
+// RunFeatureConfigGo is go-specific configuration in the JSON file.
+type RunFeatureConfigGo struct {
+	MinVersion string `json:"minVersion"`
 }
 
 // RunConfig is configuration for NewRunner.
@@ -130,7 +145,7 @@ func (r *Runner) Run(ctx context.Context, run *Run) error {
 			}
 		}
 		if feature == nil {
-			return fmt.Errorf("feature %v not found", runFeature.Dir)
+			return fmt.Errorf("feature %v not found, did you add it to features.go?", runFeature.Dir)
 		} else if feature.SkipReason != "" {
 			r.log.Warn("Skipping feature", "Feature", feature.Dir, "Reason", feature.SkipReason)
 			continue
@@ -170,4 +185,19 @@ func (r *Runner) runFeature(
 
 	// Run
 	return runner.Run(ctx)
+}
+
+// LoadFromDir loads the .config.json from the directory if present and
+// unmarshals into the config.
+func (r *RunFeatureConfig) LoadFromDir(dir string) error {
+	b, err := os.ReadFile(filepath.Join(dir, ".config.json"))
+	if err != nil {
+		// We're ok w/ it not existing
+		if os.IsNotExist(err) {
+			err = nil
+		}
+	} else {
+		err = json.Unmarshal(b, r)
+	}
+	return err
 }

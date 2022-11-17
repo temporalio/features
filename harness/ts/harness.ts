@@ -8,7 +8,7 @@ import {
   TLSConfig,
 } from '@temporalio/client';
 import * as proto from '@temporalio/proto';
-import { UntypedActivities, Workflow, WorkflowResultType } from '@temporalio/common';
+import { DataConverter, UntypedActivities, Workflow, WorkflowResultType } from '@temporalio/common';
 import { Worker, WorkerOptions, NativeConnection, appendDefaultInterceptors } from '@temporalio/worker';
 import { promises as fs } from 'fs';
 import * as path from 'path';
@@ -44,6 +44,11 @@ export interface FeatureOptions<W extends Workflow, A extends UntypedActivities>
    * Optional worker options to augment worker creation for the feature.
    */
   workerOptions?: Partial<WorkerOptions>;
+
+  /**
+   * Override the default data converter
+   */
+  dataConverter?: DataConverter;
 
   /**
    * Execute the workflow. If unset, defaults to
@@ -124,6 +129,7 @@ export class Runner<W extends Workflow, A extends UntypedActivities> {
     const client = new WorkflowClient({
       connection,
       namespace: options.namespace,
+      dataConverter: feature.options.dataConverter,
     });
 
     // Create a connection for the Worker
@@ -140,6 +146,7 @@ export class Runner<W extends Workflow, A extends UntypedActivities> {
       workflowsPath,
       activities: feature.activities,
       taskQueue: options.taskQueue,
+      dataConverter: feature.options.dataConverter,
       bundlerOptions: {
         webpackConfigHook(config) {
           return {

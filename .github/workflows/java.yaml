@@ -46,7 +46,7 @@ jobs:
           repository: ${{ inputs.java-repo-path }}
           submodules: recursive
           path: sdk-java
-          ref: ${{ inputs.java-repo-ref }}
+          ref: ${{ inputs.version }}
           fetch-depth: 0
 
       - uses: actions/setup-java@v2

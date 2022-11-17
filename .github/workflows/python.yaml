@@ -38,7 +38,7 @@ jobs:
           repository: ${{ inputs.python-repo-path }}
           submodules: recursive
           path: sdk-python
-          ref: ${{ inputs.python-repo-ref }}
+          ref: ${{ inputs.version }}
 
       - uses: actions/setup-go@v2
         with:

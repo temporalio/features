@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/google/uuid v1.3.0
+	github.com/otiai10/copy v1.9.0
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/urfave/cli/v2 v2.16.3
 	go.temporal.io/sdk v1.18.1

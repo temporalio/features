@@ -13,6 +13,12 @@ on:
       version-is-repo-ref:
         required: true
         type: boolean
+      # This only exists to allow testing changes to sdk-features on a different branch when this
+      # workflow is being targeted from another repo. Otherwise the checkout action always checks
+      # out main.
+      sdk-features-repo-ref:
+        type: string
+        default: 'main'
 
 jobs:
   test:
@@ -32,6 +38,7 @@ jobs:
           # this will just check out the SDK repo.
           repository: temporalio/sdk-features
           path: sdk-features
+          ref: ${{ inputs.sdk-features-repo-ref }}
       - name: Checkout Java SDK repo
         uses: actions/checkout@v3
         if: ${{ inputs.version-is-repo-ref }}
@@ -49,12 +56,6 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: '^1.17'
-
-      - name: Build Java SDK
-        if: ${{ inputs.version-is-repo-ref }}
-        # Not `build` -- because that will run all the SDK unit tests
-        run: ./gradlew assemble
-        working-directory: ./sdk-java
 
       - name: Build sdk-features go
         run: go build

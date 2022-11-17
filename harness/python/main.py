@@ -64,7 +64,6 @@ async def run():
             raise ValueError(f"Cannot find registered feature for {rel_dir}")
         # Run
         try:
-            print("tls cfg", tls_config)
             await Runner(
                 address=args.server,
                 namespace=args.namespace,

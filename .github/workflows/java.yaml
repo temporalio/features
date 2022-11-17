@@ -26,20 +26,21 @@ jobs:
         working-directory: '.'
 
       - name: Checkout SDK features repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           # Weirdly, this must be specified otherwise if the workflow is re-used from an sdk repo
           # this will just check out the SDK repo.
           repository: temporalio/sdk-features
           path: sdk-features
       - name: Checkout Java SDK repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         if: ${{ inputs.version-is-repo-ref }}
         with:
           repository: ${{ inputs.java-repo-path }}
           submodules: recursive
           path: sdk-java
           ref: ${{ inputs.java-repo-ref }}
+          fetch-depth: 0
 
       - uses: actions/setup-java@v2
         with:

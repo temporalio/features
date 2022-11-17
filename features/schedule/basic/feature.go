@@ -1,4 +1,4 @@
-package basic_workflow
+package basic
 
 import (
 	"context"

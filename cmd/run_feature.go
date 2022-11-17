@@ -1,29 +1,18 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/fs"
-	"os"
 	"path/filepath"
 
+	"go.temporal.io/sdk-features/harness/go/cmd"
 	"golang.org/x/mod/semver"
 )
 
 // RunFeature represents a feature on disk.
 type RunFeature struct {
 	Dir    string
-	Config RunFeatureConfig
-}
-
-// RunFeatureConfig is JSON from a .config.json file.
-type RunFeatureConfig struct {
-	Go RunFeatureConfigGo `json:"go"`
-}
-
-// RunFeatureConfigGo is go-specific configuration in the JSON file.
-type RunFeatureConfigGo struct {
-	MinVersion string `json:"minVersion"`
+	Config cmd.RunFeatureConfig
 }
 
 // GlobFeatures collects all features for this runner using the given patterns
@@ -68,14 +57,8 @@ func (r *Runner) GlobFeatures(patterns []string) ([]*RunFeature, error) {
 
 		// Load config
 		feature := &RunFeature{Dir: dir}
-		configFile := filepath.Join(filepath.Dir(path), ".config.json")
-		configBytes, err := os.ReadFile(configFile)
-		if err != nil {
-			if !os.IsNotExist(err) {
-				return fmt.Errorf("failed reading %v: %w", configFile, err)
-			}
-		} else if err := json.Unmarshal(configBytes, &feature.Config); err != nil {
-			return fmt.Errorf("failed unmarshalling %v: %w", configFile, err)
+		if err := feature.Config.LoadFromDir(filepath.Dir(path)); err != nil {
+			return fmt.Errorf("failed reading config from %v: %w", path, err)
 		}
 
 		// If there's a min version, check we're within it

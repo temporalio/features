@@ -1,0 +1,64 @@
+name: Java Features Testing
+on:
+  workflow_call:
+    inputs:
+      java-repo-path:
+        type: string
+        default: 'temporalio/sdk-java'
+      version:
+        required: true
+        type: string
+      # When true, the version refers to a repo tag/ref. When false, package version downloaded via
+      # gradle.
+      version-is-repo-ref:
+        required: true
+        type: boolean
+      # This only exists to allow testing changes to sdk-features on a different branch when this
+      # workflow is being targeted from another repo. Otherwise the checkout action always checks
+      # out main.
+      sdk-features-repo-ref:
+        type: string
+        default: 'main'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./sdk-features
+    steps:
+      - name: Print git info
+        run: 'echo head_ref: ${{ github.head_ref }}, ref: ${{ github.ref }}, java sdk version: ${{ inputs.version }}'
+        working-directory: '.'
+
+      - name: Checkout SDK features repo
+        uses: actions/checkout@v3
+        with:
+          # Weirdly, this must be specified otherwise if the workflow is re-used from an sdk repo
+          # this will just check out the SDK repo.
+          repository: temporalio/sdk-features
+          path: sdk-features
+          ref: ${{ inputs.sdk-features-repo-ref }}
+      - name: Checkout Java SDK repo
+        uses: actions/checkout@v3
+        if: ${{ inputs.version-is-repo-ref }}
+        with:
+          repository: ${{ inputs.java-repo-path }}
+          submodules: recursive
+          path: sdk-java
+          ref: ${{ inputs.version }}
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v2
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '^1.17'
+
+      - name: Build sdk-features go
+        run: go build
+
+      - name: Run SDK-features tests
+        run: go run . run --lang java --version "${{ inputs.version-is-repo-ref && '$(realpath ../sdk-java)' || inputs.version }}"

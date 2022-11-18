@@ -3,27 +3,26 @@ on:
   workflow_call:
     inputs:
       python-repo-path:
-        required: true
         type: string
         default: 'temporalio/sdk-python'
-      python-repo-ref:
+      version:
         required: true
         type: string
-        default: 'main'
+      # When true, the version refers to a repo tag/ref. When false, PyPi package version.
+      version-is-repo-ref:
+        required: true
+        type: boolean
 
 jobs:
   test:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./sdk-python
+        working-directory: ./sdk-features
     steps:
       - name: Print git info
-        run: 'echo head_ref: ${{ github.head_ref }}, ref: ${{ github.ref }}, python repo ref: ${{ inputs.python-repo-ref }}'
+        run: 'echo head_ref: ${{ github.head_ref }}, ref: ${{ github.ref }}, python sdk version: ${{ inputs.version }}'
         working-directory: '.'
-
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v1
 
       - name: Checkout SDK features repo
         uses: actions/checkout@v2
@@ -33,37 +32,44 @@ jobs:
           repository: temporalio/sdk-features
           path: sdk-features
       - name: Checkout Python SDK repo
+        if: ${{ inputs.version-is-repo-ref }}
         uses: actions/checkout@v2
         with:
           repository: ${{ inputs.python-repo-path }}
           submodules: recursive
           path: sdk-python
-          ref: ${{ inputs.python-repo-ref }}
+          ref: ${{ inputs.version }}
 
       - uses: actions/setup-go@v2
         with:
           go-version: '^1.17'
-
-      # Build SDK
-      - uses: Swatinem/rust-cache@v1
-        with:
-          working-directory: sdk-python/temporalio/bridge
       - uses: actions/setup-python@v1
         with:
           python-version: '3.10'
       - run: python -m pip install --upgrade wheel poetry poethepoet
-        working-directory: sdk-python
+
+      # Build SDK ==================================================
+      - name: Install Protoc
+        if: ${{ inputs.version-is-repo-ref }}
+        uses: arduino/setup-protoc@v1
+
+      - uses: Swatinem/rust-cache@v1
+        if: ${{ inputs.version-is-repo-ref }}
+        with:
+          working-directory: sdk-python/temporalio/bridge
       - run: poetry install --no-root
+        if: ${{ inputs.version-is-repo-ref }}
         working-directory: sdk-python
       - run: poetry build
+        if: ${{ inputs.version-is-repo-ref }}
         working-directory: sdk-python
       - run: poe fix-wheel
+        if: ${{ inputs.version-is-repo-ref }}
         working-directory: sdk-python
+      # ============================================================
 
       - name: Build sdk-features go
         run: go build
-        working-directory: ./sdk-features
 
       - name: Run SDK-features tests
-        run: go run . run --lang py --version "$(realpath ../sdk-python)"
-        working-directory: ./sdk-features
+        run: go run . run --lang py --version "${{ inputs.version-is-repo-ref && '$(realpath ../sdk-python)' || inputs.version }}"

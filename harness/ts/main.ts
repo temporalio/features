@@ -53,6 +53,7 @@ async function run() {
   // Run each
   // TODO(cretz): Concurrent with log capturing
   let failureCount = 0;
+  let failedFeaturesStr = '';
   for (const featureAndTaskQueue of opts.featureAndTaskQueues) {
     const [featureDir, taskQueueFromOpt] = featureAndTaskQueue.split(':');
     const taskQueue = taskQueueFromOpt ?? featureDir;
@@ -76,7 +77,9 @@ async function run() {
       });
       await runner.run();
     } catch (err) {
-      console.error(`Feature ${featureDir} failed with ${err}`, (err as any).stack);
+      const errstr = `Feature ${featureDir} failed with ${err}`;
+      failedFeaturesStr += errstr + '\n';
+      console.error(errstr, (err as any).stack);
       failureCount++;
     } finally {
       await runner?.close();
@@ -84,7 +87,7 @@ async function run() {
   }
 
   if (failureCount > 0) {
-    throw new Error(`${failureCount} feature(s) failed`);
+    throw new Error(`${failureCount} feature(s) failed: \n${failedFeaturesStr}`);
   }
 }
 

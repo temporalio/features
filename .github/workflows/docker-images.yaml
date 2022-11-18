@@ -69,14 +69,14 @@ jobs:
         run: docker run --rm -i -v /tmp/temporal-certs:/certs sdk-features:${{ inputs.lang }}-${{ inputs.run-tag }}
 
       - name: Test with Cloud
+        # Only supported in non-fork runs
+        if: ${{ github.event.pull_request.head.repo.full_name == '' || github.event.pull_request.head.repo.full_name == 'temporalio/sdk-features' }}
         run: |
           docker run --rm -i -v /tmp/temporal-certs:/certs sdk-features:${{ inputs.lang }}-${{ inputs.run-tag }} \
           --server $TEMPORAL_CLOUD_ADDRESS \
           --namespace $TEMPORAL_CLOUD_NAMESPACE \
           --client-cert-path /certs/client.pem \
           --client-key-path /certs/client.key
-        # Only supported in non-fork runs
-        if: ${{ github.event.pull_request.head.repo.full_name == '' || github.event.pull_request.head.repo.full_name == 'temporalio/sdk-features' }}
 
       # TODO(bergundy): create a docker push step (only run under certain conditions - like manual trigger or main
       # branch trigger)

@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	copy2 "github.com/otiai10/copy"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -18,25 +19,28 @@ import (
 // root directory.
 func (p *Preparer) PrepareJavaExternal(ctx context.Context, build bool) error {
 	isPathDep := strings.HasPrefix(p.config.Version, "/")
-	sdkJarsPath := filepath.Join(p.config.Dir, "sdkjars/")
+	sdkJarsPath := filepath.Join(p.config.Dir, "sdkjars")
 
 	// First, if we depend on SDK via path, build it and get the jar file.
 	if isPathDep {
-		err := runGradle(ctx, p.log, p.config.Version, true, []string{"jar"})
+		p.log.Info("Building Java SDK", "SDK Directory", p.config.Version)
+		err := runGradle(ctx, p.log, p.config.Version, true, []string{"jar", "gatherRuntimeDeps"})
 		if err != nil {
 			return fmt.Errorf("failed building Java SDK: %w", err)
 		}
+		sdkLibDir := filepath.Join(p.config.Version, "temporal-sdk", "build", "libs")
+		sdkRuntimeDepDir := filepath.Join(p.config.Version, "temporal-sdk", "build", "runtimeDeps")
 		// Copy jars locally
-		cpCmd := exec.Command("cp", "-rf",
-			filepath.Join(p.config.Version, "temporal-sdk", "build", "libs/"), sdkJarsPath)
-		err = cpCmd.Run()
+		err = copy2.Copy(sdkLibDir, sdkJarsPath)
 		if err != nil {
-			return fmt.Errorf("failed copying Java SDK jars: %w", err)
+			return err
+		}
+		err = copy2.Copy(sdkRuntimeDepDir, sdkJarsPath)
+		if err != nil {
+			return err
 		}
 	}
 
-	// To do this, we're gonna create a temporary project, --include-build this
-	// one, then gradle it
 	p.log.Info("Building Java project", "Path", p.config.Dir)
 
 	// Create build.gradle and settings.gradle

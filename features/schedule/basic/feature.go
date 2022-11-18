@@ -50,7 +50,8 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 
 	// Confirm simple describe
 	desc, err := handle.Describe(ctx)
-	r.Require.NoError(err)
+	r.Require.NoErrorf(err,
+		"Describing the schedule should not fail. Schedule ID: %s workflow id: %s", handle.GetID(), workflowID)
 	r.Require.Equal(workflowID, desc.Schedule.Action.(client.ScheduleWorkflowAction).ID)
 
 	// Confirm simple list

@@ -13,7 +13,7 @@ from temporalio import workflow
 from temporalio.client import Client, WorkflowFailureError, WorkflowHandle
 from temporalio.exceptions import ActivityError, ApplicationError
 from temporalio.service import TLSConfig
-from temporalio.worker import Worker
+from temporalio.worker import Worker, WorkerConfig
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +30,7 @@ def register_feature(
     start: Optional[Callable[[Runner], Awaitable[WorkflowHandle]]] = None,
     start_options: Mapping[str, Any] = {},
     check_result: Optional[Callable[[Runner, WorkflowHandle], Awaitable[None]]] = None,
+    worker_config: WorkerConfig = WorkerConfig(),
 ) -> None:
     # No need to register in a sandbox
     if workflow.unsafe.in_sandbox():
@@ -52,6 +53,7 @@ def register_feature(
         start=start,
         start_options=start_options,
         check_result=check_result,
+        worker_config=worker_config,
     )
 
 
@@ -66,6 +68,7 @@ class Feature:
     start: Optional[Callable[[Runner], Awaitable[WorkflowHandle]]]
     start_options: Mapping[str, Any]
     check_result: Optional[Callable[[Runner, WorkflowHandle], Awaitable[None]]]
+    worker_config: Optional[WorkerConfig]
 
 
 class Runner:
@@ -158,6 +161,7 @@ class Runner:
             task_queue=self.task_queue,
             workflows=self.feature.workflows,
             activities=self.feature.activities,
+            **self.feature.worker_config,
         )
         self._worker_task = asyncio.create_task(self.worker.run())
 

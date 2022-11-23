@@ -4,9 +4,9 @@ import { ApplicationFailure } from '@temporalio/common';
 
 // Run a workflow that fails
 export async function workflow(): Promise<void> {
-  let e = Error('cause error');
+  const e = Error('cause error');
   e.stack = 'cause stack trace';
-  let applicationError = new ApplicationFailure('main error', null, true, undefined, e);
+  const applicationError = new ApplicationFailure('main error', null, true, undefined, e);
   applicationError.stack = 'main stack trace';
   throw applicationError;
 }

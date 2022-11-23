@@ -30,9 +30,7 @@ async def check_result(runner: Runner, handle: WorkflowHandle) -> None:
     try:
         await handle.result()
         assert False
-    except Exception as err:
-        if not isinstance(err.cause, ApplicationError):
-            assert False
+    except Exception:
         # get result payload of WorkflowExecutionFailed event from workflow history
         event = await anext(
             e

@@ -32,7 +32,7 @@ def register_feature(
     start_options: Mapping[str, Any] = {},
     check_result: Optional[Callable[[Runner, WorkflowHandle], Awaitable[None]]] = None,
     worker_config: WorkerConfig = WorkerConfig(),
-    data_converter: Optional[DataConverter] = None,
+    data_converter: DataConverter = DataConverter.default,
 ) -> None:
     # No need to register in a sandbox
     if workflow.unsafe.in_sandbox():
@@ -72,7 +72,7 @@ class Feature:
     start_options: Mapping[str, Any]
     check_result: Optional[Callable[[Runner, WorkflowHandle], Awaitable[None]]]
     worker_config: Optional[WorkerConfig]
-    data_converter: Optional[DataConverter]
+    data_converter: DataConverter
 
 
 class Runner:
@@ -103,7 +103,7 @@ class Runner:
             self.address,
             namespace=self.namespace,
             data_converter=self.feature.data_converter,
-            tls=self.tls_config
+            tls=self.tls_config,
         )
 
         # Run worker

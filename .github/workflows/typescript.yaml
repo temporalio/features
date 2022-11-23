@@ -18,6 +18,10 @@ on:
       sdk-features-repo-ref:
         type: string
         default: 'main'
+      # If set, download the docker image for server from the provided artifact name
+      docker-image-artifact-name:
+        type: string
+        required: false
 
 jobs:
   test:
@@ -28,6 +32,18 @@ jobs:
     steps:
       - name: Print git info
         run: 'echo head_ref: ${{ github.head_ref }}, ref: ${{ github.ref }}, ts version: ${{ inputs.version }}'
+        working-directory: '.'
+
+      - name: Download docker artifacts
+        if: ${{ inputs.docker-image-artifact-name }}
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ inputs.docker-image-artifact-name }}
+          path: /tmp/server-docker
+
+      - name: Load server Docker image
+        if: ${{ inputs.docker-image-artifact-name }}
+        run: docker load --input /tmp/server-docker/temporal-autosetup.tar
         working-directory: '.'
 
       - name: Checkout SDK features repo
@@ -78,5 +94,13 @@ jobs:
       - name: Build sdk-features go
         run: go build
 
+      - name: Start server & deps
+        if: ${{ inputs.docker-image-artifact-name }}
+        run: docker-compose -f /tmp/server-docker/docker-compose.yml -f ./dockerfiles/docker-compose.for-server-image.yaml up -d temporal-server cassandra elasticsearch
+
       - name: Run SDK-features tests
-        run: go run . run --lang ts --version "${{ inputs.version-is-repo-ref && '$(realpath ../sdk-ts)' || inputs.version }}"
+        run: go run . run --lang ts ${{ inputs.docker-image-artifact-name && '--server localhost:7233 --namespace default' || ''}} --version "${{ inputs.version-is-repo-ref && '$(realpath ../sdk-ts)' || inputs.version }}"
+
+      - name: Tear down docker compose
+        if: inputs.docker-image-artifact-name && (success() || failure())
+        run: docker-compose -f /tmp/server-docker/docker-compose.yml -f ./dockerfiles/docker-compose.for-server-image.yaml down -v

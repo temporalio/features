@@ -89,7 +89,7 @@ func NewRunner(config RunnerConfig, feature *PreparedFeature) (*Runner, error) {
 	}
 
 	var err error
-	if r.Client, err = client.NewClient(r.Feature.ClientOptions); err != nil {
+	if r.Client, err = client.Dial(r.Feature.ClientOptions); err != nil {
 		return nil, fmt.Errorf("failed creating client: %w", err)
 	}
 

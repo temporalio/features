@@ -1,0 +1,17 @@
+# This is meant to be used in conjunction with a docker compose file from the server repo
+# (for dependencies) and a docker image for running server itself.
+version: "3.5"
+
+services:
+  temporal-server:
+    image: temporalio/auto-setup:latest
+    container_name: temporal-server
+    environment:
+      - CASSANDRA_SEEDS=cassandra
+    ports:
+      - "7233:7233"
+    depends_on:
+      - cassandra
+      - elasticsearch
+    networks:
+      - temporal-dev-network

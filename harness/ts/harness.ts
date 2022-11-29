@@ -41,6 +41,11 @@ export interface FeatureOptions<W extends Workflow, A extends UntypedActivities>
   workflowStartOptions?: Partial<WorkflowStartOptions<W>>;
 
   /**
+   * Optional worker options to augment worker creation for the feature.
+   */
+  workerOptions?: Partial<WorkerOptions>;
+
+  /**
    * Execute the workflow. If unset, defaults to
    * Runner.executeSingleParameterlessWorkflow.
    */
@@ -152,6 +157,7 @@ export class Runner<W extends Workflow, A extends UntypedActivities> {
         activityInbound: [() => new ConnectionInjectorInterceptor(connection, client)],
         workflowModules: [require.resolve('./workflow-globals-injection-interceptors')],
       }),
+      ...feature.options.workerOptions,
     };
     const worker = await Worker.create(workerOpts);
     const workerRunPromise = (async () => {

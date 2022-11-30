@@ -11,7 +11,6 @@ public class PreparedFeature {
       continue_as_new.continue_as_same.feature.Impl.class,
       data_converter.binary.feature.Impl.class,
       data_converter.empty.feature.Impl.class,
-      eager_activity.non_remote_activities_worker.feature.Impl.class,
       query.successful_query.feature.Impl.class,
       query.timeout_due_to_no_active_workers.feature.Impl.class,
       query.unexpected_arguments.feature.Impl.class,

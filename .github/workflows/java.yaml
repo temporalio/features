@@ -13,9 +13,9 @@ on:
       version-is-repo-ref:
         required: true
         type: boolean
-      # This only exists to allow testing changes to sdk-features on a different branch when this
-      # workflow is being targeted from another repo. Otherwise the checkout action always checks
-      # out main.
+      sdk-features-repo-path:
+        type: string
+        default: 'temporalio/sdk-features'
       sdk-features-repo-ref:
         type: string
         default: 'main'
@@ -34,10 +34,8 @@ jobs:
       - name: Checkout SDK features repo
         uses: actions/checkout@v3
         with:
-          # Weirdly, this must be specified otherwise if the workflow is re-used from an sdk repo
-          # this will just check out the SDK repo.
-          repository: temporalio/sdk-features
           path: sdk-features
+          repository: ${{ inputs.sdk-features-repo-path }}
           ref: ${{ inputs.sdk-features-repo-ref }}
       - name: Checkout Java SDK repo
         uses: actions/checkout@v3

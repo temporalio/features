@@ -83,24 +83,32 @@ jobs:
     with:
       version: 1.4.4
       version-is-repo-ref: false
+      sdk-features-repo-ref: ${{ github.head_ref }}
+      sdk-features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
 
   feature-tests-go:
     uses: ./.github/workflows/go.yaml
     with:
       version: v1.18.1
       version-is-repo-ref: false
+      sdk-features-repo-ref: ${{ github.head_ref }}
+      sdk-features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
 
   feature-tests-python:
     uses: ./.github/workflows/python.yaml
     with:
       version: 0.1b3
       version-is-repo-ref: false
+      sdk-features-repo-ref: ${{ github.head_ref }}
+      sdk-features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
 
   feature-tests-java:
     uses: ./.github/workflows/java.yaml
     with:
       version: v1.17.0
       version-is-repo-ref: false
+      sdk-features-repo-ref: ${{ github.head_ref }}
+      sdk-features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
 
   build-go-latest-docker-images:
     uses: ./.github/workflows/docker-images.yaml

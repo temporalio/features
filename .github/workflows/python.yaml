@@ -12,6 +12,12 @@ on:
       version-is-repo-ref:
         required: true
         type: boolean
+      sdk-features-repo-path:
+        type: string
+        default: 'temporalio/sdk-features'
+      sdk-features-repo-ref:
+        type: string
+        default: 'main'
 
 jobs:
   test:
@@ -25,12 +31,11 @@ jobs:
         working-directory: '.'
 
       - name: Checkout SDK features repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
-          # Weirdly, this must be specified otherwise if the workflow is re-used from an sdk repo
-          # this will just check out the SDK repo.
-          repository: temporalio/sdk-features
           path: sdk-features
+          repository: ${{ inputs.sdk-features-repo-path }}
+          ref: ${{ inputs.sdk-features-repo-ref }}
       - name: Checkout Python SDK repo
         if: ${{ inputs.version-is-repo-ref }}
         uses: actions/checkout@v2

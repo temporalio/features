@@ -1,7 +1,5 @@
 import json
-from datetime import timedelta
 
-from google.protobuf.json_format import Parse
 from temporalio import workflow
 from temporalio.api.enums.v1 import EventType
 from temporalio.api.failure.v1 import Failure

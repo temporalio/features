@@ -1,4 +1,4 @@
-import { ActivityFailure, DefaultPayloadConverter, DefaultFailureConverter } from '@temporalio/common';
+import { DefaultPayloadConverter, DefaultFailureConverter } from '@temporalio/common';
 
 export const failureConverter = new DefaultFailureConverter({
   payloadConverter: new DefaultPayloadConverter(),

@@ -42,6 +42,6 @@ export const feature = new Feature({
     }
   },
   dataConverter: {
-    failureConverterPath: __dirname + '/failure_converter.js',
+    failureConverterPath: require.resolve('./failure_converter'),
   },
 });

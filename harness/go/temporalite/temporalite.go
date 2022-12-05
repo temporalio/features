@@ -5,8 +5,11 @@ import (
 	"archive/zip"
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"fmt"
+	"go.temporal.io/sdk-features/harness/go/harness"
+	"go.temporal.io/sdk/log"
 	"io"
 	"net/http"
 	"os"
@@ -15,11 +18,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"time"
-
-	"go.temporal.io/sdk-features/harness/go/harness"
-	"go.temporal.io/sdk/client"
-	"go.temporal.io/sdk/log"
 )
 
 // DefaultVersion is the default Temporalite version when not provided.
@@ -101,21 +99,9 @@ func Start(options Options) (*Temporalite, error) {
 		return nil, fmt.Errorf("failed starting: %w", err)
 	}
 
-	// Try every 100ms for 5s to connect
-	var clientErr error
-	for i := 0; i < 50; i++ {
-		client, err := client.Dial(client.Options{HostPort: "127.0.0.1:" + portStr, Namespace: options.Namespace})
-		if err != nil {
-			clientErr = err
-		} else {
-			clientErr = nil
-			client.Close()
-			break
-		}
-		time.Sleep(100 * time.Millisecond)
-	}
-	if clientErr != nil {
-		return nil, fmt.Errorf("failed connecting after 5s, last error: %w", clientErr)
+	err = harness.WaitNamespaceAvailable(context.Background(), "127.0.0.1:"+portStr, options.Namespace)
+	if err != nil {
+		return nil, err
 	}
 	return &Temporalite{FrontendHostPort: "127.0.0.1:" + portStr, cmd: cmd}, nil
 }

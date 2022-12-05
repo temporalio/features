@@ -1,7 +1,9 @@
 package harness
 
 import (
+	"context"
 	"fmt"
+	"time"
 
 	historypb "go.temporal.io/api/history/v1"
 	"go.temporal.io/sdk/client"
@@ -28,4 +30,33 @@ func FindEvent(history client.HistoryEventIterator, cond func(*historypb.History
 		}
 	}
 	return nil, nil
+}
+
+func WaitNamespaceAvailable(ctx context.Context, hostPortStr string, namespace string) error {
+	// Try every 100ms for 5s to connect
+	var clientErr error
+	var myClient client.NamespaceClient
+	defer func() {
+		if myClient != nil {
+			myClient.Close()
+		}
+	}()
+	for i := 0; i < 50; i++ {
+		if myClient == nil {
+			myClient, clientErr = client.NewNamespaceClient(
+				client.Options{HostPort: hostPortStr, Namespace: namespace})
+			if clientErr != nil {
+				continue
+			}
+		}
+		_, clientErr = myClient.Describe(ctx, namespace)
+		if clientErr == nil {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	if clientErr != nil {
+		return fmt.Errorf("failed connecting after 5s, last error: %w", clientErr)
+	}
+	return nil
 }

@@ -9,6 +9,7 @@ import (
 	"go.temporal.io/sdk-features/features/continue_as_new/continue_as_same"
 	"go.temporal.io/sdk-features/features/data_converter/binary"
 	"go.temporal.io/sdk-features/features/data_converter/empty"
+	"go.temporal.io/sdk-features/features/data_converter/failure"
 	"go.temporal.io/sdk-features/features/eager_activity/non_remote_activities_worker"
 	"go.temporal.io/sdk-features/features/query/successful_query"
 	"go.temporal.io/sdk-features/features/query/timeout_due_to_no_active_workers"
@@ -43,6 +44,7 @@ func init() {
 		pause.Feature,
 		result.Feature,
 		retry_on_error.Feature,
+		failure.Feature,
 		successful_query.Feature,
 		timeout_due_to_no_active_workers.Feature,
 		trigger.Feature,

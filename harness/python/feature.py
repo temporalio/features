@@ -11,6 +11,7 @@ from typing import Any, Awaitable, Callable, Dict, List, Mapping, Optional, Type
 
 from temporalio import workflow
 from temporalio.client import Client, WorkflowFailureError, WorkflowHandle
+from temporalio.converter import DataConverter
 from temporalio.exceptions import ActivityError, ApplicationError
 from temporalio.service import TLSConfig
 from temporalio.worker import Worker, WorkerConfig
@@ -31,6 +32,7 @@ def register_feature(
     start_options: Mapping[str, Any] = {},
     check_result: Optional[Callable[[Runner, WorkflowHandle], Awaitable[None]]] = None,
     worker_config: WorkerConfig = WorkerConfig(),
+    data_converter: DataConverter = DataConverter.default,
 ) -> None:
     # No need to register in a sandbox
     if workflow.unsafe.in_sandbox():
@@ -54,6 +56,7 @@ def register_feature(
         start_options=start_options,
         check_result=check_result,
         worker_config=worker_config,
+        data_converter=data_converter,
     )
 
 
@@ -69,6 +72,7 @@ class Feature:
     start_options: Mapping[str, Any]
     check_result: Optional[Callable[[Runner, WorkflowHandle], Awaitable[None]]]
     worker_config: Optional[WorkerConfig]
+    data_converter: DataConverter
 
 
 class Runner:
@@ -96,7 +100,10 @@ class Runner:
 
         # Connect client
         self.client = await Client.connect(
-            self.address, namespace=self.namespace, tls=self.tls_config
+            self.address,
+            namespace=self.namespace,
+            data_converter=self.feature.data_converter,
+            tls=self.tls_config,
         )
 
         # Run worker

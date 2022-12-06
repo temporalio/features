@@ -33,30 +33,44 @@ func FindEvent(history client.HistoryEventIterator, cond func(*historypb.History
 }
 
 func WaitNamespaceAvailable(ctx context.Context, hostPortStr string, namespace string) error {
-	// Try every 100ms for 5s to connect
-	var clientErr error
 	var myClient client.NamespaceClient
 	defer func() {
 		if myClient != nil {
 			myClient.Close()
 		}
 	}()
-	for i := 0; i < 50; i++ {
+	lastErr := RetryFor(50, 100*time.Millisecond, func() (bool, error) {
 		if myClient == nil {
+			var clientErr error
 			myClient, clientErr = client.NewNamespaceClient(
 				client.Options{HostPort: hostPortStr, Namespace: namespace})
 			if clientErr != nil {
-				continue
+				return false, clientErr
 			}
 		}
-		_, clientErr = myClient.Describe(ctx, namespace)
-		if clientErr == nil {
-			break
-		}
-		time.Sleep(100 * time.Millisecond)
-	}
-	if clientErr != nil {
-		return fmt.Errorf("failed connecting after 5s, last error: %w", clientErr)
+		_, clientErr := myClient.Describe(ctx, namespace)
+		return clientErr == nil, clientErr
+	})
+	if lastErr != nil {
+		return fmt.Errorf("failed connecting after 5s, last error: %w", lastErr)
 	}
 	return nil
+}
+
+// RetryFor retries some function until it passes or we run out of attempts. Wait interval between
+// attempts.
+func RetryFor(maxAttempts int, interval time.Duration, cond func() (bool, error)) error {
+	var lastErr error
+	for i := 0; i < maxAttempts; i++ {
+		if ok, curE := cond(); ok {
+			return nil
+		} else {
+			lastErr = curE
+		}
+		time.Sleep(interval)
+	}
+	if lastErr == nil {
+		lastErr = fmt.Errorf("failed after %d attempts", maxAttempts)
+	}
+	return lastErr
 }

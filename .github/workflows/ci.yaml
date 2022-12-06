@@ -110,46 +110,12 @@ jobs:
       sdk-features-repo-ref: ${{ github.head_ref }}
       sdk-features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
 
-  build-go-latest-docker-images:
-    uses: ./.github/workflows/docker-images.yaml
+  build-docker-images:
+    uses: ./.github/workflows/all-docker-images.yaml
     secrets: inherit
+    # TODO: Find some way to automatically upgrade to "latest"
     with:
-      lang: go
-      # Latest release at the time this was written
-      # TODO(bergundy): Find some way to automatically upgrade to "latest"
-      sdk-version: 'v1.19.0'
-      semver-latest: major
-      run-tag: '1.19.0'
-
-  build-node-latest-docker-images:
-    uses: ./.github/workflows/docker-images.yaml
-    secrets: inherit
-    with:
-      lang: ts
-      # Latest release at the time this was written
-      # TODO(bergundy): Find some way to automatically upgrade to "latest"
-      sdk-version: 'v1.5.2'
-      semver-latest: major
-      run-tag: '1.5.2'
-
-  build-java-latest-docker-images:
-    uses: ./.github/workflows/docker-images.yaml
-    secrets: inherit
-    with:
-      lang: java
-      # Latest release at the time this was written
-      # TODO(bergundy): Find some way to automatically upgrade to "latest"
-      sdk-version: 'v1.17.0'
-      semver-latest: major
-      run-tag: '1.17.0'
-
-  build-python-latest-docker-images:
-    uses: ./.github/workflows/docker-images.yaml
-    secrets: inherit
-    with:
-      lang: py
-      # Latest release at the time this was written
-      # TODO(bergundy): Find some way to automatically upgrade to "latest"
-      sdk-version: 'v0.1b4'
-      semver-latest: none
-      run-tag: '0.1b4'
+      go-ver: 'v1.19.0'
+      ts-ver: 'v1.5.2'
+      java-ver: 'v1.17.0'
+      py-ver: 'v0.1b4'

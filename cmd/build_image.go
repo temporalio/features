@@ -231,8 +231,19 @@ func (i *ImageBuilder) dockerBuild(ctx context.Context, config buildConfig) erro
 
 	args = append(args, "--build-arg", fmt.Sprintf("PLATFORM=%s", platform))
 
-	for _, tag := range config.tags {
-		args = append(args, "--tag", fmt.Sprintf("%s:%s", imageName, tag))
+	for ix, tag := range config.tags {
+		tagVal := fmt.Sprintf("%s:%s", imageName, tag)
+		if tag != "" {
+			args = append(args, "--tag", tagVal)
+		}
+		// Write GitHub output information for the first tag, so later steps that want to use the
+		// image will know how to refer to it
+		if ix == 0 {
+			err := writeGitHubEnv("SDK_FEAT_BUILT_IMAGE_TAG", tagVal)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	// TODO(bergundy): Would be nicer to print plain text instead of markdown but this good enough for now

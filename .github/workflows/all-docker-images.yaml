@@ -1,0 +1,64 @@
+name: Build all language docker images
+on:
+  workflow_call:
+    # TODO: Can eventually support repo refs too rather than just versions if/when we need that.
+    #   Can prefix with `repo:` and do a little parsing in a bash script and write to $GITHUB_ENV
+    inputs:
+      go-ver:
+        description: Go SDK version to build. Skipped if not specified.
+        type: string
+      py-ver:
+        description: Python SDK version to build. Skipped if not specified.
+        type: string
+      ts-ver:
+        description: TypeScript SDK version to build. Skipped if not specified.
+        type: string
+      java-ver:
+        description: Java SDK version to build. Skipped if not specified.
+        type: string
+      do-push:
+        description: If set, push the built images to Docker Hub.
+        type: boolean
+        default: false
+
+
+jobs:
+  build-go-docker-images:
+    if: inputs.go-ver
+    uses: ./.github/workflows/docker-images.yaml
+    secrets: inherit
+    with:
+      lang: go
+      sdk-version: ${{ inputs.go-ver }}
+      semver-latest: major
+      do-push: ${{ inputs.do-push }}
+
+  build-ts-docker-images:
+    if: inputs.ts-ver
+    uses: ./.github/workflows/docker-images.yaml
+    secrets: inherit
+    with:
+      lang: ts
+      sdk-version: ${{ inputs.ts-ver }}
+      semver-latest: major
+      do-push: ${{ inputs.do-push }}
+
+  build-java-docker-images:
+    if: inputs.java-ver
+    uses: ./.github/workflows/docker-images.yaml
+    secrets: inherit
+    with:
+      lang: java
+      sdk-version: ${{ inputs.java-ver }}
+      semver-latest: major
+      do-push: ${{ inputs.do-push }}
+
+  build-python-docker-images:
+    if: inputs.py-ver
+    uses: ./.github/workflows/docker-images.yaml
+    secrets: inherit
+    with:
+      lang: py
+      sdk-version: ${{ inputs.py-ver }}
+      semver-latest: none
+      do-push: ${{ inputs.do-push }}

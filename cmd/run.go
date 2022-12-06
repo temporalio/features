@@ -191,7 +191,9 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 		defer server.Stop()
 		r.config.Server = server.FrontendHostPort
 		r.log.Info("Started server", "HostPort", r.config.Server)
-	} else {
+	} else if !strings.Contains(r.config.Server, "tmprl.cloud") {
+		// Wait for namespace to become available, but only if we're not targeting cloud. Namespace
+		// client won't work against it, and obviously the namespace must already exist.
 		err := harness.WaitNamespaceAvailable(ctx, r.config.Server, r.config.Namespace)
 		if err != nil {
 			return err

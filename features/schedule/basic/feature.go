@@ -26,13 +26,10 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 	// Start schedule every 2s
 	workflowID := uuid.NewString()
 	handle, err := r.Client.ScheduleClient().Create(ctx, client.ScheduleOptions{
-		// TODO(cretz): Required? https://github.com/temporalio/sdk-go/issues/957
 		ID:      uuid.NewString(),
 		Spec:    client.ScheduleSpec{Intervals: []client.ScheduleIntervalSpec{{Every: 2 * time.Second}}},
 		Overlap: enums.SCHEDULE_OVERLAP_POLICY_BUFFER_ONE,
-		// TODO(cretz): Would prefer if this were a pointer. See
-		// https://github.com/temporalio/sdk-go/issues/958.
-		Action: client.ScheduleWorkflowAction{
+		Action: &client.ScheduleWorkflowAction{
 			ID:        workflowID,
 			Workflow:  BasicScheduleWorkflow,
 			Args:      []interface{}{"arg1"},
@@ -52,7 +49,7 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 	desc, err := handle.Describe(ctx)
 	r.Require.NoErrorf(err,
 		"Describing the schedule should not fail. Schedule ID: %s workflow id: %s", handle.GetID(), workflowID)
-	r.Require.Equal(workflowID, desc.Schedule.Action.(client.ScheduleWorkflowAction).ID)
+	r.Require.Equal(workflowID, desc.Schedule.Action.(*client.ScheduleWorkflowAction).ID)
 
 	// Confirm simple list
 	iter, err := r.Client.ScheduleClient().List(ctx, client.ScheduleListOptions{})
@@ -72,7 +69,7 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 	err = handle.Update(ctx, client.ScheduleUpdateOptions{
 		DoUpdate: func(in client.ScheduleUpdateInput) (*client.ScheduleUpdate, error) {
 			update := &client.ScheduleUpdate{Schedule: &in.Description.Schedule}
-			action := update.Schedule.Action.(client.ScheduleWorkflowAction)
+			action := update.Schedule.Action.(*client.ScheduleWorkflowAction)
 			action.Args = []interface{}{"arg2"}
 			update.Schedule.Action = action
 			return update, nil

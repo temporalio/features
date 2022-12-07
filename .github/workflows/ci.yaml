@@ -97,7 +97,7 @@ jobs:
   feature-tests-python:
     uses: ./.github/workflows/python.yaml
     with:
-      version: 0.1b3
+      version: 0.1b4
       version-is-repo-ref: false
       sdk-features-repo-ref: ${{ github.head_ref }}
       sdk-features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}

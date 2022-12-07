@@ -64,6 +64,7 @@ public class Main implements Runnable {
     // Run each
     // TODO(cretz): Concurrent with log capturing
     var failureCount = 0;
+    var failedFeatures = new StringBuilder();
     for (var featureWithTaskQueue : features) {
       var pieces = featureWithTaskQueue.split(":", 2);
       // Find feature
@@ -86,9 +87,11 @@ public class Main implements Runnable {
       } catch (Exception e) {
         failureCount++;
         log.error("Feature {} failed", feature.dir, e);
+        failedFeatures.append("\n").append(feature.dir).append(": ").append(e.getMessage());
       }
     }
-    Verify.verify(failureCount == 0, "%s feature(s) failed", failureCount);
+    Verify.verify(failureCount == 0, "%s feature(s) failed: %s",
+        failureCount, failedFeatures.toString());
   }
 
   public static void main(String... args) {

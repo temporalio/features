@@ -85,5 +85,9 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # TODO(bergundy): create a docker push step (only run under certain conditions - like manual trigger or main
-      # branch trigger)
+      - name: Push image to DockerHub
+        if: inputs.do-push
+        # TODO: Push all tags that we built
+        run: |
+          docker tag ${{ env.SDK_FEAT_BUILT_IMAGE_TAG }} temporaliotest/sdk-features:${{ inputs.lang }}
+          docker push temporaliotest/sdk-features:${{ inputs.lang }}

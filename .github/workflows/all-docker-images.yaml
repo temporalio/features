@@ -20,6 +20,26 @@ on:
         description: If set, push the built images to Docker Hub.
         type: boolean
         default: false
+  # To support manual triggering:
+  # AFAICT there is no way to avoid repeating all these inputs over and over w/o resorting to templating
+  workflow_dispatch:
+    inputs:
+      go-ver:
+        description: Go SDK version to build. Skipped if not specified.
+        type: string
+      py-ver:
+        description: Python SDK version to build. Skipped if not specified.
+        type: string
+      ts-ver:
+        description: TypeScript SDK version to build. Skipped if not specified.
+        type: string
+      java-ver:
+        description: Java SDK version to build. Skipped if not specified.
+        type: string
+      do-push:
+        description: If set, push the built images to Docker Hub.
+        type: boolean
+        default: false
 
 
 jobs:

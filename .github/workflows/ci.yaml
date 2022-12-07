@@ -115,6 +115,7 @@ jobs:
     secrets: inherit
     # TODO: Find some way to automatically upgrade to "latest"
     with:
+      do-push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
       go-ver: 'v1.19.0'
       ts-ver: 'v1.5.2'
       java-ver: 'v1.17.0'

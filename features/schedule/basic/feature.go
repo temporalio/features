@@ -52,7 +52,7 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 	r.Require.Equal(workflowID, desc.Schedule.Action.(*client.ScheduleWorkflowAction).ID)
 
 	// Confirm simple list
-	// TODO: This should not require a retry loop. See https://github.com/temporalio/sdk-features/issues/182
+	// Advanced visibility is eventually consistent. See https://github.com/temporalio/sdk-features/issues/182
 	listingErr := harness.RetryFor(10, 1*time.Second, func() (bool, error) {
 		iter, err := r.Client.ScheduleClient().List(ctx, client.ScheduleListOptions{})
 		// We don't want to retry an error calling list itself - only not finding the schedule

@@ -99,7 +99,8 @@ func Start(options Options) (*Temporalite, error) {
 		return nil, fmt.Errorf("failed starting: %w", err)
 	}
 
-	err = harness.WaitNamespaceAvailable(context.Background(), "127.0.0.1:"+portStr, options.Namespace)
+	err = harness.WaitNamespaceAvailable(context.Background(),
+		"127.0.0.1:"+portStr, options.Namespace, "", "")
 	if err != nil {
 		return nil, err
 	}

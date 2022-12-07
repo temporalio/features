@@ -14,7 +14,6 @@ func writeGitHubEnv(name string, value string) (retErr error) {
 		// Just don't do anything if we're not running in a GH env
 		return nil
 	}
-	msg := []byte(fmt.Sprintf("%s=%s", name, value))
 	f, err := os.OpenFile(filepath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		retErr = fmt.Errorf(errFileCmdFmt, err)
@@ -27,6 +26,7 @@ func writeGitHubEnv(name string, value string) (retErr error) {
 		}
 	}()
 
+	msg := []byte(fmt.Sprintf("%s=%s", name, value))
 	if _, err := f.Write(msg); err != nil {
 		retErr = fmt.Errorf(errFileCmdFmt, err)
 		return

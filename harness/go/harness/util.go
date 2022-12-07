@@ -2,7 +2,10 @@ package harness
 
 import (
 	"context"
+	"crypto/tls"
+	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	historypb "go.temporal.io/api/history/v1"
@@ -32,24 +35,38 @@ func FindEvent(history client.HistoryEventIterator, cond func(*historypb.History
 	return nil, nil
 }
 
-func WaitNamespaceAvailable(ctx context.Context, hostPortStr string, namespace string) error {
-	var myClient client.NamespaceClient
+// WaitNamespaceAvailable waits for up to 5 seconds for the provided namsepace to become available
+func WaitNamespaceAvailable(ctx context.Context,
+	hostPortStr, namespace, clientCertPath, clientKeyPath string) error {
+
+	var myClient client.Client
 	defer func() {
 		if myClient != nil {
 			myClient.Close()
 		}
 	}()
+	tlsCfg, err := LoadTLSConfig(clientCertPath, clientKeyPath)
+	clientOpts := client.Options{HostPort: hostPortStr, Namespace: namespace}
+	clientOpts.ConnectionOptions.TLS = tlsCfg
+	if err != nil {
+		return err
+	}
 	lastErr := RetryFor(50, 100*time.Millisecond, func() (bool, error) {
 		if myClient == nil {
 			var clientErr error
-			myClient, clientErr = client.NewNamespaceClient(
-				client.Options{HostPort: hostPortStr, Namespace: namespace})
+			myClient, clientErr = client.Dial(clientOpts)
 			if clientErr != nil {
 				return false, clientErr
 			}
 		}
-		_, clientErr := myClient.Describe(ctx, namespace)
-		return clientErr == nil, clientErr
+		_, clientErr := myClient.DescribeWorkflowExecution(ctx, "!sonotreal", "superneverexistwf!")
+		if clientErr != nil {
+			if strings.Contains(clientErr.Error(), "Invalid RunId") ||
+				strings.Contains(clientErr.Error(), "operation GetCurrentExecution") {
+				return true, nil
+			}
+		}
+		return false, clientErr
 	})
 	if lastErr != nil {
 		return fmt.Errorf("failed connecting after 5s, last error: %w", lastErr)
@@ -73,4 +90,20 @@ func RetryFor(maxAttempts int, interval time.Duration, cond func() (bool, error)
 		lastErr = fmt.Errorf("failed after %d attempts", maxAttempts)
 	}
 	return lastErr
+}
+
+func LoadTLSConfig(clientCertPath, clientKeyPath string) (*tls.Config, error) {
+	if clientCertPath != "" {
+		if clientKeyPath == "" {
+			return nil, errors.New("got TLS cert with no key")
+		}
+		cert, err := tls.LoadX509KeyPair(clientCertPath, clientKeyPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load certs: %s", err)
+		}
+		return &tls.Config{Certificates: []tls.Certificate{cert}}, nil
+	} else if clientKeyPath != "" {
+		return nil, errors.New("got TLS key with no cert")
+	}
+	return nil, nil
 }

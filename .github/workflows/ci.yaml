@@ -97,7 +97,7 @@ jobs:
   feature-tests-python:
     uses: ./.github/workflows/python.yaml
     with:
-      version: 0.1b3
+      version: 0.1b4
       version-is-repo-ref: false
       sdk-features-repo-ref: ${{ github.head_ref }}
       sdk-features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
@@ -150,6 +150,6 @@ jobs:
       lang: py
       # Latest release at the time this was written
       # TODO(bergundy): Find some way to automatically upgrade to "latest"
-      sdk-version: 'v0.1b3'
+      sdk-version: 'v0.1b4'
       semver-latest: none
-      run-tag: '0.1b3'
+      run-tag: '0.1b4'

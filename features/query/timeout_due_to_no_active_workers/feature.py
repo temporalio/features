@@ -34,8 +34,12 @@ async def check_result(runner: Runner, handle: WorkflowHandle):
     try:
         await handle.query(Workflow.simple_query, rpc_timeout=timedelta(seconds=1))
     except RPCError as e:
-        # Cancelled rather than deadline exceeded since the timeout is client-side
-        assert e.status == RPCStatusCode.CANCELLED
+        # Can be cancelled or deadline exceeded depending on whether client or
+        # server hit timeout first in a racy way
+        assert (
+            e.status == RPCStatusCode.CANCELLED
+            or e.status == RPCStatusCode.DEADLINE_EXCEEDED
+        )
     # Restart the worker and finish the wf
     runner.start_worker()
     await handle.signal(Workflow.finish_sig)

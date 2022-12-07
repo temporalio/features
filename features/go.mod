@@ -4,9 +4,10 @@ go 1.18
 
 require (
 	github.com/gogo/protobuf v1.3.2
+	github.com/google/uuid v1.3.0
 	github.com/uber-go/tally/v4 v4.1.1
 	go.temporal.io/api v1.13.0
-	go.temporal.io/sdk v1.18.1
+	go.temporal.io/sdk v1.19.0
 	go.temporal.io/sdk-features/harness/go v1.0.0
 	go.temporal.io/sdk/contrib/tally v0.1.0
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4
@@ -20,7 +21,6 @@ require (
 	github.com/gogo/status v1.1.1 // indirect
 	github.com/golang/mock v1.6.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/google/uuid v1.3.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0 // indirect
 	github.com/pborman/uuid v1.2.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect

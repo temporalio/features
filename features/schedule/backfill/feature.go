@@ -24,8 +24,7 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 	handle, err := r.Client.ScheduleClient().Create(ctx, client.ScheduleOptions{
 		ID:   uuid.NewString(),
 		Spec: client.ScheduleSpec{Intervals: []client.ScheduleIntervalSpec{{Every: 1 * time.Minute}}},
-		// TODO(cretz): Change to pointer, see https://github.com/temporalio/sdk-go/issues/958
-		Action: client.ScheduleWorkflowAction{
+		Action: &client.ScheduleWorkflowAction{
 			ID:        workflowID,
 			Workflow:  Workflow,
 			Args:      []interface{}{"arg1"},

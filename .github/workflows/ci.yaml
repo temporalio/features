@@ -89,7 +89,7 @@ jobs:
   feature-tests-go:
     uses: ./.github/workflows/go.yaml
     with:
-      version: v1.18.1
+      version: v1.19.0
       version-is-repo-ref: false
       sdk-features-repo-ref: ${{ github.head_ref }}
       sdk-features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
@@ -117,9 +117,9 @@ jobs:
       lang: go
       # Latest release at the time this was written
       # TODO(bergundy): Find some way to automatically upgrade to "latest"
-      sdk-version: 'v1.18.1'
+      sdk-version: 'v1.19.0'
       semver-latest: major
-      run-tag: '1.18.1'
+      run-tag: '1.19.0'
 
   build-node-latest-docker-images:
     uses: ./.github/workflows/docker-images.yaml

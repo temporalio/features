@@ -52,15 +52,20 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 	r.Require.Equal(workflowID, desc.Schedule.Action.(*client.ScheduleWorkflowAction).ID)
 
 	// Confirm simple list
-	iter, err := r.Client.ScheduleClient().List(ctx, client.ScheduleListOptions{})
-	r.Require.NoError(err)
-	foundSchedule := false
-	for iter.HasNext() && !foundSchedule {
-		e, err := iter.Next()
+	// Advanced visibility is eventually consistent. See https://github.com/temporalio/sdk-features/issues/182
+	listingErr := harness.RetryFor(10, 1*time.Second, func() (bool, error) {
+		iter, err := r.Client.ScheduleClient().List(ctx, client.ScheduleListOptions{})
+		// We don't want to retry an error calling list itself - only not finding the schedule
 		r.Require.NoError(err)
-		foundSchedule = e.ID == handle.GetID()
-	}
-	r.Require.True(foundSchedule)
+		foundSchedule := false
+		for iter.HasNext() && !foundSchedule {
+			e, err := iter.Next()
+			r.Require.NoError(err)
+			foundSchedule = e.ID == handle.GetID()
+		}
+		return foundSchedule, nil
+	})
+	r.Require.NoError(listingErr)
 
 	// Wait for first completion
 	waitCompletedWith(ctx, r, workflowID, "arg1")

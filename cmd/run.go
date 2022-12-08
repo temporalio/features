@@ -191,6 +191,13 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 		defer server.Stop()
 		r.config.Server = server.FrontendHostPort
 		r.log.Info("Started server", "HostPort", r.config.Server)
+	} else {
+		// Wait for namespace to become available
+		err := harness.WaitNamespaceAvailable(ctx,
+			r.config.Server, r.config.Namespace, r.config.ClientCertPath, r.config.ClientKeyPath)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Ensure any created temp dir is cleaned on ctrl-c or normal exit

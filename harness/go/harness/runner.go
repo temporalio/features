@@ -2,7 +2,6 @@ package harness
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -75,21 +74,14 @@ func NewRunner(config RunnerConfig, feature *PreparedFeature) (*Runner, error) {
 	if r.Feature.ClientOptions.Logger == nil {
 		r.Feature.ClientOptions.Logger = r.Log
 	}
-	if config.ClientCertPath != "" {
-		if config.ClientKeyPath == "" {
-			return nil, errors.New("got TLS cert with no key")
-		}
-		cert, err := tls.LoadX509KeyPair(config.ClientCertPath, config.ClientKeyPath)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load certs: %s", err)
-		}
-		r.Feature.ClientOptions.ConnectionOptions.TLS = &tls.Config{Certificates: []tls.Certificate{cert}}
-	} else if config.ClientKeyPath != "" {
-		return nil, errors.New("got TLS key with no cert")
-	}
-
 	var err error
-	if r.Client, err = client.NewClient(r.Feature.ClientOptions); err != nil {
+	tlsCfg, err := LoadTLSConfig(r.ClientCertPath, r.ClientKeyPath)
+	if err != nil {
+		return nil, err
+	}
+	r.Feature.ClientOptions.ConnectionOptions.TLS = tlsCfg
+
+	if r.Client, err = client.Dial(r.Feature.ClientOptions); err != nil {
 		return nil, fmt.Errorf("failed creating client: %w", err)
 	}
 

@@ -3,7 +3,7 @@ on:
   workflow_call:
     inputs:
       lang:
-        description: SDK language to build the container for (only Go is supported for now)
+        description: SDK language to build the container for
         required: true
         type: string
       sdk-repo-ref:
@@ -19,18 +19,17 @@ on:
         required: false
         type: string
       semver-latest:
-        # TODO(bergundy): type: choice doesn't seem to work here
         description: Tag images with major / minor versions (only used if "sdk-version" is provided - 'minor' or 'major')
         type: string
         default: 'none'
-      run-tag:
-        description: Docker tag suffix to use to test run the image (e.g. master or 1.16.0)
-        # TODO(bergundy): infer this from sdk-version / sdk-repo-ref
-        required: true
-        type: string
+      do-push:
+        description: If set, push the built image to Docker Hub.
+        type: boolean
+        default: false
 
 jobs:
-  build-images:
+  build-image:
+    name: Build ${{ inputs.lang }} docker image
     runs-on: ubuntu-latest
     env:
       TEMPORAL_CLOUD_ADDRESS: sdk-ci.a2dd6.tmprl.cloud:7233
@@ -57,6 +56,7 @@ jobs:
           TEMPORAL_CLIENT_CERT: ${{ secrets.TEMPORAL_CLIENT_CERT }}
           TEMPORAL_CLIENT_KEY: ${{ secrets.TEMPORAL_CLIENT_KEY }}
 
+      # This step will set the SDK_FEAT_BUILT_IMAGE_TAG env key
       - name: Build docker image
         run: |
           go run . build-image --lang ${{ inputs.lang }} \
@@ -66,17 +66,28 @@ jobs:
           ${{ inputs.semver-latest != 'none' && format('--semver-latest {0}', inputs.semver-latest) || '' }}
 
       - name: Test with Temporalite
-        run: docker run --rm -i -v /tmp/temporal-certs:/certs sdk-features:${{ inputs.lang }}-${{ inputs.run-tag }}
+        run: docker run --rm -i -v /tmp/temporal-certs:/certs ${{ env.SDK_FEAT_BUILT_IMAGE_TAG }}
 
       - name: Test with Cloud
         # Only supported in non-fork runs
         if: ${{ github.event.pull_request.head.repo.full_name == '' || github.event.pull_request.head.repo.full_name == 'temporalio/sdk-features' }}
         run: |
-          docker run --rm -i -v /tmp/temporal-certs:/certs sdk-features:${{ inputs.lang }}-${{ inputs.run-tag }} \
+          docker run --rm -i -v /tmp/temporal-certs:/certs ${{ env.SDK_FEAT_BUILT_IMAGE_TAG }} \
           --server $TEMPORAL_CLOUD_ADDRESS \
           --namespace $TEMPORAL_CLOUD_NAMESPACE \
           --client-cert-path /certs/client.pem \
           --client-key-path /certs/client.key
 
-      # TODO(bergundy): create a docker push step (only run under certain conditions - like manual trigger or main
-      # branch trigger)
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        if: inputs.do-push
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Push image to DockerHub
+        if: inputs.do-push
+        # TODO: Push all tags that we built
+        run: |
+          docker tag ${{ env.SDK_FEAT_BUILT_IMAGE_TAG }} temporaliotest/sdk-features:${{ inputs.lang }}
+          docker push temporaliotest/sdk-features:${{ inputs.lang }}

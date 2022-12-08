@@ -5,16 +5,16 @@ on:
     #   Can prefix with `repo:` and do a little parsing in a bash script and write to $GITHUB_ENV
     inputs:
       go-ver:
-        description: Go SDK version to build. Skipped if not specified.
+        description: Go SDK ver to build. Skipped if not specified. Must start with v.
         type: string
       py-ver:
-        description: Python SDK version to build. Skipped if not specified.
+        description: Python SDK ver to build. Skipped if not specified. Must start with v.
         type: string
       ts-ver:
-        description: TypeScript SDK version to build. Skipped if not specified.
+        description: TypeScript SDK ver to build. Skipped if not specified. Must start with v.
         type: string
       java-ver:
-        description: Java SDK version to build. Skipped if not specified.
+        description: Java SDK ver to build. Skipped if not specified. Must start with v.
         type: string
       do-push:
         description: If set, push the built images to Docker Hub.
@@ -25,16 +25,16 @@ on:
   workflow_dispatch:
     inputs:
       go-ver:
-        description: Go SDK version to build. Skipped if not specified.
+        description: Go SDK ver to build. Skipped if not specified. Must start with v.
         type: string
       py-ver:
-        description: Python SDK version to build. Skipped if not specified.
+        description: Python SDK ver to build. Skipped if not specified. Must start with v.
         type: string
       ts-ver:
-        description: TypeScript SDK version to build. Skipped if not specified.
+        description: TypeScript SDK ver to build. Skipped if not specified. Must start with v.
         type: string
       java-ver:
-        description: Java SDK version to build. Skipped if not specified.
+        description: Java SDK ver to build. Skipped if not specified. Must start with v.
         type: string
       do-push:
         description: If set, push the built images to Docker Hub.
@@ -80,5 +80,5 @@ jobs:
     with:
       lang: py
       sdk-version: ${{ inputs.py-ver }}
-      semver-latest: none
+      semver-latest: major
       do-push: ${{ inputs.do-push }}

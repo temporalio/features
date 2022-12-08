@@ -87,7 +87,4 @@ jobs:
 
       - name: Push image to DockerHub
         if: inputs.do-push
-        # TODO: Push all tags that we built
-        run: |
-          docker tag ${{ env.SDK_FEAT_BUILT_IMAGE_TAG }} temporaliotest/sdk-features:${{ inputs.lang }}
-          docker push temporaliotest/sdk-features:${{ inputs.lang }}
+        run: go run . push-images

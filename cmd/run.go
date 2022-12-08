@@ -193,7 +193,7 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 		r.log.Info("Started server", "HostPort", r.config.Server)
 	} else {
 		// Wait for namespace to become available
-		err := harness.WaitNamespaceAvailable(ctx,
+		err := harness.WaitNamespaceAvailable(ctx, r.log,
 			r.config.Server, r.config.Namespace, r.config.ClientCertPath, r.config.ClientKeyPath)
 		if err != nil {
 			return err

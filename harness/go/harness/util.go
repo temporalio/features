@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"go.temporal.io/sdk/log"
 	"strings"
 	"time"
 
@@ -35,9 +36,10 @@ func FindEvent(history client.HistoryEventIterator, cond func(*historypb.History
 	return nil, nil
 }
 
-// WaitNamespaceAvailable waits for up to 5 seconds for the provided namsepace to become available
-func WaitNamespaceAvailable(ctx context.Context,
+// WaitNamespaceAvailable waits for up to 5 seconds for the provided namespace to become available
+func WaitNamespaceAvailable(ctx context.Context, logger log.Logger,
 	hostPortStr, namespace, clientCertPath, clientKeyPath string) error {
+	logger.Info("Waiting for namespace to become available", "namespace", namespace)
 
 	var myClient client.Client
 	defer func() {
@@ -46,12 +48,12 @@ func WaitNamespaceAvailable(ctx context.Context,
 		}
 	}()
 	tlsCfg, err := LoadTLSConfig(clientCertPath, clientKeyPath)
-	clientOpts := client.Options{HostPort: hostPortStr, Namespace: namespace}
+	clientOpts := client.Options{HostPort: hostPortStr, Namespace: namespace, Logger: logger}
 	clientOpts.ConnectionOptions.TLS = tlsCfg
 	if err != nil {
 		return err
 	}
-	lastErr := RetryFor(50, 100*time.Millisecond, func() (bool, error) {
+	lastErr := RetryFor(600, 100*time.Millisecond, func() (bool, error) {
 		if myClient == nil {
 			var clientErr error
 			myClient, clientErr = client.Dial(clientOpts)
@@ -92,6 +94,7 @@ func RetryFor(maxAttempts int, interval time.Duration, cond func() (bool, error)
 	return lastErr
 }
 
+// LoadTLSConfig inits a TLS config from the provided cert and key files.
 func LoadTLSConfig(clientCertPath, clientKeyPath string) (*tls.Config, error) {
 	if clientCertPath != "" {
 		if clientKeyPath == "" {

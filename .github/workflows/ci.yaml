@@ -81,7 +81,7 @@ jobs:
   feature-tests-ts:
     uses: ./.github/workflows/typescript.yaml
     with:
-      version: 1.5.1
+      version: 1.5.2
       version-is-repo-ref: false
       sdk-features-repo-ref: ${{ github.head_ref }}
       sdk-features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
@@ -128,9 +128,9 @@ jobs:
       lang: ts
       # Latest release at the time this was written
       # TODO(bergundy): Find some way to automatically upgrade to "latest"
-      sdk-version: 'v1.5.1'
+      sdk-version: 'v1.5.2'
       semver-latest: major
-      run-tag: '1.5.1'
+      run-tag: '1.5.2'
 
   build-java-latest-docker-images:
     uses: ./.github/workflows/docker-images.yaml

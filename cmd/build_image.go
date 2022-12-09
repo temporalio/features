@@ -40,6 +40,7 @@ type ImageBuildConfig struct {
 	Platform     string
 	ImageName    string
 	SemverLatest string
+	DryRun       bool
 }
 
 func (c *ImageBuildConfig) flags() []cli.Flag {
@@ -82,6 +83,12 @@ func (c *ImageBuildConfig) flags() []cli.Flag {
 			Required:    false,
 			DefaultText: DEFAULT_IMAGE_NAME,
 			Destination: &c.ImageName,
+		},
+		&cli.BoolFlag{
+			Name:        "dry-run",
+			Usage:       "If set, just print the docker build command that would be run.",
+			Required:    false,
+			Destination: &c.DryRun,
 		},
 	}
 }
@@ -166,30 +173,41 @@ func (i *ImageBuilder) buildFromRepo(ctx context.Context) error {
 }
 
 func (i *ImageBuilder) buildFromVersion(ctx context.Context) error {
+	if !strings.HasPrefix(i.config.Version, "v") {
+		return fmt.Errorf("version must start with 'v'")
+	}
+	isPreRelease := strings.HasPrefix(i.config.Version, "v0")
 	version := semver.Canonical(i.config.Version)
 	if version == "none" || version == "" {
-		if i.config.Lang == "py" {
-			// Account for pre-release python versions which don't have a major ver #
+		if isPreRelease {
+			// Account for pre-release versions which don't have a major ver #
 			version = i.config.Version
 		} else {
 			return fmt.Errorf("expected version to be valid semver")
 		}
 	}
-	i.log.Info("Building from given version", "Version", version)
-
 	// Build the list of tags: lang-major.minor.patch, and optionally: lang-major.minor, lang-major, lang
 	tags := []string{fmt.Sprintf("%s-%s", i.config.Lang, version[1:])}
 	if i.config.SemverLatest == "minor" {
-		tags = append(tags, fmt.Sprintf("%s-%s", i.config.Lang, semver.MajorMinor(version)[1:]))
+		if !isPreRelease {
+			tags = append(tags, fmt.Sprintf("%s-%s", i.config.Lang, semver.MajorMinor(version)[1:]))
+		}
 	} else if i.config.SemverLatest == "major" {
-		tags = append(tags,
-			fmt.Sprintf("%s-%s", i.config.Lang, semver.MajorMinor(version)[1:]),
-			fmt.Sprintf("%s-%s", i.config.Lang, semver.Major(version)[1:]),
-			i.config.Lang,
-		)
+		if isPreRelease {
+			tags = append(tags, i.config.Lang)
+		} else {
+			tags = append(tags,
+				fmt.Sprintf("%s-%s", i.config.Lang, semver.MajorMinor(version)[1:]),
+				fmt.Sprintf("%s-%s", i.config.Lang, semver.Major(version)[1:]),
+				i.config.Lang,
+			)
+		}
 	} else if i.config.SemverLatest != "" {
 		return fmt.Errorf("unsupported --semver-latest: %s, valid values ('minor' or 'major')", i.config.SemverLatest)
 	}
+
+	i.log.Info("Building from given version", "Version", version, "Tags", tags)
+
 	return i.dockerBuild(ctx, buildConfig{
 		tags:      tags,
 		buildArgs: map[string]string{"SDK_VERSION": version, "REPO_DIR_OR_PLACEHOLDER": "main.go"},
@@ -230,20 +248,24 @@ func (i *ImageBuilder) dockerBuild(ctx context.Context, config buildConfig) erro
 	}
 
 	args = append(args, "--build-arg", fmt.Sprintf("PLATFORM=%s", platform))
-
-	for ix, tag := range config.tags {
+	var imageTagsForPublish []string
+	for _, tag := range config.tags {
 		tagVal := fmt.Sprintf("%s:%s", imageName, tag)
 		if tag != "" {
 			args = append(args, "--tag", tagVal)
 		}
-		// Write GitHub output information for the first tag, so later steps that want to use the
-		// image will know how to refer to it
-		if ix == 0 {
-			err := writeGitHubEnv("SDK_FEAT_BUILT_IMAGE_TAG", tagVal)
-			if err != nil {
-				return err
-			}
-		}
+		imageTagsForPublish = append(imageTagsForPublish, tagVal)
+	}
+	// Write the most specific tag, so that the tests can use it.
+	err = writeGitHubEnv("SDK_FEAT_BUILT_IMAGE_TAG", imageTagsForPublish[0])
+	if err != nil {
+		return fmt.Errorf("writing test image tag to github env failed: %s", err)
+	}
+	// Write all the produced image tags to an env var so that the GH workflow can later use it
+	// to publish them, iff the tests passed.
+	err = writeGitHubEnv("SDK_FEAT_BUILT_IMAGE_TAGS", strings.Join(imageTagsForPublish, ";"))
+	if err != nil {
+		return fmt.Errorf("writing image tags to github env failed: %s", err)
 	}
 
 	// TODO(bergundy): Would be nicer to print plain text instead of markdown but this good enough for now
@@ -284,6 +306,9 @@ func (i *ImageBuilder) dockerBuild(ctx context.Context, config buildConfig) erro
 	args = append(args, i.rootDir)
 
 	i.log.Info("Building docker image", "Args", args)
+	if i.config.DryRun {
+		return nil
+	}
 	dockerBuild := exec.Command("docker", args...)
 	dockerBuild.Stdout = os.Stdout
 	dockerBuild.Stderr = os.Stderr

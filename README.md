@@ -125,7 +125,7 @@ There are also files in the `history/` subdirectory which contain history files 
 - A TypeScript feature should be in `feature.ts`.
 
   **NOTE**: TypeScript features include workflow and non workflow code in the same file. Those are run in different
-  environments so they may not share variables and the feature author should keep the workflow runtime limitations in min
+  environments so they may not share variables and the feature author should keep the workflow runtime limitations in
   mind when writing features.
 
 - A Python feature should be in `feature.py`.
@@ -154,6 +154,17 @@ specified. Any existing history for that feature, language, and version will be 
 
 History generation should only be needed when first developing a feature or when a version intentionally introduces an
 incompatibility. Otherwise, history files should remain checked in and not regenerated.
+
+## Usage within CI
+The repo defines GitHub workflows which are designed to allow running the SDK features suites
+against changes to an SDK, or against changes to server. The former is accomplished by syncing the 
+SDK repo and using it as a path-version when running the suites. The latter is accomplished by
+building the changes to server into a docker image, and using that docker image for the server
+when running the suites.
+
+Publishing docker images of the sdk-features runner/suites is also supported. It may be run
+[manually](https://github.com/temporalio/sdk-features/actions/workflows/all-docker-images.yaml),
+but is also triggered by default on each push to main.
 
 ## TODO
 

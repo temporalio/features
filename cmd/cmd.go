@@ -21,6 +21,7 @@ func NewApp() *cli.App {
 			prepareCmd(),
 			runCmd(),
 			buildImageCmd(),
+			publishImageCmd(),
 		},
 	}
 }

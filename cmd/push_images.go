@@ -2,10 +2,11 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/urfave/cli/v2"
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/urfave/cli/v2"
 )
 
 func publishImageCmd() *cli.Command {

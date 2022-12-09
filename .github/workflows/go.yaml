@@ -65,15 +65,26 @@ jobs:
         with:
           go-version: '^1.17'
 
-      - name: Build sdk-features go
-        run: go build
+      - name: Start containerized server and dependencies
+        if: inputs.docker-image-artifact-name
+        run: |
+          docker-compose \
+            -f /tmp/server-docker/docker-compose.yml \
+            -f ./dockerfiles/docker-compose.for-server-image.yaml \
+            up -d temporal-server cassandra elasticsearch
 
-      - name: Start server & deps
-        if: ${{ inputs.docker-image-artifact-name }}
-        run: docker-compose -f /tmp/server-docker/docker-compose.yml -f ./dockerfiles/docker-compose.for-server-image.yaml up -d temporal-server cassandra elasticsearch
-
-      - name: Run SDK-features tests
+      - name: Run SDK-features tests directly
+        if: inputs.docker-image-artifact-name == ''
         run: go run . run --lang go ${{ inputs.docker-image-artifact-name && '--server localhost:7233 --namespace default' || ''}} --version "${{ inputs.version-is-repo-ref && '$(realpath ../sdk-go)' || inputs.version }}"
+
+      # Running the tests in their own step keeps the logs readable
+      - name: Run containerized SDK-features tests
+        if: inputs.docker-image-artifact-name
+        run: |
+          docker-compose \
+            -f /tmp/server-docker/docker-compose.yml \
+            -f ./dockerfiles/docker-compose.for-server-image.yaml \
+            up --no-log-prefix --exit-code-from sdk-features-tests-go sdk-features-tests-go
 
       - name: Tear down docker compose
         if: inputs.docker-image-artifact-name && (success() || failure())

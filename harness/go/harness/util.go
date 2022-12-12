@@ -5,9 +5,11 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"go.temporal.io/sdk/log"
+	"os"
 	"strings"
 	"time"
+
+	"go.temporal.io/sdk/log"
 
 	historypb "go.temporal.io/api/history/v1"
 	"go.temporal.io/sdk/client"
@@ -72,6 +74,12 @@ func WaitNamespaceAvailable(ctx context.Context, logger log.Logger,
 	})
 	if lastErr != nil {
 		return fmt.Errorf("failed connecting after 5s, last error: %w", lastErr)
+	}
+	// Because of annoying caching nonsense, sometimes the namespace might look available here but
+	// not for other operations. That should resolve quickly. Ideally we can remove this whole
+	// function when https://github.com/temporalio/temporal/issues/1336 is fixed
+	if _, ok := os.LookupEnv("WAIT_EXTRA_FOR_NAMESPACE"); ok {
+		time.Sleep(3 * time.Second)
 	}
 	return nil
 }

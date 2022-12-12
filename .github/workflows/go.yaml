@@ -80,6 +80,8 @@ jobs:
       # Running the tests in their own step keeps the logs readable
       - name: Run containerized SDK-features tests
         if: inputs.docker-image-artifact-name
+        env:
+          WAIT_EXTRA_FOR_NAMESPACE: true
         run: |
           docker-compose \
             -f /tmp/server-docker/docker-compose.yml \

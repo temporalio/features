@@ -17,6 +17,8 @@ services:
 
   sdk-features-tests-go:
     image: temporaliotest/sdk-features:go
+    environment:
+      - WAIT_EXTRA_FOR_NAMESPACE
     command: ["--server", "temporal-server:7233", "--namespace", "default"]
     depends_on:
       - temporal-server
@@ -25,6 +27,8 @@ services:
 
   sdk-features-tests-py:
     image: temporaliotest/sdk-features:py
+    environment:
+      - WAIT_EXTRA_FOR_NAMESPACE
     command: ["--server", "temporal-server:7233", "--namespace", "default"]
     depends_on:
       - temporal-server
@@ -33,6 +37,8 @@ services:
 
   sdk-features-tests-ts:
     image: temporaliotest/sdk-features:ts
+    environment:
+      - WAIT_EXTRA_FOR_NAMESPACE
     command: ["--server", "temporal-server:7233", "--namespace", "default"]
     depends_on:
       - temporal-server
@@ -41,6 +47,8 @@ services:
 
   sdk-features-tests-java:
     image: temporaliotest/sdk-features:java
+    environment:
+      - WAIT_EXTRA_FOR_NAMESPACE
     command: ["--server", "temporal-server:7233", "--namespace", "default"]
     depends_on:
       - temporal-server

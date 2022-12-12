@@ -9,7 +9,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"go.temporal.io/sdk/log"
+	"go.temporal.io/sdk/worker"
+	"go.temporal.io/sdk/workflow"
 
 	historypb "go.temporal.io/api/history/v1"
 	"go.temporal.io/sdk/client"
@@ -73,15 +76,51 @@ func WaitNamespaceAvailable(ctx context.Context, logger log.Logger,
 		return false, clientErr
 	})
 	if lastErr != nil {
-		return fmt.Errorf("failed connecting after 5s, last error: %w", lastErr)
+		return fmt.Errorf("failed connecting / describing namespace after 5s, last error: %w", lastErr)
 	}
-	// Because of annoying caching nonsense, sometimes the namespace might look available here but
-	// not for other operations. That should resolve quickly. Ideally we can remove this whole
-	// function when https://github.com/temporalio/temporal/issues/1336 is fixed
-	if _, ok := os.LookupEnv("WAIT_EXTRA_FOR_NAMESPACE"); ok {
-		time.Sleep(3 * time.Second)
+	if _, ok := os.LookupEnv("WAIT_EXTRA_FOR_NAMESPACE"); !ok {
+		return nil
 	}
+	logger.Info("Confirming namespace availability with workflow", "namespace", namespace)
+
+	// Now we need to really _really_ make sure that this namespace actually works by running a
+	// dummy workflow. Hopefully we can remove all this when
+	// https://github.com/temporalio/temporal/issues/1336 is fixed
+	var dummyReturn string
+	dummyTq := fmt.Sprintf("dummy-wf-tq-%s", uuid.New())
+	dummyWorker := worker.New(myClient, dummyTq, worker.Options{})
+	dummyWorker.RegisterWorkflow(dummyWorkflow)
+	err = dummyWorker.Start()
+	if err != nil {
+		return fmt.Errorf("failed to start namespace-ready-checking dummy worker: %w", err)
+	}
+	defer func() {
+		dummyWorker.Stop()
+	}()
+	lastErr = RetryFor(600, 1*time.Second, func() (bool, error) {
+		run, err := myClient.ExecuteWorkflow(ctx, client.StartWorkflowOptions{
+			ID:                       fmt.Sprintf("dummy-wf-%s", uuid.New()),
+			TaskQueue:                dummyTq,
+			WorkflowExecutionTimeout: 10 * time.Second,
+		}, dummyWorkflow)
+		if err != nil {
+			return false, err
+		}
+		err = run.Get(ctx, &dummyReturn)
+		if err != nil {
+			return false, err
+		}
+		return true, nil
+	})
+	if lastErr != nil {
+		return fmt.Errorf("failed to run namespace-ready-checking workflow: %w", lastErr)
+	}
+
 	return nil
+}
+
+func dummyWorkflow(_ workflow.Context) (string, error) {
+	return "hello", nil
 }
 
 // RetryFor retries some function until it passes or we run out of attempts. Wait interval between

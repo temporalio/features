@@ -286,3 +286,18 @@ export class Runner<W extends Workflow, A extends UntypedActivities> {
     return history;
   }
 }
+
+export async function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+export async function retry(fn: () => Promise<boolean>, retries = 3, duration = 1000): Promise<boolean> {
+  if (!retries) {
+    return false;
+  }
+  if (!(await fn())) {
+    await sleep(duration);
+    return retry(fn, retries - 1, duration);
+  }
+  return true;
+}

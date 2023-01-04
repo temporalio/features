@@ -57,8 +57,6 @@ export const feature = new Feature({
           });
         }, 10)
       );
-
-      return undefined;
     } finally {
       await handle.delete();
     }

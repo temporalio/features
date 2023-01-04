@@ -57,8 +57,6 @@ export const feature = new Feature({
       // Pause
       await handle.pause();
       await assertState(true, 'Paused via TypeScript SDK"');
-
-      return undefined;
     } finally {
       await handle.delete();
     }

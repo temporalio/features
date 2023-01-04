@@ -2,10 +2,7 @@ import { Feature, retry } from '@temporalio/harness';
 import { ScheduleClient, Connection } from '@temporalio/client';
 import * as assert from 'assert';
 import { randomUUID } from 'crypto';
-
-function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+import { setTimeout } from 'timers/promises'
 
 export async function workflow(arg: string): Promise<string> {
   return arg;
@@ -44,9 +41,9 @@ export const feature = new Feature({
       await handle.trigger();
       // We have to wait before triggering again. See
       // https://github.com/temporalio/temporal/issues/3614
-      await delay(2000);
+      await setTimeout(2000);
       await handle.trigger();
-      await delay(2000);
+      await setTimeout(2000);
 
       assert.ok(
         await retry(async function () {
@@ -55,7 +52,6 @@ export const feature = new Feature({
           });
         })
       );
-      return undefined;
     } finally {
       await handle.delete();
     }

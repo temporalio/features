@@ -2,7 +2,7 @@ import { Feature, retry } from '@temporalio/harness';
 import { ScheduleClient, Connection } from '@temporalio/client';
 import * as assert from 'assert';
 import { randomUUID } from 'crypto';
-import { setTimeout } from 'timers/promises'
+import { setTimeout } from 'timers/promises';
 
 export async function workflow(arg: string): Promise<string> {
   return arg;

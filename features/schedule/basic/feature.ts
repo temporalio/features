@@ -80,9 +80,7 @@ export const feature = new Feature({
       };
 
       // Wait for first completion
-      assert.ok(
-        await retry( () => waitCompletedWith('arg1'), 10)
-      );
+      assert.ok(await retry(() => waitCompletedWith('arg1'), 10));
 
       // Update
       await handle.update((x) => ({

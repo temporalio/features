@@ -73,7 +73,9 @@ jobs:
       - name: Install Protoc
         if: ${{ inputs.version-is-repo-ref }}
         uses: arduino/setup-protoc@v1
-
+        with:
+          version: '3.x'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - uses: Swatinem/rust-cache@v1
         if: ${{ inputs.version-is-repo-ref }}
         with:

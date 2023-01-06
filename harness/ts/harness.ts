@@ -13,7 +13,7 @@ import { Worker, WorkerOptions, NativeConnection, appendDefaultInterceptors } fr
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { ConnectionInjectorInterceptor } from './activity-interceptors';
-
+import { setTimeout } from 'timers/promises';
 export { getConnection, getWorkflowClient, Context } from './activity-interceptors';
 
 export interface FeatureOptions<W extends Workflow, A extends UntypedActivities> {
@@ -285,4 +285,14 @@ export class Runner<W extends Workflow, A extends UntypedActivities> {
     }
     return history;
   }
+}
+
+export async function retry(fn: () => Promise<boolean>, retries = 3, duration = 1000): Promise<boolean> {
+  for (let i = 0; i < retries; i++) {
+    if (await fn()) {
+      return true;
+    }
+    await setTimeout(duration);
+  }
+  return false;
 }

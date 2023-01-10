@@ -1,15 +1,16 @@
-## SDK Features
+## Temporal Features
 
-This repository contains snippets for many Temporal SDK features written in different Temporal SDK languages. This also
+This repository contains snippets for many Temporal features written in different Temporal SDK languages. This also
 contains a runner and language-specific harnesses to confirm feature behavior across versions.
 
-These SDK features serve several purposes:
+These features serve several purposes:
 
 - Ensure parity across SDKs by having same-feature snippets adjacent to one another
 - Confirm feature behavior across SDK versions
 - Confirm history across SDK versions
 - Document features in different SDKs
 - Easy-to-use environment for writing quick workflows in all languages/versions
+- Verify feature compatibility across different server setups
 
 ## Building
 
@@ -156,8 +157,9 @@ History generation should only be needed when first developing a feature or when
 incompatibility. Otherwise, history files should remain checked in and not regenerated.
 
 ## Usage within CI
+
 The repo defines GitHub workflows which are designed to allow running the SDK features suites
-against changes to an SDK, or against changes to server. The former is accomplished by syncing the 
+against changes to an SDK, or against changes to server. The former is accomplished by syncing the
 SDK repo and using it as a path-version when running the suites. The latter is accomplished by
 building the changes to server into a docker image, and using that docker image for the server
 when running the suites.

@@ -257,13 +257,13 @@ func (i *ImageBuilder) dockerBuild(ctx context.Context, config buildConfig) erro
 		imageTagsForPublish = append(imageTagsForPublish, tagVal)
 	}
 	// Write the most specific tag, so that the tests can use it.
-	err = writeGitHubEnv("SDK_FEAT_BUILT_IMAGE_TAG", imageTagsForPublish[0])
+	err = writeGitHubEnv("FEAT_BUILT_IMAGE_TAG", imageTagsForPublish[0])
 	if err != nil {
 		return fmt.Errorf("writing test image tag to github env failed: %s", err)
 	}
 	// Write all the produced image tags to an env var so that the GH workflow can later use it
 	// to publish them, iff the tests passed.
-	err = writeGitHubEnv("SDK_FEAT_BUILT_IMAGE_TAGS", strings.Join(imageTagsForPublish, ";"))
+	err = writeGitHubEnv("FEAT_BUILT_IMAGE_TAGS", strings.Join(imageTagsForPublish, ";"))
 	if err != nil {
 		return fmt.Errorf("writing image tags to github env failed: %s", err)
 	}

@@ -1,5 +1,5 @@
 {
-  "name": "sdk-features",
+  "name": "features",
   "private": true,
   "scripts": {
     "format": "prettier --write \"**/*.ts\"",

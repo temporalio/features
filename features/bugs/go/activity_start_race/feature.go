@@ -13,8 +13,8 @@ import (
 	"sync"
 	"time"
 
-	"go.temporal.io/sdk-features/harness/go/harness"
-	"go.temporal.io/sdk-features/harness/go/history"
+	"go.temporal.io/features/harness/go/harness"
+	"go.temporal.io/features/harness/go/history"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/workflow"
 	"google.golang.org/grpc"

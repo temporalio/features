@@ -10,7 +10,7 @@ import (
 	"github.com/gogo/protobuf/jsonpb"
 	"go.temporal.io/api/common/v1"
 	historyProto "go.temporal.io/api/history/v1"
-	"go.temporal.io/sdk-features/harness/go/harness"
+	"go.temporal.io/features/harness/go/harness"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"

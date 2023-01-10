@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "sdk-features"
+name = "features"
 version = "0.1.0"
 description = "Temporal SDK Features"
 license = "MIT"

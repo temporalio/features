@@ -11,7 +11,7 @@ import (
 	"strings"
 	"text/template"
 
-	"go.temporal.io/sdk-features/harness/go/cmd"
+	"go.temporal.io/features/harness/go/cmd"
 )
 
 type packageJSONDetails struct {
@@ -130,7 +130,7 @@ func (r *Runner) RunTypeScriptExternal(ctx context.Context, run *cmd.Run) error 
 	// If there is not a prepared directory, create a temp directory and prepare
 	if r.config.Dir == "" {
 		var err error
-		if r.config.Dir, err = os.MkdirTemp(r.rootDir, "sdk-features-typescript-test-"); err != nil {
+		if r.config.Dir, err = os.MkdirTemp(r.rootDir, "features-typescript-test-"); err != nil {
 			return fmt.Errorf("failed creating temp dir: %w", err)
 		}
 		r.createdTempDir = &r.config.Dir

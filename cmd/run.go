@@ -16,10 +16,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/pmezard/go-difflib/difflib"
 	"github.com/urfave/cli/v2"
-	"go.temporal.io/sdk-features/harness/go/cmd"
-	"go.temporal.io/sdk-features/harness/go/harness"
-	"go.temporal.io/sdk-features/harness/go/history"
-	"go.temporal.io/sdk-features/harness/go/temporalite"
+	"go.temporal.io/features/harness/go/cmd"
+	"go.temporal.io/features/harness/go/harness"
+	"go.temporal.io/features/harness/go/history"
+	"go.temporal.io/features/harness/go/temporalite"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/log"
 )
@@ -110,7 +110,7 @@ func (r *RunConfig) flags() []cli.Flag {
 type Runner struct {
 	log    log.Logger
 	config RunConfig
-	// Root of the sdk-features repo
+	// Root of the features repo
 	rootDir        string
 	createTime     time.Time
 	createdTempDir *string
@@ -157,7 +157,7 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 
 	// If the namespace is not set, set it ourselves
 	if r.config.Namespace == "" {
-		r.config.Namespace = "sdk-features-ns-" + uuid.NewString()
+		r.config.Namespace = "features-ns-" + uuid.NewString()
 	}
 
 	// Collect features to run
@@ -173,7 +173,7 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 	run := &cmd.Run{Features: make([]cmd.RunFeature, len(features))}
 	for i, feature := range features {
 		run.Features[i].Dir = feature.Dir
-		run.Features[i].TaskQueue = fmt.Sprintf("sdk-features-%v-%v", feature.Dir, uuid.NewString())
+		run.Features[i].TaskQueue = fmt.Sprintf("features-%v-%v", feature.Dir, uuid.NewString())
 		run.Features[i].Config = feature.Config
 	}
 

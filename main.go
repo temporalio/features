@@ -1,8 +1,8 @@
 package main
 
 import (
-	"go.temporal.io/sdk-features/cmd"
-	_ "go.temporal.io/sdk-features/features"
+	"go.temporal.io/features/cmd"
+	_ "go.temporal.io/features/features"
 )
 
 func main() {

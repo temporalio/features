@@ -10,7 +10,7 @@ import (
 	"runtime"
 	"strings"
 
-	"go.temporal.io/sdk-features/harness/go/cmd"
+	"go.temporal.io/features/harness/go/cmd"
 	"go.temporal.io/sdk/log"
 )
 
@@ -61,7 +61,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'io.temporal:sdk-features:0.1.0'
+    implementation 'io.temporal:features:0.1.0'
     ` + temporalSDKDependency + `
 }
 
@@ -91,7 +91,7 @@ func (r *Runner) RunJavaExternal(ctx context.Context, run *cmd.Run) error {
 	// Create temp dir if needed and prepare the project
 	if r.config.Dir == "" {
 		var err error
-		if r.config.Dir, err = os.MkdirTemp(r.rootDir, "sdk-features-java-test-"); err != nil {
+		if r.config.Dir, err = os.MkdirTemp(r.rootDir, "features-java-test-"); err != nil {
 			return fmt.Errorf("failed creating temp dir: %w", err)
 		}
 		r.createdTempDir = &r.config.Dir

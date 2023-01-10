@@ -46,7 +46,7 @@ export const feature = new Feature({
 
       // Test listing
       // https://github.com/temporalio/sdk-typescript/issues/1013
-      // Advanced visibility is eventually consistent. See https://github.com/temporalio/sdk-features/issues/182
+      // Advanced visibility is eventually consistent. See https://github.com/temporalio/features/issues/182
       // assert.ok(
       //   await retry(async function () {
       //     for await (const schedule of client.list()) {

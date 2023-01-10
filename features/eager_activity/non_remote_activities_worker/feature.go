@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"go.temporal.io/api/enums/v1"
-	"go.temporal.io/sdk-features/harness/go/harness"
+	"go.temporal.io/features/harness/go/harness"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/worker"
 	"go.temporal.io/sdk/workflow"

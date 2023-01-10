@@ -3,7 +3,7 @@
 package metrics
 
 import (
-	"go.temporal.io/sdk-features/harness/go/harness"
+	"go.temporal.io/features/harness/go/harness"
 )
 
 var Feature = harness.Feature{

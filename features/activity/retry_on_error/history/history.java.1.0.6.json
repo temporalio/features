@@ -11,7 +11,7 @@
             "name": "SimpleWorkflow"
           },
           "taskQueue": {
-            "name": "sdk-features-activity/retry_on_error-e61e3c9a-61a8-4713-ad90-1b3d68351cc0",
+            "name": "features-activity/retry_on_error-e61e3c9a-61a8-4713-ad90-1b3d68351cc0",
             "kind": "Normal"
           },
           "workflowExecutionTimeout": "60s",
@@ -32,7 +32,7 @@
         "taskId": "1048661",
         "workflowTaskScheduledEventAttributes": {
           "taskQueue": {
-            "name": "sdk-features-activity/retry_on_error-e61e3c9a-61a8-4713-ad90-1b3d68351cc0",
+            "name": "features-activity/retry_on_error-e61e3c9a-61a8-4713-ad90-1b3d68351cc0",
             "kind": "Normal"
           },
           "startToCloseTimeout": "10s",
@@ -72,7 +72,7 @@
             "name": "AlwaysFail"
           },
           "taskQueue": {
-            "name": "sdk-features-activity/retry_on_error-e61e3c9a-61a8-4713-ad90-1b3d68351cc0",
+            "name": "features-activity/retry_on_error-e61e3c9a-61a8-4713-ad90-1b3d68351cc0",
             "kind": "Normal"
           },
           "header": {},

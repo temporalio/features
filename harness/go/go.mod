@@ -1,4 +1,4 @@
-module go.temporal.io/sdk-features/harness/go
+module go.temporal.io/features/harness/go
 
 go 1.18
 

@@ -26,7 +26,7 @@ jobs:
         with:
           go-version: '^1.17'
 
-      - run: go build
+      - run: go build -o temporal-features
 
   build-ts:
     strategy:
@@ -83,32 +83,32 @@ jobs:
     with:
       version: 1.5.2
       version-is-repo-ref: false
-      sdk-features-repo-ref: ${{ github.head_ref }}
-      sdk-features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
+      features-repo-ref: ${{ github.head_ref }}
+      features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
 
   feature-tests-go:
     uses: ./.github/workflows/go.yaml
     with:
       version: v1.19.0
       version-is-repo-ref: false
-      sdk-features-repo-ref: ${{ github.head_ref }}
-      sdk-features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
+      features-repo-ref: ${{ github.head_ref }}
+      features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
 
   feature-tests-python:
     uses: ./.github/workflows/python.yaml
     with:
       version: 1.0.0
       version-is-repo-ref: false
-      sdk-features-repo-ref: ${{ github.head_ref }}
-      sdk-features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
+      features-repo-ref: ${{ github.head_ref }}
+      features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
 
   feature-tests-java:
     uses: ./.github/workflows/java.yaml
     with:
       version: v1.17.0
       version-is-repo-ref: false
-      sdk-features-repo-ref: ${{ github.head_ref }}
-      sdk-features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
+      features-repo-ref: ${{ github.head_ref }}
+      features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
 
   build-docker-images:
     uses: ./.github/workflows/all-docker-images.yaml

@@ -70,7 +70,7 @@ jobs:
 
       - name: Test with Cloud
         # Only supported in non-fork runs
-        if: ${{ github.event.pull_request.head.repo.full_name == '' || github.event.pull_request.head.repo.full_name == 'temporalio/sdk-features' }}
+        if: ${{ github.event.pull_request.head.repo.full_name == '' || github.event.pull_request.head.repo.full_name == 'temporalio/features' }}
         run: |
           docker run --rm -i -v /tmp/temporal-certs:/certs ${{ env.SDK_FEAT_BUILT_IMAGE_TAG }} \
           --server $TEMPORAL_CLOUD_ADDRESS \

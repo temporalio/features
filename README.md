@@ -16,7 +16,9 @@ These features serve several purposes:
 
 With latest [Go](https://golang.org/) installed, run:
 
-    go build
+    ```
+    go build -o temporal-features # or temporal-features.exec on Windows
+    ```
 
 ## Running
 
@@ -31,9 +33,9 @@ Prerequisites:
 
 Command:
 
-    features run --lang LANG [--version VERSION] [PATTERN...]
+    temporal-features run --lang LANG [--version VERSION] [PATTERN...]
 
-Note, `go run .` can be used in place of `go build` + `features` to save on the build step.
+Note, `go run .` can be used in place of `go build` + `temporal-features` to save on the build step.
 
 `LANG` can be `go`, `java`, `ts`, or `py`. `VERSION` is per SDK and if left off, uses the latest version set for the
 language in this repository.
@@ -42,7 +44,7 @@ language in this repository.
 [Go path match rules](https://pkg.go.dev/path#Match) which notably does not include recursive depth matching. If
 `PATTERN` arguments are not present, the default is to run all features.
 
-Several other options are available, some of which are described below. Run `features run --help` to see all
+Several other options are available, some of which are described below. Run `temporal-features run --help` to see all
 options.
 
 ### Preparing
@@ -53,7 +55,7 @@ in a directory. Then `run` can use the `--prepared-dir` to reference that direct
 
 The command to prepare is:
 
-    features prepare --lang LANG --version VERSION --dir DIR
+    temporal-features prepare --lang LANG --version VERSION --dir DIR
 
 The version is required and the directory is a simple string name of a not-yet-existing directory to be created directly
 beneath this SDK features directory. That same directory value can then be provided as `--prepared-dir` to `run`. When
@@ -66,13 +68,13 @@ The CLI supports building docker images from [prepared](#preparing) features.
 There are 2 types of image builds supported, by SDK version or by git repository ref as shown below:
 
 ```
-./features build-image --lang go --repo-ref master
+./temporal-features build-image --lang go --repo-ref master
 ```
 
 The built image will be tagged with `features:go-master`
 
 ```
-./features build-image --lang go --version v1.13.1
+./temporal-features build-image --lang go --version v1.13.1
 ```
 
 The built image will be tagged with `features:go-1.13.1`
@@ -171,9 +173,6 @@ but is also triggered by default on each push to main.
 ## TODO
 
 - Add support for replaying testing of all versions _inside_ each SDKs harness as part of the run
-- Add TypeScript support
-  - The main support is present, but there are outstanding questions on what constitutes a "version" since really
-    TypeScript has many versions
 - Add many more feature workflows
 - Document how to use this framework to easily write and test features even when not committing
 - Log swallowing and concurrent execution
@@ -181,4 +180,3 @@ but is also triggered by default on each push to main.
 - Investigate support for changing server versions
 - CI support
   - Support using a commit hash and alternative git location for an SDK to run against
-  - Decide whether the matrix of different SDK versions and such is really part of this repo or part of CI tooling

@@ -39,9 +39,9 @@ func (c *PublishImageConfig) flags() []cli.Flag {
 }
 
 func publishImages(config PublishImageConfig) error {
-	tagsFromEnv := strings.Split(os.Getenv("FEAT_BUILT_IMAGE_TAGS"), ";")
+	tagsFromEnv := strings.Split(os.Getenv("FEATURES_BUILT_IMAGE_TAGS"), ";")
 	if len(tagsFromEnv) == 0 {
-		return fmt.Errorf("no image tags found in FEAT_BUILT_IMAGE_TAGS")
+		return fmt.Errorf("no image tags found in FEATURES_BUILT_IMAGE_TAGS")
 	}
 
 	var pushedTags []string

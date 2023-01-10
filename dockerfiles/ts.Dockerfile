@@ -30,7 +30,7 @@ COPY cmd ./cmd
 COPY go.mod go.sum main.go ./
 
 # Build the CLI
-RUN CGO_ENABLED=0 /usr/local/go/bin/go build
+RUN CGO_ENABLED=0 /usr/local/go/bin/go build -o temporal-features
 
 ARG SDK_VERSION
 ARG SDK_REPO_URL
@@ -41,12 +41,12 @@ ARG REPO_DIR_OR_PLACEHOLDER
 COPY ./${REPO_DIR_OR_PLACEHOLDER} ./${REPO_DIR_OR_PLACEHOLDER}
 
 # Prepare the feature for running
-RUN CGO_ENABLED=0 ./features prepare --lang ts --dir prepared --version "$SDK_VERSION"
+RUN CGO_ENABLED=0 ./temporal-features prepare --lang ts --dir prepared --version "$SDK_VERSION"
 
 # Copy the CLI and prepared feature to a distroless "run" container
 FROM gcr.io/distroless/nodejs:16
 
-COPY --from=build /app/features /app/features
+COPY --from=build /app/temporal-features /app/temporal-features
 COPY --from=build /app/features /app/features
 COPY --from=build /app/prepared /app/prepared
 COPY --from=build /app/${REPO_DIR_OR_PLACEHOLDER} /app/${REPO_DIR_OR_PLACEHOLDER}
@@ -54,4 +54,4 @@ COPY --from=build /app/${REPO_DIR_OR_PLACEHOLDER} /app/${REPO_DIR_OR_PLACEHOLDER
 # Node is installed here 👇 in distroless
 ENV PATH="/nodejs/bin"
 # Use entrypoint instead of command to "bake" the default command options
-ENTRYPOINT ["/app/features", "run", "--lang", "ts", "--prepared-dir", "prepared"]
+ENTRYPOINT ["/app/temporal-features", "run", "--lang", "ts", "--prepared-dir", "prepared"]

@@ -9,7 +9,7 @@ import (
 	"runtime"
 	"strings"
 
-	"go.temporal.io/sdk-features/harness/go/cmd"
+	"go.temporal.io/features/harness/go/cmd"
 )
 
 // PrepareGoExternal prepares a Go run without running it. The preparer config
@@ -19,15 +19,15 @@ func (p *Preparer) PrepareGoExternal(ctx context.Context) error {
 	p.log.Info("Preparing Go project", "Path", p.config.Dir)
 
 	// Create go.mod
-	goMod := `module go.temporal.io/sdk-features-test
+	goMod := `module go.temporal.io/features-test
 
 	go 1.17
 	
-	require go.temporal.io/sdk-features/features v1.0.0
-	require go.temporal.io/sdk-features/harness/go v1.0.0
+	require go.temporal.io/features/features v1.0.0
+	require go.temporal.io/features/harness/go v1.0.0
 	
-	replace go.temporal.io/sdk-features/features => ../features
-	replace go.temporal.io/sdk-features/harness/go => ../harness/go
+	replace go.temporal.io/features/features => ../features
+	replace go.temporal.io/features/harness/go => ../harness/go
 	
 	replace github.com/cactus/go-statsd-client => github.com/cactus/go-statsd-client v3.2.1+incompatible`
 	// If a version is specified, overwrite the SDK to use that
@@ -55,8 +55,8 @@ func (p *Preparer) PrepareGoExternal(ctx context.Context) error {
 	mainGo := `package main
 
 import (
-	"go.temporal.io/sdk-features/harness/go/cmd"
-	_ "go.temporal.io/sdk-features/features"
+	"go.temporal.io/features/harness/go/cmd"
+	_ "go.temporal.io/features/features"
 )
 
 func main() {
@@ -75,7 +75,7 @@ func main() {
 	}
 
 	// Build it
-	exe := "sdk-features-test"
+	exe := "features-test"
 	if runtime.GOOS == "windows" {
 		exe += ".exe"
 	}
@@ -102,7 +102,7 @@ func (r *Runner) RunGoExternal(ctx context.Context, run *cmd.Run) error {
 	// If there is not a prepared directory, create a temp directory and prepare
 	if r.config.Dir == "" {
 		var err error
-		if r.config.Dir, err = os.MkdirTemp(r.rootDir, "sdk-features-go-test-"); err != nil {
+		if r.config.Dir, err = os.MkdirTemp(r.rootDir, "features-go-test-"); err != nil {
 			return fmt.Errorf("failed creating temp dir: %w", err)
 		}
 		r.createdTempDir = &r.config.Dir
@@ -114,7 +114,7 @@ func (r *Runner) RunGoExternal(ctx context.Context, run *cmd.Run) error {
 	}
 
 	// Run it with args and features appended.
-	exe := "sdk-features-test"
+	exe := "features-test"
 	if runtime.GOOS == "windows" {
 		exe += ".exe"
 	}

@@ -30,7 +30,7 @@ COPY cmd ./cmd
 COPY go.mod go.sum main.go ./
 
 # Build the CLI
-RUN CGO_ENABLED=0 /usr/local/go/bin/go build
+RUN CGO_ENABLED=0 /usr/local/go/bin/go build -o temporal-features
 
 # Copy poetry config
 COPY poetry.lock pyproject.toml ./
@@ -45,7 +45,7 @@ COPY ./${REPO_DIR_OR_PLACEHOLDER} ./${REPO_DIR_OR_PLACEHOLDER}
 
 # Prepare the feature for running. We need to use in-project venv so it is copied into smaller img.
 ENV POETRY_VIRTUALENVS_IN_PROJECT=true
-RUN CGO_ENABLED=0 ./sdk-features prepare --lang py --dir prepared --version "$SDK_VERSION"
+RUN CGO_ENABLED=0 ./temporal-features prepare --lang py --dir prepared --version "$SDK_VERSION"
 
 # Copy the CLI and prepared feature to a smaller container for running
 FROM python:3.11-slim-bullseye
@@ -53,7 +53,7 @@ FROM python:3.11-slim-bullseye
 # Poetry needed for running python tests
 RUN pip install --no-cache-dir "poetry==1.2.2"
 
-COPY --from=build /app/sdk-features /app/sdk-features
+COPY --from=build /app/temporal-features /app/temporal-features
 COPY --from=build /app/features /app/features
 COPY --from=build /app/prepared /app/prepared
 COPY --from=build /app/harness/python /app/harness/python
@@ -62,4 +62,4 @@ COPY --from=build /app/poetry.lock /app/pyproject.toml /app/
 
 # Use entrypoint instead of command to "bake" the default command options
 ENV POETRY_VIRTUALENVS_IN_PROJECT=true
-ENTRYPOINT ["/app/sdk-features", "run", "--lang", "py", "--prepared-dir", "prepared"]
+ENTRYPOINT ["/app/temporal-features", "run", "--lang", "py", "--prepared-dir", "prepared"]

@@ -19,7 +19,7 @@ import static picocli.CommandLine.*;
 
 import javax.net.ssl.SSLException;
 
-@Command(name = "sdk-features", description = "Runs Java features")
+@Command(name = "features", description = "Runs Java features")
 public class Main implements Runnable {
 
   private static final Logger log = LoggerFactory.getLogger(Main.class);

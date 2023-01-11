@@ -11,7 +11,7 @@
             "name": "Workflow"
           },
           "taskQueue": {
-            "name": "sdk-features-telemetry/tally_metrics-be5d3a6d-a38b-4a18-8d59-ebf75c86999a",
+            "name": "features-telemetry/tally_metrics-be5d3a6d-a38b-4a18-8d59-ebf75c86999a",
             "kind": "Normal"
           },
           "workflowExecutionTimeout": "60s",
@@ -32,7 +32,7 @@
         "taskId": "8388835",
         "workflowTaskScheduledEventAttributes": {
           "taskQueue": {
-            "name": "sdk-features-telemetry/tally_metrics-be5d3a6d-a38b-4a18-8d59-ebf75c86999a",
+            "name": "features-telemetry/tally_metrics-be5d3a6d-a38b-4a18-8d59-ebf75c86999a",
             "kind": "Normal"
           },
           "startToCloseTimeout": "10s",
@@ -73,7 +73,7 @@
             "name": "CommaJoin"
           },
           "taskQueue": {
-            "name": "sdk-features-telemetry/tally_metrics-be5d3a6d-a38b-4a18-8d59-ebf75c86999a",
+            "name": "features-telemetry/tally_metrics-be5d3a6d-a38b-4a18-8d59-ebf75c86999a",
             "kind": "Normal"
           },
           "header": {},
@@ -180,7 +180,7 @@
             "name": "CommaJoin"
           },
           "taskQueue": {
-            "name": "sdk-features-telemetry/tally_metrics-be5d3a6d-a38b-4a18-8d59-ebf75c86999a",
+            "name": "features-telemetry/tally_metrics-be5d3a6d-a38b-4a18-8d59-ebf75c86999a",
             "kind": "Normal"
           },
           "header": {},

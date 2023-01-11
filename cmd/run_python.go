@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"go.temporal.io/sdk-features/harness/go/cmd"
+	"go.temporal.io/features/harness/go/cmd"
 )
 
 // PreparePythonExternal prepares a Python run without running it. The preparer
@@ -41,7 +41,7 @@ func (p *Preparer) PreparePythonExternal(ctx context.Context) error {
 	}
 	pyProjectTOML := `
 [tool.poetry]
-name = "sdk-features-python-test-` + filepath.Base(p.config.Dir) + `"
+name = "features-python-test-` + filepath.Base(p.config.Dir) + `"
 version = "0.1.0"
 description = "Temporal SDK Features Python Test"
 authors = ["Temporal Technologies Inc <sdk@temporal.io>"]
@@ -49,7 +49,7 @@ authors = ["Temporal Technologies Inc <sdk@temporal.io>"]
 [tool.poetry.dependencies]
 python = "^3.7"
 temporalio = ` + versionStr + `
-sdk-features = { path = "../" }
+features = { path = "../" }
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -75,7 +75,7 @@ func (r *Runner) RunPythonExternal(ctx context.Context, run *cmd.Run) error {
 	if r.config.Version != "" && r.config.Dir == "" {
 		// Create a temp directory and prepare
 		var err error
-		if r.config.Dir, err = os.MkdirTemp(r.rootDir, "sdk-features-python-test-"); err != nil {
+		if r.config.Dir, err = os.MkdirTemp(r.rootDir, "features-python-test-"); err != nil {
 			return fmt.Errorf("failed creating temp dir: %w", err)
 		}
 		r.createdTempDir = &r.config.Dir

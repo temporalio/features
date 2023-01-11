@@ -1,21 +1,24 @@
-## SDK Features
+## Temporal Features
 
-This repository contains snippets for many Temporal SDK features written in different Temporal SDK languages. This also
+This repository contains snippets for many Temporal features written in different Temporal SDK languages. This also
 contains a runner and language-specific harnesses to confirm feature behavior across versions.
 
-These SDK features serve several purposes:
+These features serve several purposes:
 
 - Ensure parity across SDKs by having same-feature snippets adjacent to one another
 - Confirm feature behavior across SDK versions
 - Confirm history across SDK versions
 - Document features in different SDKs
 - Easy-to-use environment for writing quick workflows in all languages/versions
+- Verify feature compatibility across different server setups
 
 ## Building
 
 With latest [Go](https://golang.org/) installed, run:
 
-    go build
+    ```
+    go build -o temporal-features # or temporal-features.exec on Windows
+    ```
 
 ## Running
 
@@ -30,9 +33,9 @@ Prerequisites:
 
 Command:
 
-    sdk-features run --lang LANG [--version VERSION] [PATTERN...]
+    temporal-features run --lang LANG [--version VERSION] [PATTERN...]
 
-Note, `go run .` can be used in place of `go build` + `sdk-features` to save on the build step.
+Note, `go run .` can be used in place of `go build` + `temporal-features` to save on the build step.
 
 `LANG` can be `go`, `java`, `ts`, or `py`. `VERSION` is per SDK and if left off, uses the latest version set for the
 language in this repository.
@@ -41,7 +44,7 @@ language in this repository.
 [Go path match rules](https://pkg.go.dev/path#Match) which notably does not include recursive depth matching. If
 `PATTERN` arguments are not present, the default is to run all features.
 
-Several other options are available, some of which are described below. Run `sdk-features run --help` to see all
+Several other options are available, some of which are described below. Run `temporal-features run --help` to see all
 options.
 
 ### Preparing
@@ -52,7 +55,7 @@ in a directory. Then `run` can use the `--prepared-dir` to reference that direct
 
 The command to prepare is:
 
-    sdk-features prepare --lang LANG --version VERSION --dir DIR
+    temporal-features prepare --lang LANG --version VERSION --dir DIR
 
 The version is required and the directory is a simple string name of a not-yet-existing directory to be created directly
 beneath this SDK features directory. That same directory value can then be provided as `--prepared-dir` to `run`. When
@@ -65,16 +68,16 @@ The CLI supports building docker images from [prepared](#preparing) features.
 There are 2 types of image builds supported, by SDK version or by git repository ref as shown below:
 
 ```
-./sdk-features build-image --lang go --repo-ref master
+./temporal-features build-image --lang go --repo-ref master
 ```
 
-The built image will be tagged with `sdk-features:go-master`
+The built image will be tagged with `features:go-master`
 
 ```
-./sdk-features build-image --lang go --version v1.13.1
+./temporal-features build-image --lang go --version v1.13.1
 ```
 
-The built image will be tagged with `sdk-features:go-1.13.1`
+The built image will be tagged with `features:go-1.13.1`
 
 - To tag as latest minor, pass `--semver-latest minor`, this will add the `go-1.13` tag.
 - To tag as latest major, pass `--semver-latest major`, this will add the `go-1.13`, `go-1` and `go` tags.
@@ -156,22 +159,20 @@ History generation should only be needed when first developing a feature or when
 incompatibility. Otherwise, history files should remain checked in and not regenerated.
 
 ## Usage within CI
+
 The repo defines GitHub workflows which are designed to allow running the SDK features suites
-against changes to an SDK, or against changes to server. The former is accomplished by syncing the 
+against changes to an SDK, or against changes to server. The former is accomplished by syncing the
 SDK repo and using it as a path-version when running the suites. The latter is accomplished by
 building the changes to server into a docker image, and using that docker image for the server
 when running the suites.
 
-Publishing docker images of the sdk-features runner/suites is also supported. It may be run
-[manually](https://github.com/temporalio/sdk-features/actions/workflows/all-docker-images.yaml),
+Publishing docker images of the features runner/suites is also supported. It may be run
+[manually](https://github.com/temporalio/features/actions/workflows/all-docker-images.yaml),
 but is also triggered by default on each push to main.
 
 ## TODO
 
 - Add support for replaying testing of all versions _inside_ each SDKs harness as part of the run
-- Add TypeScript support
-  - The main support is present, but there are outstanding questions on what constitutes a "version" since really
-    TypeScript has many versions
 - Add many more feature workflows
 - Document how to use this framework to easily write and test features even when not committing
 - Log swallowing and concurrent execution
@@ -179,4 +180,3 @@ but is also triggered by default on each push to main.
 - Investigate support for changing server versions
 - CI support
   - Support using a commit hash and alternative git location for an SDK to run against
-  - Decide whether the matrix of different SDK versions and such is really part of this repo or part of CI tooling

@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/urfave/cli/v2"
-	"go.temporal.io/sdk-features/harness/go/harness"
+	"go.temporal.io/features/harness/go/harness"
 	"go.temporal.io/sdk/log"
 	"golang.org/x/mod/semver"
 )
@@ -29,7 +29,7 @@ func buildImageCmd() *cli.Command {
 	}
 }
 
-const DEFAULT_IMAGE_NAME = "sdk-features"
+const DEFAULT_IMAGE_NAME = "features"
 
 // ImageBuildConfig is configuration for NewImageBuilder.
 type ImageBuildConfig struct {
@@ -66,7 +66,7 @@ func (c *ImageBuildConfig) flags() []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name: "repo-ref",
-			Usage: "Git reference to use (mutually exclusive with version), if set, repo will be cloned to a sub directory of sdk-features." +
+			Usage: "Git reference to use (mutually exclusive with version), if set, repo will be cloned to a sub directory of features." +
 				"Used as an image tag.",
 			Required:    false,
 			Destination: &c.RepoRef,
@@ -257,21 +257,21 @@ func (i *ImageBuilder) dockerBuild(ctx context.Context, config buildConfig) erro
 		imageTagsForPublish = append(imageTagsForPublish, tagVal)
 	}
 	// Write the most specific tag, so that the tests can use it.
-	err = writeGitHubEnv("SDK_FEAT_BUILT_IMAGE_TAG", imageTagsForPublish[0])
+	err = writeGitHubEnv("FEATURES_BUILT_IMAGE_TAG", imageTagsForPublish[0])
 	if err != nil {
 		return fmt.Errorf("writing test image tag to github env failed: %s", err)
 	}
 	// Write all the produced image tags to an env var so that the GH workflow can later use it
 	// to publish them, iff the tests passed.
-	err = writeGitHubEnv("SDK_FEAT_BUILT_IMAGE_TAGS", strings.Join(imageTagsForPublish, ";"))
+	err = writeGitHubEnv("FEATURES_BUILT_IMAGE_TAGS", strings.Join(imageTagsForPublish, ";"))
 	if err != nil {
 		return fmt.Errorf("writing image tags to github env failed: %s", err)
 	}
 
 	// TODO(bergundy): Would be nicer to print plain text instead of markdown but this good enough for now
 	usage, err := (&cli.App{
-		Name:  "sdk-features",
-		Usage: "run a test or set of sdk-features tests",
+		Name:  "features",
+		Usage: "run a test or set of features tests",
 		Flags: (&RunConfig{}).dockerRunFlags(),
 	}).ToMarkdown()
 	if err != nil {
@@ -279,7 +279,7 @@ func (i *ImageBuilder) dockerBuild(ctx context.Context, config buildConfig) erro
 	}
 	repoURL := os.Getenv("REPO_URL")
 	if repoURL == "" {
-		repoURL = "https://github.com/temporalio/sdk-features"
+		repoURL = "https://github.com/temporalio/features"
 	}
 
 	defaultLabels := map[string]string{

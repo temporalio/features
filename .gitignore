@@ -1,5 +1,5 @@
 # No exe or temp dir
-/sdk-features*
+/temporal-features*
 /cloned-repo-*
 
 # Build Java stuff

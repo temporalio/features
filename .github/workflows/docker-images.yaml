@@ -56,7 +56,7 @@ jobs:
           TEMPORAL_CLIENT_CERT: ${{ secrets.TEMPORAL_CLIENT_CERT }}
           TEMPORAL_CLIENT_KEY: ${{ secrets.TEMPORAL_CLIENT_KEY }}
 
-      # This step will set the SDK_FEAT_BUILT_IMAGE_TAG env key
+      # This step will set the FEATURES_BUILT_IMAGE_TAG env key
       - name: Build docker image
         run: |
           go run . build-image --lang ${{ inputs.lang }} \
@@ -66,13 +66,13 @@ jobs:
           ${{ inputs.semver-latest != 'none' && format('--semver-latest {0}', inputs.semver-latest) || '' }}
 
       - name: Test with Temporalite
-        run: docker run --rm -i -v /tmp/temporal-certs:/certs ${{ env.SDK_FEAT_BUILT_IMAGE_TAG }}
+        run: docker run --rm -i -v /tmp/temporal-certs:/certs ${{ env.FEATURES_BUILT_IMAGE_TAG }}
 
       - name: Test with Cloud
         # Only supported in non-fork runs
-        if: ${{ github.event.pull_request.head.repo.full_name == '' || github.event.pull_request.head.repo.full_name == 'temporalio/sdk-features' }}
+        if: ${{ github.event.pull_request.head.repo.full_name == '' || github.event.pull_request.head.repo.full_name == 'temporalio/features' }}
         run: |
-          docker run --rm -i -v /tmp/temporal-certs:/certs ${{ env.SDK_FEAT_BUILT_IMAGE_TAG }} \
+          docker run --rm -i -v /tmp/temporal-certs:/certs ${{ env.FEATURES_BUILT_IMAGE_TAG }} \
           --server $TEMPORAL_CLOUD_ADDRESS \
           --namespace $TEMPORAL_CLOUD_NAMESPACE \
           --client-cert-path /certs/client.pem \
@@ -88,3 +88,4 @@ jobs:
       - name: Push image to DockerHub
         if: inputs.do-push
         run: go run . push-images
+

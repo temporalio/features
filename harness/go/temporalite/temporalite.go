@@ -8,7 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"go.temporal.io/sdk-features/harness/go/harness"
+	"go.temporal.io/features/harness/go/harness"
 	"go.temporal.io/sdk/log"
 	"io"
 	"net/http"
@@ -118,7 +118,7 @@ func (t *Temporalite) Stop() error {
 
 func (o *Options) loadExePath() (string, error) {
 	// Build path based on version and check if already present
-	exePath := filepath.Join(os.TempDir(), "sdk-features-temporalite-"+o.Version)
+	exePath := filepath.Join(os.TempDir(), "features-temporalite-"+o.Version)
 	if runtime.GOOS == "windows" {
 		exePath += ".exe"
 	}

@@ -2,7 +2,7 @@ package unexpected_return_type
 
 import (
 	"context"
-	"go.temporal.io/sdk-features/harness/go/harness"
+	"go.temporal.io/features/harness/go/harness"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/workflow"
 )

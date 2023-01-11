@@ -40,6 +40,10 @@ on:
         description: If set, push the built images to Docker Hub.
         type: boolean
         default: false
+      skip-cloud:
+        description: If set, skip running cloud tests.
+        type: boolean
+        default: false
 
 
 jobs:

@@ -30,6 +30,9 @@ export const feature = new Feature({
         workflowType: workflow,
         taskQueue: runner.options.taskQueue,
       },
+      state: {
+        paused: true,
+      },
     });
 
     try {
@@ -53,7 +56,7 @@ export const feature = new Feature({
       assert.ok(
         await retry(async function () {
           return handle.describe().then((s) => {
-            return s.info.numActionsTaken == 4;
+            return s.info.numActionsTaken == 4 && s.info.runningActions.length == 0;
           });
         }, 10)
       );

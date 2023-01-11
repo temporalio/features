@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./temporal-features
+        working-directory: ./features
     steps:
       - name: Print git info
         run: 'echo head_ref: ${{ github.head_ref }}, ref: ${{ github.ref }}, go sdk version: ${{ inputs.version }}'
@@ -49,7 +49,7 @@ jobs:
       - name: Checkout SDK features repo
         uses: actions/checkout@v3
         with:
-          path: temporal-features
+          path: features
           repository: ${{ inputs.features-repo-path }}
           ref: ${{ inputs.features-repo-ref }}
       - name: Checkout Go SDK repo

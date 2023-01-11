@@ -148,12 +148,17 @@ func featureDirFromFuncPointer(v interface{}) (relDir, absDir string, err error)
 	absDir, _ = runtime.FuncForPC(val.Pointer()).FileLine(val.Pointer())
 	absDir = filepath.Dir(absDir)
 	slashDir := filepath.ToSlash(absDir)
-	// Split and take after first "features" dir
+	// Split and take after "features/.../features" dir.
+	// In CI we end up with 3 directory levels names features, locally this would normally be only 2.
 	featuresIndex := -1
 	dirPieces := strings.Split(slashDir, "/")
 	for i, dirPiece := range dirPieces {
 		if dirPiece == "features" {
-			featuresIndex = i
+			for j := i; j < len(dirPieces); j++ {
+				if dirPieces[j] == "features" {
+					featuresIndex = j
+				}
+			}
 			break
 		}
 	}

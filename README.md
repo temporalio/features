@@ -16,9 +16,9 @@ These features serve several purposes:
 
 With latest [Go](https://golang.org/) installed, run:
 
-    ```
-    go build -o temporal-features # or temporal-features.exec on Windows
-    ```
+```
+go build -o temporal-features # or temporal-features.exec on Windows
+```
 
 ## Running
 

@@ -20,6 +20,10 @@ on:
         description: If set, push the built images to Docker Hub.
         type: boolean
         default: false
+      skip-cloud:
+        description: If set, skip running cloud tests.
+        type: boolean
+        default: false
   # To support manual triggering:
   # AFAICT there is no way to avoid repeating all these inputs over and over w/o resorting to templating
   workflow_dispatch:
@@ -56,6 +60,7 @@ jobs:
       sdk-version: ${{ inputs.go-ver }}
       semver-latest: major
       do-push: ${{ inputs.do-push }}
+      skip-cloud: ${{ inputs.skip-cloud }}
 
   build-ts-docker-images:
     if: inputs.ts-ver
@@ -66,6 +71,7 @@ jobs:
       sdk-version: ${{ inputs.ts-ver }}
       semver-latest: major
       do-push: ${{ inputs.do-push }}
+      skip-cloud: ${{ inputs.skip-cloud }}
 
   build-java-docker-images:
     if: inputs.java-ver
@@ -76,6 +82,7 @@ jobs:
       sdk-version: ${{ inputs.java-ver }}
       semver-latest: major
       do-push: ${{ inputs.do-push }}
+      skip-cloud: ${{ inputs.skip-cloud }}
 
   build-python-docker-images:
     if: inputs.py-ver
@@ -86,3 +93,4 @@ jobs:
       sdk-version: ${{ inputs.py-ver }}
       semver-latest: major
       do-push: ${{ inputs.do-push }}
+      skip-cloud: ${{ inputs.skip-cloud }}

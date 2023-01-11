@@ -30,6 +30,9 @@ export const feature = new Feature({
         workflowType: workflow,
         taskQueue: runner.options.taskQueue,
       },
+      state: {
+        paused: true,
+      },
     });
 
     try {

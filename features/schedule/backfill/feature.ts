@@ -28,6 +28,7 @@ export const feature = new Feature({
       action: {
         type: 'startWorkflow',
         workflowType: workflow,
+        args: ['arg1'],
         taskQueue: runner.options.taskQueue,
       },
       state: {

@@ -11,6 +11,10 @@ import (
 	"go.temporal.io/features/features/data_converter/empty"
 	"go.temporal.io/features/features/data_converter/failure"
 	"go.temporal.io/features/features/eager_activity/non_remote_activities_worker"
+	"go.temporal.io/features/features/eager_workflow/retry_request_after_timeout"
+	"go.temporal.io/features/features/eager_workflow/retry_request_immediately"
+	"go.temporal.io/features/features/eager_workflow/retry_task_after_timeout"
+	"go.temporal.io/features/features/eager_workflow/start_inline_task"
 	"go.temporal.io/features/features/query/successful_query"
 	"go.temporal.io/features/features/query/timeout_due_to_no_active_workers"
 	"go.temporal.io/features/features/query/unexpected_arguments"
@@ -44,7 +48,11 @@ func init() {
 		pause.Feature,
 		result.Feature,
 		retry_on_error.Feature,
+		retry_request_after_timeout.Feature,
+		retry_request_immediately.Feature,
+		retry_task_after_timeout.Feature,
 		failure.Feature,
+		start_inline_task.Feature,
 		successful_query.Feature,
 		timeout_due_to_no_active_workers.Feature,
 		trigger.Feature,

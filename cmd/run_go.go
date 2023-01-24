@@ -95,7 +95,7 @@ func main() {
 
 // RunGoExternal runs the given run details in an external Go project. This
 // expects the server to already be started.
-func (r *Runner) RunGoExternal(ctx context.Context, run *cmd.Run) error {
+func (r *Runner) RunGoExternal(ctx context.Context, run *cmd.Run) (*cmd.Stats, error) {
 	// To do this, we are going to create a separate project with the proper SDK
 	// version included and a simple main.go file that executes the local runner
 
@@ -103,14 +103,18 @@ func (r *Runner) RunGoExternal(ctx context.Context, run *cmd.Run) error {
 	if r.config.Dir == "" {
 		var err error
 		if r.config.Dir, err = os.MkdirTemp(r.rootDir, "features-go-test-"); err != nil {
-			return fmt.Errorf("failed creating temp dir: %w", err)
+			return nil, fmt.Errorf("failed creating temp dir: %w", err)
 		}
 		r.createdTempDir = &r.config.Dir
 
 		// Prepare the project
 		if err := NewPreparer(r.config.PrepareConfig).PrepareGoExternal(ctx); err != nil {
-			return err
+			return nil, err
 		}
+	}
+
+	if err := ClearStats(r.config.Dir); err != nil {
+		return nil, err
 	}
 
 	// Run it with args and features appended.
@@ -124,13 +128,14 @@ func (r *Runner) RunGoExternal(ctx context.Context, run *cmd.Run) error {
 		"--namespace", r.config.Namespace,
 		"--client-cert-path", r.config.ClientCertPath,
 		"--client-key-path", r.config.ClientKeyPath,
+		"--stats-path", 
 	}, run.ToArgs()...)
 	r.log.Debug("Running Go separately", "Args", runArgs)
 	goCmd := exec.CommandContext(ctx, filepath.Join(r.config.Dir, exe), runArgs...)
 	goCmd.Dir = r.config.Dir
 	goCmd.Stdin, goCmd.Stdout, goCmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	if err := goCmd.Run(); err != nil {
-		return fmt.Errorf("failed running: %w", err)
+		return nil, fmt.Errorf("failed running: %w", err)
 	}
-	return nil
+	return GetStats(r.config.Dir)
 }

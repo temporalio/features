@@ -22,6 +22,7 @@ import (
 	"go.temporal.io/features/harness/go/temporalite"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/log"
+	"golang.org/x/exp/slices"
 )
 
 func runCmd() *cli.Command {
@@ -213,25 +214,32 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 	}
 
 	err = nil
+	var stats *cmd.Stats
+
 	switch r.config.Lang {
 	case "go":
 		// If there's a version or prepared dir we run external, otherwise we run local
 		if r.config.Version != "" || r.config.Dir != "" {
-			err = r.RunGoExternal(ctx, run)
+			stats, err = r.RunGoExternal(ctx, run)
 		} else {
-			err = cmd.NewRunner(cmd.RunConfig{
+			runner := cmd.NewRunner(cmd.RunConfig{
 				Server:         r.config.Server,
 				Namespace:      r.config.Namespace,
 				ClientCertPath: r.config.ClientCertPath,
 				ClientKeyPath:  r.config.ClientKeyPath,
-			}).Run(ctx, run)
+			})
+			err = runner.Run(ctx, run)
+			stats = &runner.Stats
 		}
 	case "java":
 		err = r.RunJavaExternal(ctx, run)
+		stats = &cmd.Stats{} // TODO
 	case "ts":
 		err = r.RunTypeScriptExternal(ctx, run)
+		stats = &cmd.Stats{} // TODO
 	case "py":
 		err = r.RunPythonExternal(ctx, run)
+		stats = &cmd.Stats{} // TODO
 	default:
 		err = fmt.Errorf("unrecognized language")
 	}
@@ -240,14 +248,17 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 	}
 
 	// Now that we have completed successfully, check or collect history
-	return r.handleHistory(ctx, run)
+	return r.handleHistory(ctx, run, stats.Skipped)
 }
 
-func (r *Runner) handleHistory(ctx context.Context, run *cmd.Run) error {
+func (r *Runner) handleHistory(ctx context.Context, run *cmd.Run, skippedTests []string) error {
 	// Handle each
 	var cl client.Client
 	var failureCount int
 	for _, feature := range run.Features {
+		if slices.Contains(skippedTests, feature.Dir) {
+			continue
+		}
 		// We ignore history if there are no workflows
 		if feature.Config.NoWorkflow {
 			continue

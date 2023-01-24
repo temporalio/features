@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.temporal.io/api/serviceerror"
+	"go.temporal.io/api/workflowservice/v1"
 	"go.temporal.io/features/harness/go/history"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/log"
@@ -31,6 +32,7 @@ type Runner struct {
 	Assert        *assert.Assertions
 	LastAssertErr error
 	Require       *require.Assertions
+	Skipped       bool
 }
 
 // RunnerConfig is configuration for NewRunner.
@@ -84,6 +86,9 @@ func NewRunner(config RunnerConfig, feature *PreparedFeature) (*Runner, error) {
 	if r.Client, err = client.Dial(r.Feature.ClientOptions); err != nil {
 		return nil, fmt.Errorf("failed creating client: %w", err)
 	}
+	if err = r.checkCapabilities(); err != nil {
+		return nil, err
+	}
 
 	// Create worker
 	r.CreateTime = time.Now()
@@ -95,6 +100,34 @@ func NewRunner(config RunnerConfig, feature *PreparedFeature) (*Runner, error) {
 
 	success = true
 	return r, nil
+}
+
+func (r *Runner) checkCapabilities() error {
+	if r.Feature.RequiredCapabilities == nil {
+		return nil
+	}
+	systemInfo, err := r.Client.WorkflowService().GetSystemInfo(context.Background(), &workflowservice.GetSystemInfoRequest{})
+	if err != nil {
+		return err
+	}
+	var missingCapabilities []string
+	reflectedRequiredCapabilities := reflect.Indirect(reflect.ValueOf(r.Feature.RequiredCapabilities))
+	reflectedServerCapabilities := reflect.Indirect(reflect.ValueOf(systemInfo.Capabilities))
+	for i := 0; i < reflectedRequiredCapabilities.NumField(); i++ {
+		field := reflectedRequiredCapabilities.Field(i)
+		fieldName := reflectedRequiredCapabilities.Type().Field(i).Name
+		if field.Type() == reflect.TypeOf(true) && field.Bool() {
+			if !reflectedServerCapabilities.FieldByName(fieldName).Bool() {
+				missingCapabilities = append(missingCapabilities, fieldName)
+			}
+		}
+	}
+
+	if len(missingCapabilities) > 0 {
+		r.Skipped = true
+		return NewSkippedError(fmt.Sprintf("missing server capabilties: %v", missingCapabilities))
+	}
+	return nil
 }
 
 // Run executes a single feature and then closes the worker/client.

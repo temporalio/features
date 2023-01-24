@@ -19,6 +19,21 @@ import (
 	"go.temporal.io/sdk/temporal"
 )
 
+// SkippedError signals to the harness that a test should be skipped
+type SkippedError struct {
+	Reason string
+}
+
+// Error returns a formatted error string
+func (e SkippedError) Error() string {
+	return fmt.Sprintf("skipped, reason: %v", e.Reason)
+}
+
+// NewSkippedError constructs a SkippedError with the given reason
+func NewSkippedError(reason string) SkippedError {
+	return SkippedError{Reason: reason}
+}
+
 // RetryDisabled is a retry policy with 1 max attempt.
 var RetryDisabled = &temporal.RetryPolicy{MaximumAttempts: 1}
 

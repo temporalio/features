@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -25,7 +26,18 @@ func runCmd() *cli.Command {
 			if err := run.FromArgs(ctx.Args().Slice()); err != nil {
 				return err
 			}
-			return NewRunner(config).Run(ctx.Context, &run)
+			runner := NewRunner(config)
+			err := runner.Run(ctx.Context, &run)
+			if config.StatsPath != "" {
+				bytes, err := json.Marshal(runner.Stats)
+				if err != nil {
+					return err
+				}
+				if err := os.WriteFile(config.StatsPath, bytes, 0644); err != nil {
+					return err
+				}
+			}
+			return err
 		},
 	}
 }
@@ -80,6 +92,7 @@ type RunConfig struct {
 	Namespace      string
 	ClientCertPath string
 	ClientKeyPath  string
+	StatsPath      string
 }
 
 func (r *RunConfig) flags() []cli.Flag {
@@ -104,13 +117,29 @@ func (r *RunConfig) flags() []cli.Flag {
 			Usage:       "Path of TLS client key to use (optional)",
 			Destination: &r.ClientKeyPath,
 		},
+		&cli.StringFlag{
+			Name:        "stats-output",
+			Usage:       "Path to output run stats",
+			Destination: &r.StatsPath,
+		},
 	}
+}
+
+// Stats is used to record run statistics
+type Stats struct {
+	// Skipped features
+	Skipped []string `json:"skipped"`
+	// Passed features
+	Passed []string `json:"passed"`
+	// Failed features
+	Failed []string `json:"failed"`
 }
 
 // Runner is a runner that can run Go features.
 type Runner struct {
 	log    log.Logger
 	config RunConfig
+	Stats  Stats
 }
 
 // NewRunner creates a new runner from the given config.
@@ -133,7 +162,6 @@ func (r *Runner) Run(ctx context.Context, run *Run) error {
 	if len(run.Features) == 0 {
 		return fmt.Errorf("no features to run")
 	}
-	var failureCount int
 	allFeatures := harness.RegisteredFeatures()
 	for _, runFeature := range run.Features {
 		// Find the feature
@@ -147,10 +175,10 @@ func (r *Runner) Run(ctx context.Context, run *Run) error {
 		if feature == nil {
 			return fmt.Errorf("feature %v not found, did you add it to features.go?", runFeature.Dir)
 		} else if feature.SkipReason != "" {
+			r.Stats.Skipped = append(r.Stats.Skipped, feature.Dir)
 			r.log.Warn("Skipping feature", "Feature", feature.Dir, "Reason", feature.SkipReason)
 			continue
 		}
-
 		runnerConfig := harness.RunnerConfig{
 			ServerHostPort: r.config.Server,
 			Namespace:      r.config.Namespace,
@@ -160,14 +188,25 @@ func (r *Runner) Run(ctx context.Context, run *Run) error {
 			Log:            r.log,
 		}
 		if err := r.runFeature(ctx, runnerConfig, feature); err != nil {
-			failureCount++
-			r.log.Error("Feature failed", "Feature", feature.Dir, "error", err)
+			var skippedErr harness.SkippedError
+			if errors.As(err, &skippedErr) {
+				r.Stats.Skipped = append(r.Stats.Skipped, feature.Dir)
+				r.log.Warn("Skipping feature", "Feature", feature.Dir, "Reason", skippedErr.Reason)
+			} else {
+				r.Stats.Failed = append(r.Stats.Failed, feature.Dir)
+				r.log.Error("Feature failed", "Feature", feature.Dir, "error", err)
+			}
+		} else {
+			r.Stats.Passed = append(r.Stats.Passed, feature.Dir)
 		}
+
 	}
-	if failureCount > 0 {
-		return fmt.Errorf("%v failure(s) reported", failureCount)
+	r.log.Info("Run completed", "passed", len(r.Stats.Passed), "skipped", len(r.Stats.Skipped), "failed",
+		len(r.Stats.Failed))
+
+	if len(r.Stats.Failed) > 0 {
+		return fmt.Errorf("%v failure(s) reported: %v", len(r.Stats.Failed), r.Stats.Failed)
 	}
-	r.log.Info("All features passed")
 	return nil
 }
 

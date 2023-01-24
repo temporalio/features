@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 
+	"go.temporal.io/api/workflowservice/v1"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/worker"
@@ -61,6 +62,9 @@ type Feature struct {
 	// If non-empty, this feature will be skipped without checking any other
 	// values.
 	SkipReason string
+
+	// This features is skipped if any of the required capabilities are not supported by the server.
+	RequiredCapabilities *workflowservice.GetSystemInfoResponse_Capabilities
 }
 
 // PreparedFeature represents a feature that has been validated and the

@@ -9,7 +9,7 @@ require (
 	github.com/urfave/cli/v2 v2.16.3
 	go.temporal.io/features/features v1.0.0
 	go.temporal.io/features/harness/go v1.0.0
-	go.temporal.io/sdk v1.20.0
+	go.temporal.io/sdk v1.21.0
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4
 )
 
@@ -32,18 +32,18 @@ require (
 	github.com/twmb/murmur3 v1.1.6 // indirect
 	github.com/uber-go/tally/v4 v4.1.2 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
-	go.temporal.io/api v1.14.0 // indirect
+	go.temporal.io/api v1.16.0 // indirect
 	go.temporal.io/sdk/contrib/tally v0.1.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/goleak v1.1.12 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.23.0 // indirect
-	golang.org/x/net v0.4.0 // indirect
-	golang.org/x/sys v0.3.0 // indirect
-	golang.org/x/text v0.5.0 // indirect
+	golang.org/x/net v0.5.0 // indirect
+	golang.org/x/sys v0.4.0 // indirect
+	golang.org/x/text v0.6.0 // indirect
 	golang.org/x/time v0.1.0 // indirect
-	google.golang.org/genproto v0.0.0-20221207170731-23e4bf6bdc37 // indirect
-	google.golang.org/grpc v1.51.0 // indirect
+	google.golang.org/genproto v0.0.0-20230127162408-596548ed4efa // indirect
+	google.golang.org/grpc v1.52.3 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

@@ -183,6 +183,7 @@ func scrubRunSpecificScalars(v interface{}) {
 	case *history.WorkflowTaskStartedEventAttributes:
 		v.Identity = ""
 		v.RequestId = ""
+		v.HistorySizeBytes = 0
 	case *history.WorkflowTaskCompletedEventAttributes:
 		v.Identity = ""
 		v.BinaryChecksum = ""

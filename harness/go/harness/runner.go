@@ -20,6 +20,10 @@ import (
 	"golang.org/x/mod/semver"
 )
 
+type skipFeatureError struct {
+	reason string
+}
+
 // Runner represents a runner that can run a feature.
 type Runner struct {
 	RunnerConfig
@@ -244,6 +248,18 @@ func (r *Runner) ReplayHistories(ctx context.Context, histories history.Historie
 	return nil
 }
 
+func (r *Runner) Skip(reason string) error {
+	return &skipFeatureError{reason: reason}
+}
+
+func IsSkipError(err error) (bool, string) {
+	var skipErr *skipFeatureError
+	if errors.As(err, &skipErr) {
+		return true, skipErr.reason
+	}
+	return false, ""
+}
+
 // QueryUntilEventually runs the given query every so often until the value
 // matches the expected value.
 func (r *Runner) QueryUntilEventually(
@@ -356,4 +372,8 @@ func (r *requireTestingPanic) FailNow() {
 	if r.lastErr != nil {
 		panic(r.lastErr)
 	}
+}
+
+func (sfe *skipFeatureError) Error() string {
+	return fmt.Sprintf("feature skipped: %v", sfe.reason)
 }

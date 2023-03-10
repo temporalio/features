@@ -159,7 +159,13 @@ func (r *Runner) Run(ctx context.Context, run *Run) error {
 			TaskQueue:      runFeature.TaskQueue,
 			Log:            r.log,
 		}
-		if err := r.runFeature(ctx, runnerConfig, feature); err != nil {
+		err := r.runFeature(ctx, runnerConfig, feature)
+
+		if skip, reason := harness.IsSkipError(err); skip {
+			r.log.Warn("Skipping feature", "Feature", feature.Dir, "Reason", reason)
+			continue
+		}
+		if err != nil {
 			failureCount++
 			r.log.Error("Feature failed", "Feature", feature.Dir, "error", err)
 		}

@@ -238,6 +238,9 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 	if err != nil {
 		return err
 	}
+	if len(run.ExecutedFeatures) == 0 {
+		return nil
+	}
 
 	// Now that we have completed successfully, check or collect history
 	return r.handleHistory(ctx, run)

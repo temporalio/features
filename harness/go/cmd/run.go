@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -159,7 +160,14 @@ func (r *Runner) Run(ctx context.Context, run *Run) error {
 			TaskQueue:      runFeature.TaskQueue,
 			Log:            r.log,
 		}
-		if err := r.runFeature(ctx, runnerConfig, feature); err != nil {
+		err := r.runFeature(ctx, runnerConfig, feature)
+
+		var skipErr *harness.SkipFeatureError
+		if errors.As(err, &skipErr) {
+			r.log.Warn("Feature skipped", "Feature", feature.Dir, "reason", skipErr.Reason())
+			continue
+		}
+		if err != nil {
 			failureCount++
 			r.log.Error("Feature failed", "Feature", feature.Dir, "error", err)
 		}
@@ -167,7 +175,7 @@ func (r *Runner) Run(ctx context.Context, run *Run) error {
 	if failureCount > 0 {
 		return fmt.Errorf("%v failure(s) reported", failureCount)
 	}
-	r.log.Info("All features passed")
+	r.log.Info("All features passed", "executed-feature-count", len(run.ExecutedFeatures))
 	return nil
 }
 

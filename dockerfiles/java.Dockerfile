@@ -5,7 +5,7 @@ FROM eclipse-temurin:11 as build
 RUN apt-get update \
  && DEBIAN_FRONTEND=noninteractive \
     apt-get install --no-install-recommends --assume-yes \
-      protobuf-compiler=3.12.4-1ubuntu7 git=1:2.34.1-1ubuntu1
+      protobuf-compiler=3.12.4* git=1:2.34.1-1ubuntu1
 
 ARG PLATFORM=amd64
 RUN wget -q https://go.dev/dl/go1.19.1.linux-${PLATFORM}.tar.gz \

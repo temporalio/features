@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,6 +15,12 @@ import (
 	"go.temporal.io/features/harness/go/harness"
 	"go.temporal.io/sdk/log"
 	"go.uber.org/zap"
+)
+
+const (
+	FeaturePassed  = "PASSED"
+	FeatureFailed  = "FAILED"
+	FeatureSkipped = "SKIPPED"
 )
 
 func runCmd() *cli.Command {
@@ -80,6 +89,7 @@ type RunConfig struct {
 	Namespace      string
 	ClientCertPath string
 	ClientKeyPath  string
+	SummaryURI     string
 }
 
 func (r *RunConfig) flags() []cli.Flag {
@@ -104,6 +114,11 @@ func (r *RunConfig) flags() []cli.Flag {
 			Usage:       "Path of TLS client key to use (optional)",
 			Destination: &r.ClientKeyPath,
 		},
+		&cli.StringFlag{
+			Name:        "summary-uri",
+			Usage:       "where to stream the test summary JSONL",
+			Destination: &r.SummaryURI,
+		},
 	}
 }
 
@@ -126,6 +141,21 @@ func NewRunner(config RunConfig) *Runner {
 	}
 }
 
+func openSummary(uri string) (io.WriteCloser, error) {
+	url, err := url.Parse(uri)
+	if err != nil {
+		return nil, err
+	}
+	switch url.Scheme {
+	case "tcp":
+		return net.Dial("tcp", url.Host)
+	case "file":
+		return os.OpenFile(url.Path, os.O_WRONLY|os.O_CREATE, 0755)
+	default:
+		return nil, fmt.Errorf("unsupported summary scheme: %q", url.Scheme)
+	}
+}
+
 // Run runs all the given features.
 func (r *Runner) Run(ctx context.Context, run *Run) error {
 	// Run the features
@@ -133,6 +163,11 @@ func (r *Runner) Run(ctx context.Context, run *Run) error {
 	if len(run.Features) == 0 {
 		return fmt.Errorf("no features to run")
 	}
+	summary, err := openSummary(r.config.SummaryURI)
+	if err != nil {
+		return err
+	}
+	defer summary.Close()
 	var failureCount int
 	allFeatures := harness.RegisteredFeatures()
 	for _, runFeature := range run.Features {
@@ -146,28 +181,54 @@ func (r *Runner) Run(ctx context.Context, run *Run) error {
 		}
 		if feature == nil {
 			return fmt.Errorf("feature %v not found, did you add it to features.go?", runFeature.Dir)
-		} else if feature.SkipReason != "" {
-			r.log.Warn("Skipping feature", "Feature", feature.Dir, "Reason", feature.SkipReason)
-			continue
 		}
+		err := func() error {
+			sumEntry := struct {
+				Name    string `json:"name"`
+				Outcome string `json:"outcome"`
+				Message string `json:"message"`
+			}{
+				Name:    runFeature.Dir,
+				Outcome: FeaturePassed,
+			}
+			defer func() {
+				bytes, _ := json.Marshal(sumEntry)
+				fmt.Fprintln(summary, string(bytes))
+			}()
 
-		runnerConfig := harness.RunnerConfig{
-			ServerHostPort: r.config.Server,
-			Namespace:      r.config.Namespace,
-			ClientCertPath: r.config.ClientCertPath,
-			ClientKeyPath:  r.config.ClientKeyPath,
-			TaskQueue:      runFeature.TaskQueue,
-			Log:            r.log,
-		}
-		err := r.runFeature(ctx, runnerConfig, feature)
+			if feature.SkipReason != "" {
+				sumEntry.Outcome = FeatureSkipped
+				sumEntry.Message = feature.SkipReason
+				r.log.Warn("Skipping feature", "Feature", feature.Dir, "Reason", feature.SkipReason)
+				return nil
+			}
 
-		if skip, reason := harness.IsSkipError(err); skip {
-			r.log.Warn("Skipping feature", "Feature", feature.Dir, "Reason", reason)
-			continue
-		}
+			runnerConfig := harness.RunnerConfig{
+				ServerHostPort: r.config.Server,
+				Namespace:      r.config.Namespace,
+				ClientCertPath: r.config.ClientCertPath,
+				ClientKeyPath:  r.config.ClientKeyPath,
+				TaskQueue:      runFeature.TaskQueue,
+				Log:            r.log,
+			}
+			err := r.runFeature(ctx, runnerConfig, feature)
+
+			if skip, reason := harness.IsSkipError(err); skip {
+				sumEntry.Outcome = FeatureSkipped
+				sumEntry.Message = reason
+				r.log.Warn("Skipping feature", "Feature", feature.Dir, "Reason", reason)
+				return nil
+			}
+			if err != nil {
+				sumEntry.Outcome = FeatureFailed
+				sumEntry.Message = err.Error()
+				failureCount++
+				r.log.Error("Feature failed", "Feature", feature.Dir, "error", err)
+			}
+			return nil
+		}()
 		if err != nil {
-			failureCount++
-			r.log.Error("Feature failed", "Feature", feature.Dir, "error", err)
+			return err
 		}
 	}
 	if failureCount > 0 {

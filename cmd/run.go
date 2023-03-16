@@ -1,10 +1,14 @@
 package cmd
 
 import (
+	"bufio"
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
+	"net"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -24,6 +28,11 @@ import (
 	"go.temporal.io/sdk/log"
 )
 
+const (
+	summaryListenAddr = "127.7.2.1:0"
+	FeaturePassed     = "PASSED"
+)
+
 func runCmd() *cli.Command {
 	var config RunConfig
 	return &cli.Command{
@@ -36,6 +45,14 @@ func runCmd() *cli.Command {
 	}
 }
 
+type SummaryEntry struct {
+	Name    string `json:"name"`
+	Outcome string `json:"outcome"`
+	Message string `json:"message"`
+}
+
+type Summary []SummaryEntry
+
 // RunConfig is configuration for NewRunner.
 type RunConfig struct {
 	PrepareConfig
@@ -46,6 +63,7 @@ type RunConfig struct {
 	GenerateHistory     bool
 	DisableHistoryCheck bool
 	RetainTempDir       bool
+	SummaryURI          string
 }
 
 // dockerRunFlags are a subset of flags that apply when running in a docker container
@@ -212,6 +230,15 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 		defer r.destroyTempDir()
 	}
 
+	l, err := net.Listen("tcp", summaryListenAddr)
+	if err != nil {
+		return err
+	}
+	defer l.Close()
+	summaryChan := make(chan Summary)
+	go r.summaryServer(l, summaryChan)
+	r.config.SummaryURI = "tcp://" + l.Addr().String()
+
 	err = nil
 	switch r.config.Lang {
 	case "go":
@@ -224,6 +251,7 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 				Namespace:      r.config.Namespace,
 				ClientCertPath: r.config.ClientCertPath,
 				ClientKeyPath:  r.config.ClientKeyPath,
+				SummaryURI:     r.config.SummaryURI,
 			}).Run(ctx, run)
 		}
 	case "java":
@@ -238,18 +266,33 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 	if err != nil {
 		return err
 	}
-
-	// Now that we have completed successfully, check or collect history
-	return r.handleHistory(ctx, run)
+	l.Close()
+	summary, ok := <-summaryChan
+	if !ok {
+		r.log.Debug("did not receive a test run summary - adopting legacy behavior of assuming no tests were skipped")
+		for _, feature := range run.Features {
+			summary = append(summary, SummaryEntry{Name: feature.Dir, Outcome: FeaturePassed})
+		}
+	}
+	return r.handleHistory(ctx, run, summary)
 }
 
-func (r *Runner) handleHistory(ctx context.Context, run *cmd.Run) error {
+func (r *Runner) handleHistory(ctx context.Context, run *cmd.Run, summary Summary) error {
 	// Handle each
 	var cl client.Client
 	var failureCount int
 	for _, feature := range run.Features {
 		// We ignore history if there are no workflows
 		if feature.Config.NoWorkflow {
+			continue
+		}
+		entry, ok := summary.Find(feature.Dir)
+		if !ok {
+			r.log.Info("skipping history check because feature not listed in execution summary", "feature", feature.Dir)
+			continue
+		}
+		if entry.Outcome == "SKIPPED" {
+			r.log.Info("skipping history check because feature was skipped", "feature", feature.Dir, "reason", entry.Message)
 			continue
 		}
 
@@ -361,6 +404,43 @@ func (r *Runner) handleSingleHistory(ctx context.Context, client client.Client, 
 	return nil
 }
 
+// summaryServer uses the supplied listener to handle a single incoming
+// connection that sends JSONL data describing the execution status of feature
+// tests as determined by a lower level test execution harness. JSONL data items
+// are expected to have the following fields
+//   - Name (string) the name of the test
+//   - Outcome (string) one of PASSED|FAILED|SKIPPED
+//   - Message (string) a free text field
+func (r *Runner) summaryServer(l net.Listener, out chan<- Summary) {
+	conn, err := l.Accept()
+	if err != nil {
+		// Accept returns an error if the listener is closed
+		close(out)
+		return
+	}
+	summary := Summary{}
+	rdr := bufio.NewReaderSize(conn, 4096)
+	for {
+		line, err := rdr.ReadBytes('\n')
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			r.log.Error("error reading from summary socket", "error", err.Error())
+			close(out)
+			return
+		}
+		var entry SummaryEntry
+		err = json.Unmarshal(line, &entry)
+		if err != nil {
+			r.log.Error("error unmarshalling summary entry", "error", err.Error(), "line", string(line))
+			continue
+		}
+		summary = append(summary, entry)
+	}
+	out <- summary
+}
+
 func rootDir() string {
 	_, currFile, _, _ := runtime.Caller(0)
 	return filepath.Dir(filepath.Dir(currFile))
@@ -409,4 +489,13 @@ func langFlag(destination *string) *cli.StringFlag {
 		Required:    true,
 		Destination: destination,
 	}
+}
+
+func (s Summary) Find(featureName string) (*SummaryEntry, bool) {
+	for _, entry := range s {
+		if entry.Name == featureName {
+			return &entry, true
+		}
+	}
+	return nil, false
 }

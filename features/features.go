@@ -23,6 +23,13 @@ import (
 	"go.temporal.io/features/features/schedule/trigger"
 	"go.temporal.io/features/features/signal/external"
 	"go.temporal.io/features/features/telemetry/metrics"
+	"go.temporal.io/features/features/update/activities"
+	"go.temporal.io/features/features/update/intercept"
+	"go.temporal.io/features/features/update/non_durable_reject"
+	"go.temporal.io/features/features/update/self"
+	"go.temporal.io/features/features/update/user_panics"
+	"go.temporal.io/features/features/update/validation_replay"
+	"go.temporal.io/features/features/update/worker_restart"
 	"go.temporal.io/features/harness/go/harness"
 )
 
@@ -52,5 +59,12 @@ func init() {
 		unexpected_query_type_name.Feature,
 		unexpected_return_type.Feature,
 		non_remote_activities_worker.Feature,
+		non_durable_reject.Feature,
+		activities.Feature,
+		user_panics.Feature,
+		intercept.Feature,
+		validation_replay.Feature,
+		self.Feature,
+		worker_restart.Feature,
 	)
 }

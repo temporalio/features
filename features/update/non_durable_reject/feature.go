@@ -49,7 +49,7 @@ var Feature = harness.Feature{
 				step,
 			)
 			runner.Require.NoError(err)
-			runner.Require.NoError(handle.Get(ctx, &result), "expected negative value to be rejected")
+			runner.Require.NoError(handle.Get(ctx, &result), "expected non-negative value to be accepted")
 
 			handle, err = runner.Client.UpdateWorkflow(
 				ctx,

@@ -8,7 +8,7 @@ FROM node:16 as build
 RUN apt-get update \
  && DEBIAN_FRONTEND=noninteractive \
     apt-get install --no-install-recommends --assume-yes \
-      protobuf-compiler=3.6.1.3-2 libprotobuf-dev=3.6.1.3-2
+      protobuf-compiler=3.6.1.3-2* libprotobuf-dev=3.6.1.3-2*
 
 # Get go compiler
 ARG PLATFORM=amd64

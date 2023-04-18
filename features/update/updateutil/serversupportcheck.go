@@ -13,24 +13,25 @@ func CheckServerSupportsUpdate(ctx context.Context, c client.Client) string {
 	// Newer versions of the sdk will return a permission denied error here
 	var denied *serviceerror.PermissionDenied
 	var notFound *serviceerror.NotFound
-	var unimplemented *serviceerror.Unimplemented
-	switch {
-	case errors.As(err, &denied):
-		return "server support for update is disabled; " +
-			"set frontend.enableUpdateWorkflowExecution=true in dynamic config to enable"
-	case errors.As(err, &unimplemented):
-		return "server does not implement the UpdateWorkflow rpc call"
-	case errors.As(err, &notFound):
-		// expected since the workflow-id does not exist
-		return ""
-	}
-
-	// A few early versions of the sdk will return the permission denied error
-	// here so check for that as well
-	err = handle.Get(ctx, nil)
 	if errors.As(err, &denied) {
 		return "server support for update is disabled; " +
 			"set frontend.enableUpdateWorkflowExecution=true in dynamic config to enable"
+	}
+	// Otherwise we expect a not found error since the workflowID is fake
+	if errors.As(err, &notFound) {
+		return ""
+	}
+	err = handle.Get(ctx, nil)
+
+	// A few early versions of the sdk will return the permission denied error
+	// here so check for that as well
+	if errors.As(err, &denied) {
+		return "server support for update is disabled; " +
+			"set frontend.enableUpdateWorkflowExecution=true in dynamic config to enable"
+	}
+	var unimplemented *serviceerror.Unimplemented
+	if errors.As(err, &unimplemented) {
+		return "server version too old to support update"
 	}
 	return ""
 }

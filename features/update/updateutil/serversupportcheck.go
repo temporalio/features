@@ -8,17 +8,37 @@ import (
 	"go.temporal.io/sdk/client"
 )
 
+const (
+	disabledMsg = "server support for update is disabled; set frontend.enableUpdateWorkflowExecution=true in dynamic config to enable"
+	tooOldMsg   = "server version too old to support update"
+)
+
 func CheckServerSupportsUpdate(ctx context.Context, c client.Client) string {
-	handle, _ := c.UpdateWorkflow(ctx, "fake", "also_fake", "__does_not_exist")
-	err := handle.Get(ctx, nil)
-	var denied *serviceerror.PermissionDenied
-	if errors.As(err, &denied) {
-		return "server support for update is disabled; " +
-			"set frontend.enableUpdateWorkflowExecution=true in dynamic config to enable"
+	var (
+		denied        *serviceerror.PermissionDenied
+		notFound      *serviceerror.NotFound
+		unimplemented *serviceerror.Unimplemented
+	)
+
+	handle, err := c.UpdateWorkflow(ctx, "fake", "also_fake", "__does_not_exist")
+	switch {
+	case errors.As(err, &denied):
+		return disabledMsg
+	case errors.As(err, &unimplemented):
+		return tooOldMsg
+	case errors.As(err, &notFound):
+		return ""
 	}
-	var unimplemented *serviceerror.Unimplemented
-	if errors.As(err, &unimplemented) {
-		return "server version too old to support update"
+
+	// some older versions of the SDK won't return an error until Handle.Get is
+	// called so check here as well
+	err = handle.Get(ctx, nil)
+	switch {
+	case errors.As(err, &denied):
+		return disabledMsg
+	case errors.As(err, &unimplemented):
+		return tooOldMsg
 	}
+
 	return ""
 }

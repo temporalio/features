@@ -5,6 +5,7 @@ import (
 	"go.temporal.io/features/features/activity/retry_on_error"
 	"go.temporal.io/features/features/bugs/go/activity_start_race"
 	"go.temporal.io/features/features/bugs/go/child_workflow_cancel_panic"
+	"go.temporal.io/features/features/build_id_versioning/only_appropriate_worker_gets_task"
 	"go.temporal.io/features/features/child_workflow/result"
 	"go.temporal.io/features/features/continue_as_new/continue_as_same"
 	"go.temporal.io/features/features/data_converter/binary"
@@ -68,5 +69,6 @@ func init() {
 		update_task_failure.Feature,
 		update_validation_replay.Feature,
 		update_worker_restart.Feature,
+		only_appropriate_worker_gets_task.Feature,
 	)
 }

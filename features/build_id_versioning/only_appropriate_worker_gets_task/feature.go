@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"go.temporal.io/api/common/v1"
 	"go.temporal.io/api/workflowservice/v1"
+	"go.temporal.io/features/features/build_id_versioning"
 	"go.temporal.io/features/harness/go/harness"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
@@ -21,6 +22,12 @@ var Feature = harness.Feature{
 }
 
 func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error) {
+	// Add some versions to the queue
+	err := build_id_versioning.AddSomeVersions(ctx, r.Client, r.TaskQueue)
+	if err != nil {
+		return nil, err
+	}
+
 	// Start workflow
 	run, err := r.ExecuteDefault(ctx)
 	if err != nil {

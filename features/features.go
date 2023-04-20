@@ -7,6 +7,7 @@ import (
 	"go.temporal.io/features/features/bugs/go/child_workflow_cancel_panic"
 	"go.temporal.io/features/features/build_id_versioning/only_appropriate_worker_gets_task"
 	"go.temporal.io/features/features/build_id_versioning/unversioned_worker_no_task"
+	"go.temporal.io/features/features/build_id_versioning/versioned_worker_polls_unversioned"
 	"go.temporal.io/features/features/child_workflow/result"
 	"go.temporal.io/features/features/continue_as_new/continue_as_same"
 	"go.temporal.io/features/features/data_converter/binary"
@@ -72,5 +73,6 @@ func init() {
 		update_worker_restart.Feature,
 		only_appropriate_worker_gets_task.Feature,
 		unversioned_worker_no_task.Feature,
+		versioned_worker_polls_unversioned.Feature,
 	)
 }

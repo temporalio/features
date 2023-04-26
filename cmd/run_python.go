@@ -4,96 +4,63 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"runtime"
-	"strconv"
 	"strings"
 
 	"go.temporal.io/features/harness/go/cmd"
+	"go.temporal.io/features/sdkbuild"
 )
 
 // PreparePythonExternal prepares a Python run without running it. The preparer
-// config directory is expected to be an absolute subdirectory just beneath the
-// root directory.
-func (p *Preparer) PreparePythonExternal(ctx context.Context) error {
-	p.log.Info("Building Python project", "Path", p.config.Dir)
-	// Use semantic version or path if it's a path
-	versionStr := strconv.Quote(p.config.Version)
-	if strings.ContainsAny(p.config.Version, "/\\") {
-		// We expect a dist/ directory with a single whl file present
-		wheels, err := filepath.Glob(filepath.Join(p.config.Version, "dist/*.whl"))
+// config directory if present is expected to be a subdirectory name just
+// beneath the root directory.
+func (p *Preparer) BuildPythonProgram(ctx context.Context) (sdkbuild.Program, error) {
+	p.log.Info("Building Python project", "DirName", p.config.DirName)
+
+	// Get version from pyproject.toml if not present
+	version := p.config.Version
+	if version == "" {
+		b, err := os.ReadFile(filepath.Join(p.rootDir, "pyproject.toml"))
 		if err != nil {
-			return fmt.Errorf("failed glob wheel lookup: %w", err)
-		} else if len(wheels) != 1 {
-			return fmt.Errorf("expected single dist wheel, found %v", len(wheels))
+			return nil, fmt.Errorf("failed reading package.json: %w", err)
 		}
-		absWheel, err := filepath.Abs(wheels[0])
-		if err != nil {
-			return fmt.Errorf("unable to make wheel path absolute: %w", err)
+		for _, line := range strings.Split(string(b), "\n") {
+			line = strings.TrimSpace(line)
+			if strings.HasPrefix(line, "temporalio = ") {
+				version = line[strings.Index(line, `"`)+1 : strings.LastIndex(line, `"`)]
+				break
+			}
 		}
-		// There's a strange bug in Poetry or somewhere deeper where, on Windows,
-		// the single drive letter has to be capitalized
-		if runtime.GOOS == "windows" && absWheel[1] == ':' {
-			absWheel = strings.ToUpper(absWheel[:1]) + absWheel[1:]
+		if version == "" {
+			return nil, fmt.Errorf("version not found in pyproject.toml")
 		}
-		versionStr = "{ path = " + strconv.Quote(absWheel) + " }"
-	}
-	pyProjectTOML := `
-[tool.poetry]
-name = "features-python-test-` + filepath.Base(p.config.Dir) + `"
-version = "0.1.0"
-description = "Temporal SDK Features Python Test"
-authors = ["Temporal Technologies Inc <sdk@temporal.io>"]
-
-[tool.poetry.dependencies]
-python = "^3.7"
-temporalio = ` + versionStr + `
-features = { path = "../" }
-
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"`
-	if err := os.WriteFile(filepath.Join(p.config.Dir, "pyproject.toml"), []byte(pyProjectTOML), 0644); err != nil {
-		return fmt.Errorf("failed writing pyproject.toml: %w", err)
 	}
 
-	// Install
-	cmd := exec.CommandContext(ctx, "poetry", "install", "--no-dev", "--no-root", "-v")
-	cmd.Dir = p.config.Dir
-	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed installing: %w", err)
+	prog, err := sdkbuild.BuildPythonProgram(ctx, sdkbuild.BuildPythonProgramOptions{
+		BaseDir:           p.rootDir,
+		DirName:           p.config.DirName,
+		Version:           version,
+		HarnessDependency: "features",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed preparing: %w", err)
 	}
-	return nil
+	return prog, nil
 }
 
 // RunPythonExternal runs the Python run in an external process. This expects
 // the server to already be started.
 func (r *Runner) RunPythonExternal(ctx context.Context, run *cmd.Run) error {
-	// Create temp directory and prepare if using specific version
-	if r.config.Version != "" && r.config.Dir == "" {
-		// Create a temp directory and prepare
+	// If program not built, build it
+	if r.program == nil {
 		var err error
-		if r.config.Dir, err = os.MkdirTemp(r.rootDir, "features-python-test-"); err != nil {
-			return fmt.Errorf("failed creating temp dir: %w", err)
-		}
-		r.createdTempDir = &r.config.Dir
-		if err := NewPreparer(r.config.PrepareConfig).PreparePythonExternal(ctx); err != nil {
+		if r.program, err = NewPreparer(r.config.PrepareConfig).BuildPythonProgram(ctx); err != nil {
 			return err
 		}
 	}
 
-	// Run in this directory unless we have prepared directory already
-	runDir := r.rootDir
-	if r.config.Dir != "" {
-		runDir = r.config.Dir
-	}
-
-	// Run
-	args := []string{"run", "python", "-m", "harness.python.main",
-		"--server", r.config.Server, "--namespace", r.config.Namespace}
-
+	// Build args
+	args := []string{"harness.python.main", "--server", r.config.Server, "--namespace", r.config.Namespace}
 	if r.config.ClientCertPath != "" {
 		clientCertPath, err := filepath.Abs(r.config.ClientCertPath)
 		if err != nil {
@@ -109,11 +76,14 @@ func (r *Runner) RunPythonExternal(ctx context.Context, run *cmd.Run) error {
 		args = append(args, "--client-key-path", clientKeyPath)
 	}
 	args = append(args, run.ToArgs()...)
-	r.log.Debug("Running Poetry", "Args", args)
-	cmd := exec.CommandContext(ctx, "poetry", args...)
-	cmd.Dir = runDir
-	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
-	if err := cmd.Run(); err != nil {
+
+	// Run
+	cmd, err := r.program.NewCommand(ctx, args...)
+	if err == nil {
+		r.log.Debug("Running Python separately", "Args", cmd.Args)
+		err = cmd.Run()
+	}
+	if err != nil {
 		return fmt.Errorf("failed running: %w", err)
 	}
 	return nil

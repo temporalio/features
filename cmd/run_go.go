@@ -3,56 +3,32 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"runtime"
-	"strings"
 
 	"go.temporal.io/features/harness/go/cmd"
+	"go.temporal.io/features/sdkbuild"
 )
 
-// PrepareGoExternal prepares a Go run without running it. The preparer config
-// directory is expected to be an absolute subdirectory just beneath the root
-// directory.
-func (p *Preparer) PrepareGoExternal(ctx context.Context) error {
-	p.log.Info("Preparing Go project", "Path", p.config.Dir)
+// BuildGoProgram prepares a Go run without running it. The preparer config
+// directory if present is expected to be a subdirectory name just beneath the
+// root directory.
+func (p *Preparer) BuildGoProgram(ctx context.Context) (sdkbuild.Program, error) {
+	p.log.Info("Preparing Go project", "DirName", p.config.DirName)
+	prog, err := sdkbuild.BuildGoProgram(ctx, sdkbuild.BuildGoProgramOptions{
+		BaseDir: p.rootDir,
+		DirName: p.config.DirName,
+		Version: p.config.Version,
+		GoModContents: `module go.temporal.io/features-test
 
-	// Create go.mod
-	goMod := `module go.temporal.io/features-test
+go 1.17
 
-	go 1.17
-	
-	require go.temporal.io/features/features v1.0.0
-	require go.temporal.io/features/harness/go v1.0.0
-	
-	replace go.temporal.io/features/features => ../features
-	replace go.temporal.io/features/harness/go => ../harness/go
-	
-	replace github.com/cactus/go-statsd-client => github.com/cactus/go-statsd-client v3.2.1+incompatible`
-	// If a version is specified, overwrite the SDK to use that
-	if p.config.Version != "" {
-		// If version does not start with a "v" we assume path
-		if strings.HasPrefix(p.config.Version, "v") {
-			goMod += "\nreplace go.temporal.io/sdk => go.temporal.io/sdk " + p.config.Version
-		} else {
-			absVersion, err := filepath.Abs(p.config.Version)
-			if err != nil {
-				return fmt.Errorf("version does not start with 'v' and cannot get abs dir: %w", err)
-			}
-			relVersion, err := filepath.Rel(p.config.Dir, absVersion)
-			if err != nil {
-				return fmt.Errorf("version does not start with 'v' and unable to relativize: %w", err)
-			}
-			goMod += "\nreplace go.temporal.io/sdk => " + filepath.ToSlash(relVersion)
-		}
-	}
-	if err := os.WriteFile(filepath.Join(p.config.Dir, "go.mod"), []byte(goMod), 0644); err != nil {
-		return fmt.Errorf("failed writing go.mod: %w", err)
-	}
+require go.temporal.io/features/features v1.0.0
+require go.temporal.io/features/harness/go v1.0.0
 
-	// Create main.go
-	mainGo := `package main
+replace go.temporal.io/features/features => ../features
+replace go.temporal.io/features/harness/go => ../harness/go
+
+replace github.com/cactus/go-statsd-client => github.com/cactus/go-statsd-client v3.2.1+incompatible`,
+		GoMainContents: `package main
 
 import (
 	"go.temporal.io/features/harness/go/cmd"
@@ -61,64 +37,27 @@ import (
 
 func main() {
 	cmd.Execute()
-}`
-	if err := os.WriteFile(filepath.Join(p.config.Dir, "main.go"), []byte(mainGo), 0644); err != nil {
-		return fmt.Errorf("failed writing main.go: %w", err)
+}`,
+		GoBuildTags: cmd.GoBuildTags(p.config.Version),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed preparing: %w", err)
 	}
-
-	// Tidy it
-	goCmd := exec.CommandContext(ctx, "go", "mod", "tidy")
-	goCmd.Dir = p.config.Dir
-	goCmd.Stdin, goCmd.Stdout, goCmd.Stderr = os.Stdin, os.Stdout, os.Stderr
-	if err := goCmd.Run(); err != nil {
-		return fmt.Errorf("failed go mod tidy: %w", err)
-	}
-
-	// Build it
-	exe := "features-test"
-	if runtime.GOOS == "windows" {
-		exe += ".exe"
-	}
-	goCmdArgs := []string{"build", "-o", exe}
-	for _, tag := range cmd.GoBuildTags(p.config.Version) {
-		goCmdArgs = append(goCmdArgs, "-tags", tag)
-	}
-	goCmd = exec.CommandContext(ctx, "go", goCmdArgs...)
-	goCmd.Dir = p.config.Dir
-	goCmd.Stdin, goCmd.Stdout, goCmd.Stderr = os.Stdin, os.Stdout, os.Stderr
-	if err := goCmd.Run(); err != nil {
-		return fmt.Errorf("failed go build: %w", err)
-	}
-
-	return nil
+	return prog, nil
 }
 
 // RunGoExternal runs the given run details in an external Go project. This
 // expects the server to already be started.
 func (r *Runner) RunGoExternal(ctx context.Context, run *cmd.Run) error {
-	// To do this, we are going to create a separate project with the proper SDK
-	// version included and a simple main.go file that executes the local runner
-
-	// If there is not a prepared directory, create a temp directory and prepare
-	if r.config.Dir == "" {
+	// If program not built, build it
+	if r.program == nil {
 		var err error
-		if r.config.Dir, err = os.MkdirTemp(r.rootDir, "features-go-test-"); err != nil {
-			return fmt.Errorf("failed creating temp dir: %w", err)
-		}
-		r.createdTempDir = &r.config.Dir
-
-		// Prepare the project
-		if err := NewPreparer(r.config.PrepareConfig).PrepareGoExternal(ctx); err != nil {
+		if r.program, err = NewPreparer(r.config.PrepareConfig).BuildGoProgram(ctx); err != nil {
 			return err
 		}
 	}
 
-	// Run it with args and features appended.
-	exe := "features-test"
-	if runtime.GOOS == "windows" {
-		exe += ".exe"
-	}
-	runArgs := append([]string{
+	args := append([]string{
 		"run",
 		"--server", r.config.Server,
 		"--namespace", r.config.Namespace,
@@ -126,11 +65,12 @@ func (r *Runner) RunGoExternal(ctx context.Context, run *cmd.Run) error {
 		"--client-key-path", r.config.ClientKeyPath,
 		"--summary-uri", r.config.SummaryURI,
 	}, run.ToArgs()...)
-	r.log.Debug("Running Go separately", "Args", runArgs)
-	goCmd := exec.CommandContext(ctx, filepath.Join(r.config.Dir, exe), runArgs...)
-	goCmd.Dir = r.config.Dir
-	goCmd.Stdin, goCmd.Stdout, goCmd.Stderr = os.Stdin, os.Stdout, os.Stderr
-	if err := goCmd.Run(); err != nil {
+	cmd, err := r.program.NewCommand(ctx, args...)
+	if err == nil {
+		r.log.Debug("Running Go separately", "Args", cmd.Args)
+		err = cmd.Run()
+	}
+	if err != nil {
 		return fmt.Errorf("failed running: %w", err)
 	}
 	return nil

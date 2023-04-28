@@ -242,7 +242,12 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 	case "go":
 		// If there's a version or prepared dir we run external, otherwise we run local
 		if r.config.Version != "" || r.config.DirName != "" {
-			err = r.RunGoExternal(ctx, run)
+			if r.config.DirName != "" {
+				r.program, err = sdkbuild.GoProgramFromDir(filepath.Join(r.rootDir, r.config.DirName))
+			}
+			if err == nil {
+				err = r.RunGoExternal(ctx, run)
+			}
 		} else {
 			err = cmd.NewRunner(cmd.RunConfig{
 				Server:         r.config.Server,
@@ -253,11 +258,26 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 			}).Run(ctx, run)
 		}
 	case "java":
-		err = r.RunJavaExternal(ctx, run)
+		if r.config.DirName != "" {
+			r.program, err = sdkbuild.JavaProgramFromDir(filepath.Join(r.rootDir, r.config.DirName))
+		}
+		if err == nil {
+			err = r.RunJavaExternal(ctx, run)
+		}
 	case "ts":
-		err = r.RunTypeScriptExternal(ctx, run)
+		if r.config.DirName != "" {
+			r.program, err = sdkbuild.TypeScriptProgramFromDir(filepath.Join(r.rootDir, r.config.DirName))
+		}
+		if err == nil {
+			err = r.RunTypeScriptExternal(ctx, run)
+		}
 	case "py":
-		err = r.RunPythonExternal(ctx, run)
+		if r.config.DirName != "" {
+			r.program, err = sdkbuild.PythonProgramFromDir(filepath.Join(r.rootDir, r.config.DirName))
+		}
+		if err == nil {
+			err = r.RunPythonExternal(ctx, run)
+		}
 	default:
 		err = fmt.Errorf("unrecognized language")
 	}

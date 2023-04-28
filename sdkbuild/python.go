@@ -16,7 +16,7 @@ type BuildPythonProgramOptions struct {
 	// Directory that will have a temporary directory created underneath. This
 	// should be a Poetry project with a pyproject.toml.
 	BaseDir string
-	// Required version. If it contains a "/" it is assumed to be a path with
+	// Required version. If it contains a slash it is assumed to be a path with
 	// a single wheel in the dist directory. Otherwise it is a specific version
 	// (with leading "v" is trimmed if present).
 	Version string
@@ -72,7 +72,7 @@ func BuildPythonProgram(ctx context.Context, options BuildPythonProgramOptions) 
 
 	// Use semantic version or path if it's a path
 	versionStr := strconv.Quote(strings.TrimPrefix(options.Version, "v"))
-	if strings.Contains(options.Version, "/") {
+	if strings.ContainsAny(options.Version, `/\`) {
 		// We expect a dist/ directory with a single whl file present
 		wheels, err := filepath.Glob(filepath.Join(options.Version, "dist/*.whl"))
 		if err != nil {

@@ -14,7 +14,7 @@ import (
 type BuildTypeScriptProgramOptions struct {
 	// Directory that will have a temporary directory created underneath.
 	BaseDir string
-	// Required version. If it contains a "/" it is assumed to be a path with a
+	// Required version. If it contains a slash it is assumed to be a path with a
 	// package.json. Otherwise it is a specific version (with leading "v" is
 	// trimmed if present).
 	Version string
@@ -70,15 +70,40 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 
 	// Create package JSON
 	var packageJSONDepStr string
-	if strings.Contains(options.Version, "/") {
+	if strings.ContainsAny(options.Version, `/\`) {
 		if _, err := os.Stat(filepath.Join(options.Version, "package.json")); err != nil {
 			return nil, fmt.Errorf("failed finding package.json in version dir: %w", err)
 		}
-		localPath := "file:" + options.Version
+
+		// Have to build the local repo
+		if st, err := os.Stat(filepath.Join(options.Version, "node_modules")); err != nil || !st.IsDir() {
+			// Only install dependencies, avoid triggerring any post install build scripts
+			cmd := exec.CommandContext(ctx, "npm", "ci", "--ignore-scripts")
+			cmd.Dir = options.Version
+			cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+			if err := cmd.Run(); err != nil {
+				return nil, fmt.Errorf("failed installing SDK deps: %w", err)
+			}
+
+			// Build the SDK, ignore the unused `create` package as a mostly insignificant micro optimisation.
+			cmd = exec.CommandContext(ctx, "npm", "run", "build", "--", "--ignore", "@temporalio/create")
+			cmd.Dir = options.Version
+			cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+			if err := cmd.Run(); err != nil {
+				return nil, fmt.Errorf("failed building SDK: %w", err)
+			}
+		}
+
+		// Create package.json updates
+		localPath, err := filepath.Abs(options.Version)
+		if err != nil {
+			return nil, fmt.Errorf("cannot get absolute path from version path: %w", err)
+		}
 		pkgs := []string{"activity", "client", "common", "internal-workflow-common",
 			"internal-non-workflow-common", "proto", "worker", "workflow"}
 		for _, pkg := range pkgs {
-			packageJSONDepStr += fmt.Sprintf(`"@temporalio/%v": "%v/packages/%v",`, pkg, localPath, pkg)
+			pkgPath := "file:" + filepath.Join(localPath, "packages", pkg)
+			packageJSONDepStr += fmt.Sprintf(`"@temporalio/%v": %q,`, pkg, pkgPath)
 			packageJSONDepStr += "\n    "
 		}
 	} else {

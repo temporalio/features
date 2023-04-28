@@ -18,8 +18,9 @@ type BuildJavaProgramOptions struct {
 	// should be a gradle project with a build.gradle, a gradlew executable, etc.
 	BaseDir string
 	// If not set, not put in build.gradle which means gradle will automatically
-	// use latest. If set and contains a "/" it is assumed to be a path, otherwise
-	// it is a specific version (with leading "v" is trimmed if present).
+	// use latest. If set and contains a slash it is assumed to be a path,
+	// otherwise it is a specific version (with leading "v" is trimmed if
+	// present).
 	Version string
 	// Required Gradle "implementation" dependency name of BaseDir. This is
 	// usually "<group>:<project-name>:<version>" with each value replaced with
@@ -80,7 +81,7 @@ func BuildJavaProgram(ctx context.Context, options BuildJavaProgramOptions) (*Ja
 	j := &JavaProgram{dir}
 
 	// If we depend on SDK via path, built it and get the JAR
-	isPathDep := strings.Contains(options.Version, "/")
+	isPathDep := strings.ContainsAny(options.Version, `/\`)
 	if isPathDep {
 		cmd := j.buildGradleCommand(ctx, options.Version, false, options.ApplyToCommand, "jar", "gatherRuntimeDeps")
 		if err := cmd.Run(); err != nil {

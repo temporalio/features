@@ -151,11 +151,11 @@ func (g *GoProgram) Dir() string { return g.dir }
 
 // NewCommand makes a new command for the given args.
 func (g *GoProgram) NewCommand(ctx context.Context, args ...string) (*exec.Cmd, error) {
-	exe := "program"
+	exe := "./program"
 	if runtime.GOOS == "windows" {
 		exe += ".exe"
 	}
-	cmd := exec.CommandContext(ctx, filepath.Join(g.dir, exe), args...)
+	cmd := exec.CommandContext(ctx, exe, args...)
 	cmd.Dir = g.dir
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	return cmd, nil

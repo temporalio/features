@@ -12,7 +12,7 @@ import (
 // directory if present is expected to be a subdirectory name just beneath the
 // root directory.
 func (p *Preparer) BuildGoProgram(ctx context.Context) (sdkbuild.Program, error) {
-	p.log.Info("Preparing Go project", "DirName", p.config.DirName)
+	p.log.Info("Building Go project", "DirName", p.config.DirName)
 	prog, err := sdkbuild.BuildGoProgram(ctx, sdkbuild.BuildGoProgramOptions{
 		BaseDir: p.rootDir,
 		DirName: p.config.DirName,

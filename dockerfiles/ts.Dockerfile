@@ -26,6 +26,7 @@ WORKDIR /app
 # Copy CLI build dependencies
 COPY features ./features
 COPY harness ./harness
+COPY sdkbuild ./sdkbuild
 COPY cmd ./cmd
 COPY go.mod go.sum main.go ./
 

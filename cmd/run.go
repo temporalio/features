@@ -24,6 +24,7 @@ import (
 	"go.temporal.io/features/harness/go/harness"
 	"go.temporal.io/features/harness/go/history"
 	"go.temporal.io/features/harness/go/temporalite"
+	"go.temporal.io/features/sdkbuild"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/log"
 )
@@ -119,7 +120,7 @@ func (r *RunConfig) flags() []cli.Flag {
 		&cli.StringFlag{
 			Name:        "prepared-dir",
 			Usage:       "Relative directory already prepared. Cannot include version with this.",
-			Destination: &r.Dir,
+			Destination: &r.DirName,
 		},
 	}, r.dockerRunFlags()...)
 }
@@ -129,20 +130,19 @@ type Runner struct {
 	log    log.Logger
 	config RunConfig
 	// Root of the features repo
-	rootDir        string
-	createTime     time.Time
-	createdTempDir *string
+	rootDir    string
+	createTime time.Time
+	program    sdkbuild.Program
 }
 
 // NewRunner creates a new runner for the given config.
 func NewRunner(config RunConfig) *Runner {
 	return &Runner{
 		// TODO(cretz): Configurable logger
-		log:            harness.NewCLILogger(),
-		config:         config,
-		rootDir:        rootDir(),
-		createTime:     time.Now(),
-		createdTempDir: nil,
+		log:        harness.NewCLILogger(),
+		config:     config,
+		rootDir:    rootDir(),
+		createTime: time.Now(),
 	}
 }
 
@@ -159,16 +159,14 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 		return fmt.Errorf("must have explicit version to generate history")
 	}
 
-	// If prepared dir given, validate and make absolute
-	if r.config.Dir != "" {
-		if strings.ContainsAny(r.config.Dir, `\/`) {
+	// If prepared dir given, validate
+	if r.config.DirName != "" {
+		if strings.ContainsAny(r.config.DirName, `\/`) {
 			return fmt.Errorf("prepared directory must not have path separators, it is always relative to the SDK features root")
 		} else if r.config.Version != "" {
 			return fmt.Errorf("cannot provide version with prepared directory")
 		}
-		// Make the dir absolute
-		r.config.Dir = filepath.Join(r.rootDir, r.config.Dir)
-		if _, err := os.Stat(r.config.Dir); err != nil {
+		if _, err := os.Stat(filepath.Join(r.rootDir, r.config.DirName)); err != nil {
 			return fmt.Errorf("failed checking prepared directory: %w", err)
 		}
 	}
@@ -219,8 +217,8 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 	}
 
 	// Ensure any created temp dir is cleaned on ctrl-c or normal exit
-	if !r.config.RetainTempDir {
-		c := make(chan os.Signal)
+	if r.config.DirName == "" && !r.config.RetainTempDir {
+		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 		go func() {
 			<-c
@@ -243,8 +241,13 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 	switch r.config.Lang {
 	case "go":
 		// If there's a version or prepared dir we run external, otherwise we run local
-		if r.config.Version != "" || r.config.Dir != "" {
-			err = r.RunGoExternal(ctx, run)
+		if r.config.Version != "" || r.config.DirName != "" {
+			if r.config.DirName != "" {
+				r.program, err = sdkbuild.GoProgramFromDir(filepath.Join(r.rootDir, r.config.DirName))
+			}
+			if err == nil {
+				err = r.RunGoExternal(ctx, run)
+			}
 		} else {
 			err = cmd.NewRunner(cmd.RunConfig{
 				Server:         r.config.Server,
@@ -255,11 +258,26 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 			}).Run(ctx, run)
 		}
 	case "java":
-		err = r.RunJavaExternal(ctx, run)
+		if r.config.DirName != "" {
+			r.program, err = sdkbuild.JavaProgramFromDir(filepath.Join(r.rootDir, r.config.DirName))
+		}
+		if err == nil {
+			err = r.RunJavaExternal(ctx, run)
+		}
 	case "ts":
-		err = r.RunTypeScriptExternal(ctx, run)
+		if r.config.DirName != "" {
+			r.program, err = sdkbuild.TypeScriptProgramFromDir(filepath.Join(r.rootDir, r.config.DirName))
+		}
+		if err == nil {
+			err = r.RunTypeScriptExternal(ctx, run)
+		}
 	case "py":
-		err = r.RunPythonExternal(ctx, run)
+		if r.config.DirName != "" {
+			r.program, err = sdkbuild.PythonProgramFromDir(filepath.Join(r.rootDir, r.config.DirName))
+		}
+		if err == nil {
+			err = r.RunPythonExternal(ctx, run)
+		}
 	default:
 		err = fmt.Errorf("unrecognized language")
 	}
@@ -447,8 +465,8 @@ func rootDir() string {
 }
 
 func (r *Runner) destroyTempDir() {
-	if r.createdTempDir != nil {
-		_ = os.RemoveAll(*r.createdTempDir)
+	if r.program != nil {
+		_ = os.RemoveAll(r.program.Dir())
 	}
 }
 

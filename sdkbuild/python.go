@@ -21,7 +21,7 @@ type BuildPythonProgramOptions struct {
 	// (with leading "v" is trimmed if present).
 	Version string
 	// Required Poetry dependency name of BaseDir.
-	HarnessDependency string
+	DependencyName string
 	// If present, this directory is expected to exist beneath base dir. Otherwise
 	// a temporary dir is created.
 	DirName string
@@ -47,8 +47,8 @@ func BuildPythonProgram(ctx context.Context, options BuildPythonProgramOptions) 
 		return nil, fmt.Errorf("version required")
 	} else if _, err := os.Stat(filepath.Join(options.BaseDir, "pyproject.toml")); err != nil {
 		return nil, fmt.Errorf("failed finding pyproject.toml in base dir: %w", err)
-	} else if options.HarnessDependency == "" {
-		return nil, fmt.Errorf("harness dependency required")
+	} else if options.DependencyName == "" {
+		return nil, fmt.Errorf("dependency name required")
 	}
 
 	// Create temp dir if needed that we will remove if creating is unsuccessful
@@ -101,7 +101,7 @@ authors = ["Temporal Technologies Inc <sdk@temporal.io>"]
 [tool.poetry.dependencies]
 python = "^3.7"
 temporalio = ` + versionStr + `
-` + options.HarnessDependency + ` = { path = "../" }
+` + options.DependencyName + ` = { path = "../" }
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

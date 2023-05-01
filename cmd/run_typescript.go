@@ -36,7 +36,7 @@ func (p *Preparer) BuildTypeScriptProgram(ctx context.Context) (sdkbuild.Program
 		BaseDir: p.rootDir,
 		DirName: p.config.DirName,
 		Version: version,
-		HarnessPaths: map[string][]string{
+		TSConfigPaths: map[string][]string{
 			"@temporalio/harness": {"./tslib/harness/ts/harness.js", "../harness/ts/harness.ts"},
 		},
 	})

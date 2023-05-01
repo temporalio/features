@@ -18,9 +18,9 @@ type BuildTypeScriptProgramOptions struct {
 	// package.json. Otherwise it is a specific version (with leading "v" is
 	// trimmed if present).
 	Version string
-	// Required set of paths to include in tsconfig.json paths for the harness.
+	// Required set of paths to include in tsconfig.json paths for the project.
 	// The paths should be relative to one-directory beneath BaseDir.
-	HarnessPaths map[string][]string
+	TSConfigPaths map[string][]string
 	// If present, this directory is expected to exist beneath base dir. Otherwise
 	// a temporary dir is created.
 	DirName string
@@ -45,8 +45,8 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 		return nil, fmt.Errorf("base dir required")
 	} else if options.Version == "" {
 		return nil, fmt.Errorf("version required")
-	} else if len(options.HarnessPaths) == 0 {
-		return nil, fmt.Errorf("at least one harness path required")
+	} else if len(options.TSConfigPaths) == 0 {
+		return nil, fmt.Errorf("at least one tsconfig path required")
 	}
 
 	// Create temp dir if needed that we will remove if creating is unsuccessful
@@ -134,7 +134,7 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 
 	// Create tsconfig
 	var tsConfigPathStr string
-	for name, paths := range options.HarnessPaths {
+	for name, paths := range options.TSConfigPaths {
 		if len(paths) == 0 {
 			return nil, fmt.Errorf("harness path slice is empty")
 		}

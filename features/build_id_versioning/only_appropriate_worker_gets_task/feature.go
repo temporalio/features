@@ -33,7 +33,6 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 	if err != nil {
 		return nil, err
 	}
-	//defer r.Client.TerminateWorkflow(ctx, run.GetID(), run.GetRunID(), "cleanup")
 	// Wait a few seconds for query to say it's ready for this worker to stop
 	err = r.QueryUntilEventually(ctx, run, "waiting", true, 50*time.Millisecond, 5*time.Second)
 	if err != nil {

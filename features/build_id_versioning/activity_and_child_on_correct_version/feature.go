@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"go.temporal.io/features/features/build_id_versioning"
 	"go.temporal.io/features/harness/go/harness"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/client"
@@ -23,19 +22,24 @@ var Feature = harness.Feature{
 var twoWorker worker.Worker
 
 func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error) {
-	// Add some versions to the queue
-	err := build_id_versioning.AddSomeVersions(ctx, r.Client, r.TaskQueue)
+	// Add 1.0 to the queue
+	err := r.Client.UpdateWorkerBuildIdCompatibility(ctx, &client.UpdateWorkerBuildIdCompatibilityOptions{
+		TaskQueue:     r.TaskQueue,
+		WorkerBuildID: "1.0",
+		BecomeDefault: true,
+	})
 	if err != nil {
 		return nil, err
 	}
 	r.Worker.RegisterActivityWithOptions(RanBy1Act, activity.RegisterOptions{Name: "RanBy"})
+	r.Worker.RegisterWorkflowWithOptions(RanBy1Child, workflow.RegisterOptions{Name: "RanByWf"})
 
-	// Also start a 2.1 activity worker
+	// Also start a 2.0 activity worker
 	twoWorker = worker.New(r.Client, r.RunnerConfig.TaskQueue, worker.Options{
-		BuildIDForVersioning:  "2.1",
-		DisableWorkflowWorker: true,
+		BuildIDForVersioning: "2.0",
 	})
 	twoWorker.RegisterActivityWithOptions(RanBy2Act, activity.RegisterOptions{Name: "RanBy"})
+	twoWorker.RegisterWorkflowWithOptions(RanBy2Child, workflow.RegisterOptions{Name: "RanByWf"})
 	err = twoWorker.Start()
 	if err != nil {
 		return nil, err
@@ -47,22 +51,52 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 		return nil, err
 	}
 
+	// Add 2.0 to the queue
+	err = r.Client.UpdateWorkerBuildIdCompatibility(ctx, &client.UpdateWorkerBuildIdCompatibilityOptions{
+		TaskQueue:     r.TaskQueue,
+		WorkerBuildID: "2.0",
+		BecomeDefault: true,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Unblock the workflow
+	err = r.Client.SignalWorkflow(ctx, run.GetID(), run.GetRunID(), "unblocker", nil)
+	if err != nil {
+		return nil, err
+	}
+
 	return run, nil
 }
 
 func Workflow(ctx workflow.Context) error {
+	unblockCh := workflow.GetSignalChannel(ctx, "unblocker")
+	unblockCh.Receive(ctx, nil)
+
 	actOpts := workflow.ActivityOptions{
 		ScheduleToCloseTimeout: 5 * time.Second,
 	}
 	actCtx := workflow.WithActivityOptions(ctx, actOpts)
-	// Ensure we can run an activity
+	childOpts := workflow.ChildWorkflowOptions{
+		WorkflowExecutionTimeout: 5 * time.Second,
+	}
+	childCtx := workflow.WithChildOptions(ctx, childOpts)
+
 	var res int
-	err := workflow.ExecuteActivity(ctx, "RanBy").Get(actCtx, &res)
+	err := workflow.ExecuteActivity(actCtx, "RanBy").Get(ctx, &res)
 	if err != nil {
 		return err
 	}
 	if res != 1 {
 		return errors.New("expected activity to run on version 1.0 worker")
+	}
+	err = workflow.ExecuteChildWorkflow(childCtx, "RanByWf").Get(ctx, &res)
+	if err != nil {
+		return err
+	}
+	if res != 1 {
+		return errors.New("expected child wf to run on version 1.0 worker")
 	}
 
 	useDefaultVer := workflow.ActivityOptions{
@@ -75,6 +109,16 @@ func Workflow(ctx workflow.Context) error {
 	if res != 2 {
 		return errors.New("expected activity to run on default version worker")
 	}
+	useDefaultVerChild := workflow.ChildWorkflowOptions{
+		// TODO: Use default version
+	}
+	err = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(childCtx, useDefaultVerChild), "RanByWf").Get(ctx, &res)
+	if err != nil {
+		return err
+	}
+	if res != 2 {
+		return errors.New("expected child wf to run on version 1.0 worker")
+	}
 
 	return nil
 }
@@ -82,7 +126,14 @@ func Workflow(ctx workflow.Context) error {
 func RanBy1Act(_ context.Context) int {
 	return 1
 }
+func RanBy1Child(_ workflow.Context) int {
+	return 1
+}
+
 func RanBy2Act(_ context.Context) int {
+	return 2
+}
+func RanBy2Child(_ workflow.Context) int {
 	return 2
 }
 

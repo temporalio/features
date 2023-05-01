@@ -13,6 +13,8 @@ import (
 
 var encounteredError error
 
+// TODO: Error isn't going to be fatal. Unclear if this test is worth anything in here, it'd need to
+//	 use client directly
 var Feature = harness.Feature{
 	Workflows: Workflow,
 	Execute:   Execute,

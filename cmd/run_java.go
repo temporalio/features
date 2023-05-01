@@ -55,6 +55,9 @@ func (r *Runner) RunJavaExternal(ctx context.Context, run *cmd.Run) error {
 		}
 		args = append(args, "--client-key-path", clientKeyPath)
 	}
+	if r.config.SummaryURI != "" {
+		args = append(args, "--summary-uri", r.config.SummaryURI)
+	}
 	args = append(args, run.ToArgs()...)
 
 	// Run

@@ -261,4 +261,8 @@ public class Runner implements Closeable {
   public Worker getWorker() {
     return worker;
   }
+
+  public void Skip(String message) {
+    throw new TestSkippedException(message);
+  }
 }

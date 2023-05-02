@@ -11,18 +11,16 @@ import io.temporal.workflow.SignalMethod;
 import io.temporal.workflow.UpdateMethod;
 import io.temporal.workflow.UpdateValidatorMethod;
 import io.temporal.workflow.Workflow;
-import org.junit.jupiter.api.Assertions;
-import update.updateutil.UpdateUtil;
-
 import java.util.concurrent.atomic.AtomicInteger;
+import org.junit.jupiter.api.Assertions;
 
 @ActivityInterface
 public interface feature extends Feature, SimpleWorkflow {
 
-  @UpdateMethod()
+  @UpdateMethod
   void execThrow();
 
-  @UpdateMethod()
+  @UpdateMethod
   void updateWithValidator();
 
   @UpdateValidatorMethod(updateName = "updateWithValidator")
@@ -35,6 +33,7 @@ public interface feature extends Feature, SimpleWorkflow {
 
     private boolean doFinish = false;
     private static final AtomicInteger retryCount = new AtomicInteger();
+
     @Override
     public void workflow() {
       Workflow.await(() -> this.doFinish);
@@ -65,10 +64,7 @@ public interface feature extends Feature, SimpleWorkflow {
 
     @Override
     public Run execute(Runner runner) {
-      String reason = UpdateUtil.CheckServerSupportsUpdate(runner.client);
-      if (!reason.isEmpty()) {
-        runner.Skip(reason);
-      }
+      runner.skipIfUpdateNotSupported();
 
       var run = runner.executeSingleParameterlessWorkflow();
       var stub = runner.client.newWorkflowStub(feature.class, run.execution.getWorkflowId());
@@ -81,7 +77,7 @@ public interface feature extends Feature, SimpleWorkflow {
         Assertions.assertTrue(e.getCause() instanceof ApplicationFailure);
         Assertions.assertEquals("Failure", ((ApplicationFailure) e.getCause()).getType());
         Assertions.assertEquals(
-                "message='simulated 3', type='Failure', nonRetryable=false", e.getCause().getMessage());
+            "message='simulated 3', type='Failure', nonRetryable=false", e.getCause().getMessage());
       }
 
       // Check an update handle validator will fail on any exception
@@ -91,7 +87,8 @@ public interface feature extends Feature, SimpleWorkflow {
       } catch (WorkflowUpdateException e) {
         Assertions.assertTrue(e.getCause() instanceof RuntimeException);
         Assertions.assertEquals(
-                "message='bad validator', type='java.lang.RuntimeException', nonRetryable=false", e.getCause().getMessage());
+            "message='bad validator', type='java.lang.RuntimeException', nonRetryable=false",
+            e.getCause().getMessage());
       }
 
       stub.finish();

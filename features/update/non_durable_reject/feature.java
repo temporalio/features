@@ -6,17 +6,16 @@ import io.temporal.sdkfeatures.Run;
 import io.temporal.sdkfeatures.Runner;
 import io.temporal.workflow.*;
 import org.junit.jupiter.api.Assertions;
-import update.updateutil.UpdateUtil;
 
 @WorkflowInterface
 public interface feature extends Feature {
   int step = 2;
-  int count  = 5;
+  int count = 5;
 
   @WorkflowMethod
   Integer workflow();
 
-  @UpdateMethod()
+  @UpdateMethod
   int update(int i);
 
   @UpdateValidatorMethod(updateName = "update")
@@ -48,17 +47,15 @@ public interface feature extends Feature {
         throw new IllegalArgumentException("expected non-negative value " + i);
       }
     }
+
     @Override
     public void finish() {
       this.doFinish = true;
     }
 
     @Override
-    public Run execute(Runner runner) {
-      String reason = UpdateUtil.CheckServerSupportsUpdate(runner.client);
-      if (!reason.isEmpty()) {
-        runner.Skip(reason);
-      }
+    public Run execute(Runner runner) throws Exception {
+      runner.skipIfUpdateNotSupported();
 
       var run = runner.executeSingleParameterlessWorkflow();
       var stub = runner.client.newWorkflowStub(feature.class, run.execution.getWorkflowId());
@@ -70,14 +67,14 @@ public interface feature extends Feature {
       }
 
       stub.finish();
-      UpdateUtil.RequireNoUpdateRejectedEvents(runner, run);
+      runner.requireNoUpdateRejectedEvents(run);
 
       return run;
     }
 
     @Override
     public void checkResult(Runner runner, Run run) throws Exception {
-      Assertions.assertEquals(step*count, runner.waitForRunResult(run, Integer.class));
+      Assertions.assertEquals(step * count, runner.waitForRunResult(run, Integer.class));
     }
   }
 }

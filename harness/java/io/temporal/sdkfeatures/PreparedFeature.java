@@ -4,27 +4,28 @@ import io.temporal.common.metadata.POJOWorkflowImplMetadata;
 
 public class PreparedFeature {
 
-  static PreparedFeature[] ALL = PreparedFeature.prepareFeatures(
-      activity.retry_on_error.feature.Impl.class,
-      activity.cancel_try_cancel.feature.Impl.class,
-      child_workflow.result.feature.Impl.class,
-      continue_as_new.continue_as_same.feature.Impl.class,
-      data_converter.binary.feature.Impl.class,
-      data_converter.empty.feature.Impl.class,
-      eager_activity.non_remote_activities_worker.feature.Impl.class,
-      query.successful_query.feature.Impl.class,
-      query.timeout_due_to_no_active_workers.feature.Impl.class,
-      query.unexpected_arguments.feature.Impl.class,
-      query.unexpected_query_type_name.feature.Impl.class,
-      query.unexpected_return_type.feature.Impl.class,
-      schedule.cron.feature.Impl.class,
-      signal.external.feature.Impl.class,
-      update.activities.feature.Impl.class,
-      update.non_durable_reject.feature.Impl.class,
-      update.user_panics.feature.Impl.class,
-      update.worker_restart.feature.Impl.class,
-      update.validation_replay.feature.Impl.class,
-      update.self.feature.Impl.class);
+  static PreparedFeature[] ALL =
+      PreparedFeature.prepareFeatures(
+          activity.retry_on_error.feature.Impl.class,
+          activity.cancel_try_cancel.feature.Impl.class,
+          child_workflow.result.feature.Impl.class,
+          continue_as_new.continue_as_same.feature.Impl.class,
+          data_converter.binary.feature.Impl.class,
+          data_converter.empty.feature.Impl.class,
+          eager_activity.non_remote_activities_worker.feature.Impl.class,
+          query.successful_query.feature.Impl.class,
+          query.timeout_due_to_no_active_workers.feature.Impl.class,
+          query.unexpected_arguments.feature.Impl.class,
+          query.unexpected_query_type_name.feature.Impl.class,
+          query.unexpected_return_type.feature.Impl.class,
+          schedule.cron.feature.Impl.class,
+          signal.external.feature.Impl.class,
+          update.activities.feature.Impl.class,
+          update.non_durable_reject.feature.Impl.class,
+          update.user_panics.feature.Impl.class,
+          update.worker_restart.feature.Impl.class,
+          update.validation_replay.feature.Impl.class,
+          update.self.feature.Impl.class);
 
   @SafeVarargs
   static PreparedFeature[] prepareFeatures(Class<? extends Feature>... classes) {

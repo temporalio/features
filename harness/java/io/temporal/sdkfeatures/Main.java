@@ -11,7 +11,8 @@ import picocli.CommandLine;
 
 import javax.net.ssl.SSLException;
 import java.io.*;
-import java.net.*;
+import java.net.Socket;
+import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -27,7 +28,7 @@ public class Main implements Runnable {
     SKIPPED;
   }
 
-  class SummaryEntry {
+  private static class SummaryEntry {
     String name;
     String outcome;
     String message;
@@ -51,9 +52,27 @@ public class Main implements Runnable {
     }
   }
 
+  BufferedWriter createSummaryServerWriter() {
+    try {
+      URI uri = new URI(summaryUri);
+      switch (uri.getScheme()) {
+        case "tcp":
+          Socket socket = new Socket(uri.getHost(), uri.getPort());
+          return new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF-8"));
+        case "file":
+          FileWriter fileWriter = new FileWriter(uri.getPath(), true);
+          return new BufferedWriter(fileWriter);
+        default:
+          throw new IllegalArgumentException("unsupported summary scheme: " + uri.getScheme());
+      }
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   private static final Logger log = LoggerFactory.getLogger(Main.class);
 
-  @Option(names = "--summary-uri", description = "The URL of the summary server")
+  @Option(names = "--summary-uri", description = "The URL of the summary server", required = true)
   private String summaryUri;
 
   @Option(names = "--server", description = "The host:port of the server", required = true)
@@ -92,73 +111,63 @@ public class Main implements Runnable {
       throw new RuntimeException("Client cert path must be specified since key path is");
     }
 
-    // Summary server
-    BufferedWriter writer = null;
-    try {
-      URI uri = new URI(summaryUri);
-      switch (uri.getScheme()) {
-        case "tcp":
-          Socket socket = new Socket(uri.getHost(), uri.getPort());
-          writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF-8"));
-          break;
-        case "file":
-          FileWriter fileWriter = new FileWriter(uri.getPath(), true);
-          writer = new BufferedWriter(fileWriter);
-          break;
-        default:
-          throw new IllegalArgumentException("unsupported summary scheme: " + uri.getScheme());
+    try (BufferedWriter writer = createSummaryServerWriter(); ) {
+      ObjectMapper mapper = new ObjectMapper();
+
+      // Run each
+      // TODO(cretz): Concurrent with log capturing
+      var failureCount = 0;
+      var failedFeatures = new StringBuilder();
+      for (var featureWithTaskQueue : features) {
+        var pieces = featureWithTaskQueue.split(":", 2);
+        // Find feature
+        var feature =
+            Arrays.stream(PreparedFeature.ALL)
+                .filter(p -> p.dir.equals(pieces[0]))
+                .findAny()
+                .orElseThrow(
+                    () ->
+                        new NoSuchElementException(
+                            "feature "
+                                + pieces[0]
+                                + " not found. Make sure you add it to PreparedFeature.ALL"));
+
+        log.info("Running feature {}", feature.dir);
+        var config = new Runner.Config();
+        config.serverHostPort = server;
+        config.namespace = namespace;
+        config.sslContext = sslContext;
+        config.taskQueue = pieces[1];
+        Outcome outcome = Outcome.PASSED;
+        String message = "";
+        try {
+          try (var runner = new Runner(config, feature)) {
+            runner.run();
+          } catch (TestSkippedException e) {
+            outcome = Outcome.SKIPPED;
+            message = e.getMessage();
+            log.info("Skipping feature {} because {}", feature.dir, e.getMessage());
+          }
+        } catch (Exception e) {
+          outcome = Outcome.FAILED;
+          message = e.getMessage();
+          failureCount++;
+          log.error("Feature {} failed", feature.dir, e);
+          failedFeatures.append("\n").append(feature.dir).append(": ").append(e.getMessage());
+        }
+        try {
+          String jsonInString =
+              mapper.writeValueAsString(new SummaryEntry(feature.dir, outcome.toString(), message));
+          writer.write(jsonInString);
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
       }
-    } catch (Exception e) {
+      Verify.verify(
+          failureCount == 0, "%s feature(s) failed: %s", failureCount, failedFeatures.toString());
+    } catch (IOException e) {
       throw new RuntimeException(e);
     }
-    
-    ObjectMapper mapper = new ObjectMapper();
-
-    // Run each
-    // TODO(cretz): Concurrent with log capturing
-    var failureCount = 0;
-    var failedFeatures = new StringBuilder();
-    for (var featureWithTaskQueue : features) {
-      var pieces = featureWithTaskQueue.split(":", 2);
-      // Find feature
-      var feature = Arrays.stream(PreparedFeature.ALL)
-          .filter(p -> p.dir.equals(pieces[0]))
-          .findAny()
-          .orElseThrow(() -> new NoSuchElementException(
-              "feature " + pieces[0] + " not found. Make sure you add it to PreparedFeature.ALL"));
-
-      log.info("Running feature {}", feature.dir);
-      var config = new Runner.Config();
-      config.serverHostPort = server;
-      config.namespace = namespace;
-      config.sslContext = sslContext;
-      config.taskQueue = pieces[1];
-      Outcome outcome = Outcome.PASSED;
-      String message = "";
-      try {
-        try (var runner = new Runner(config, feature)) {
-          runner.run();
-        } catch (TestSkippedException e) {
-          outcome = Outcome.SKIPPED;
-          message = e.getMessage();
-          log.info("Skipping feature {} because {}", feature.dir, e.getMessage());
-        }
-      } catch (Exception e) {
-        outcome = Outcome.FAILED;
-        message = e.getMessage();
-        failureCount++;
-        log.error("Feature {} failed", feature.dir, e);
-        failedFeatures.append("\n").append(feature.dir).append(": ").append(e.getMessage());
-      }
-      try {
-        String jsonInString = mapper.writeValueAsString(new SummaryEntry(feature.dir, outcome.toString(), message));
-        writer.write(jsonInString);
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-    }
-    Verify.verify(failureCount == 0, "%s feature(s) failed: %s",
-        failureCount, failedFeatures.toString());
   }
 
   public static void main(String... args) {

@@ -5,37 +5,38 @@ import io.temporal.activity.ActivityMethod;
 import io.temporal.sdkfeatures.Feature;
 import io.temporal.sdkfeatures.Run;
 import io.temporal.sdkfeatures.Runner;
-import io.temporal.workflow.SignalMethod;
-import io.temporal.workflow.UpdateMethod;
-import io.temporal.workflow.Workflow;
-import org.junit.jupiter.api.Assertions;
-import update.updateutil.UpdateUtil;
-
+import io.temporal.workflow.*;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
+import org.junit.jupiter.api.Assertions;
 
 @ActivityInterface
-public interface feature extends Feature, IntWorkflow {
+public interface feature extends Feature {
+
+  @WorkflowInterface
+  interface IntWorkflow {
+    @WorkflowMethod
+    int workflow();
+
+    @UpdateMethod
+    int update(int i);
+
+    @SignalMethod
+    void finish();
+  }
 
   @ActivityMethod
   void block();
 
-  @UpdateMethod()
-  int update(int i);
-
-  @SignalMethod
-  void finish();
-
-  class Impl implements feature {
+  class Impl implements feature, IntWorkflow {
 
     private boolean doFinish = false;
     private int counter = 0;
 
-    static Object updateStartedLock = new Object();
+    static final Object updateStartedLock = new Object();
     static Boolean updateStarted = false;
 
-    static Object updateContinueLock = new Object();
+    static final Object updateContinueLock = new Object();
     static Boolean updateContinue = false;
 
     private static void signalUpdateStarted() {
@@ -47,7 +48,7 @@ public interface feature extends Feature, IntWorkflow {
 
     private static void waitUpdateStarted() {
       synchronized (updateStartedLock) {
-        while(!updateStarted) {
+        while (!updateStarted) {
           try {
             updateStartedLock.wait();
           } catch (InterruptedException e) {
@@ -67,7 +68,7 @@ public interface feature extends Feature, IntWorkflow {
 
     private static void waitUpdateContinue() {
       synchronized (updateContinueLock) {
-        while(!updateContinue) {
+        while (!updateContinue) {
           try {
             updateContinueLock.wait();
           } catch (InterruptedException e) {
@@ -84,7 +85,6 @@ public interface feature extends Feature, IntWorkflow {
       waitUpdateContinue();
     }
 
-
     @Override
     public int workflow() {
       Workflow.await(() -> this.doFinish);
@@ -93,8 +93,9 @@ public interface feature extends Feature, IntWorkflow {
 
     @Override
     public int update(int i) {
-      var activities = activities(feature.class, builder -> builder
-        .setScheduleToCloseTimeout(Duration.ofSeconds(10)));
+      var activities =
+          activities(
+              feature.class, builder -> builder.setScheduleToCloseTimeout(Duration.ofSeconds(10)));
 
       activities.block();
       var tmp = counter;
@@ -108,33 +109,21 @@ public interface feature extends Feature, IntWorkflow {
     }
 
     @Override
-    public Run execute(Runner runner) {
-      String reason = UpdateUtil.CheckServerSupportsUpdate(runner.client);
-      if (!reason.isEmpty()) {
-        runner.Skip(reason);
-      }
+    public Run execute(Runner runner) throws Exception {
+      runner.skipIfUpdateNotSupported();
 
       var run = runner.executeSingleParameterlessWorkflow();
-      var stub = runner.client.newWorkflowStub(feature.class, run.execution.getWorkflowId());
+      var stub =
+          runner.client.newWorkflowStub(feature.IntWorkflow.class, run.execution.getWorkflowId());
 
       CompletableFuture<Integer> updateResult = CompletableFuture.supplyAsync(() -> stub.update(1));
       waitUpdateStarted();
       runner.getWorkerFactory().shutdown();
-      try {
-        Thread.sleep(1000);
-      } catch (InterruptedException e) {
-        throw new RuntimeException(e);
-      }
+      Thread.sleep(1000);
       runner.restartWorker();
       signalUpdateContinue();
 
-      try {
-        Assertions.assertEquals(0, updateResult.get());
-      } catch (InterruptedException e) {
-        throw new RuntimeException(e);
-      } catch (ExecutionException e) {
-        throw new RuntimeException(e);
-      }
+      Assertions.assertEquals(0, updateResult.get());
       stub.finish();
       return run;
     }

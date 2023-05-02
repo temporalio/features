@@ -1,5 +1,6 @@
 plugins {
     id 'java'
+    id 'com.diffplug.spotless' version '6.18.0'
 }
 
 group 'io.temporal'
@@ -13,6 +14,14 @@ java {
 repositories {
     mavenCentral()
 }
+
+spotless {
+    ratchetFrom 'origin/main'
+    java {
+        googleJavaFormat('1.16.0')
+    }
+}
+
 
 dependencies {
     implementation 'ch.qos.logback:logback-classic:1.2.9'

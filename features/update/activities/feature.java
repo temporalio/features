@@ -7,24 +7,21 @@ import io.temporal.sdkfeatures.Run;
 import io.temporal.sdkfeatures.Runner;
 import io.temporal.sdkfeatures.SimpleWorkflow;
 import io.temporal.workflow.*;
-import org.junit.jupiter.api.Assertions;
-import update.updateutil.UpdateUtil;
-
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import org.junit.jupiter.api.Assertions;
 
 @ActivityInterface
 public interface feature extends Feature, SimpleWorkflow {
   int activityResult = 6;
-  int activityCount  = 5;
+  int activityCount = 5;
 
   @ActivityMethod
   int someActivity();
 
-  @UpdateMethod()
+  @UpdateMethod
   int update();
-
 
   @SignalMethod
   void finish();
@@ -38,7 +35,6 @@ public interface feature extends Feature, SimpleWorkflow {
       return activityResult;
     }
 
-
     @Override
     public void workflow() {
       Workflow.await(() -> this.doFinish);
@@ -46,8 +42,9 @@ public interface feature extends Feature, SimpleWorkflow {
 
     @Override
     public int update() {
-      var activities = activities(feature.class, builder -> builder
-        .setScheduleToCloseTimeout(Duration.ofSeconds(5)));
+      var activities =
+          activities(
+              feature.class, builder -> builder.setScheduleToCloseTimeout(Duration.ofSeconds(5)));
       List<String> results = new ArrayList();
 
       List<Promise<Integer>> promiseList = new ArrayList<>();
@@ -76,16 +73,13 @@ public interface feature extends Feature, SimpleWorkflow {
 
     @Override
     public Run execute(Runner runner) {
-      String reason = UpdateUtil.CheckServerSupportsUpdate(runner.client);
-      if (!reason.isEmpty()) {
-        runner.Skip(reason);
-      }
+      runner.skipIfUpdateNotSupported();
 
       var run = runner.executeSingleParameterlessWorkflow();
       var stub = runner.client.newWorkflowStub(feature.class, run.execution.getWorkflowId());
 
       Integer updateResult = stub.update();
-      Assertions.assertEquals(activityResult*activityCount, updateResult);
+      Assertions.assertEquals(activityResult * activityCount, updateResult);
 
       stub.finish();
       return run;

@@ -8,6 +8,7 @@ import (
 	"go.temporal.io/features/features/build_id_versioning/activity_and_child_on_correct_version"
 	"go.temporal.io/features/features/build_id_versioning/continues_as_new_on_correct_version"
 	"go.temporal.io/features/features/build_id_versioning/only_appropriate_worker_gets_task"
+	"go.temporal.io/features/features/build_id_versioning/unversioned_worker_gets_unversioned_task"
 	"go.temporal.io/features/features/build_id_versioning/unversioned_worker_no_task"
 	"go.temporal.io/features/features/build_id_versioning/versions_added_while_worker_polling"
 	"go.temporal.io/features/features/child_workflow/result"
@@ -78,5 +79,6 @@ func init() {
 		versions_added_while_worker_polling.Feature,
 		activity_on_same_version.Feature,
 		continues_as_new_on_correct_version.Feature,
+		unversioned_worker_gets_unversioned_task.Feature,
 	)
 }

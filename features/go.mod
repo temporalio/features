@@ -5,6 +5,7 @@ go 1.18
 require (
 	github.com/gogo/protobuf v1.3.2
 	github.com/google/uuid v1.3.0
+	github.com/pkg/errors v0.9.1
 	github.com/uber-go/tally/v4 v4.1.1
 	go.temporal.io/api v1.21.0
 	go.temporal.io/features/harness/go v1.0.0

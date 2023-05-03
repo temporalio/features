@@ -6,9 +6,11 @@ import io.temporal.sdkfeatures.Feature;
 import io.temporal.sdkfeatures.Run;
 import io.temporal.sdkfeatures.Runner;
 import io.temporal.workflow.*;
+import org.junit.jupiter.api.Assertions;
+
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
-import org.junit.jupiter.api.Assertions;
+import java.util.concurrent.Semaphore;
 
 @ActivityInterface
 public interface feature extends Feature {
@@ -33,56 +35,13 @@ public interface feature extends Feature {
     private boolean doFinish = false;
     private int counter = 0;
 
-    static final Object updateStartedLock = new Object();
-    static Boolean updateStarted = false;
-
-    static final Object updateContinueLock = new Object();
-    static Boolean updateContinue = false;
-
-    private static void signalUpdateStarted() {
-      synchronized (updateStartedLock) {
-        updateStarted = true;
-        updateStartedLock.notify();
-      }
-    }
-
-    private static void waitUpdateStarted() {
-      synchronized (updateStartedLock) {
-        while (!updateStarted) {
-          try {
-            updateStartedLock.wait();
-          } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-          }
-        }
-        updateStarted = false;
-      }
-    }
-
-    private static void signalUpdateContinue() {
-      synchronized (updateContinueLock) {
-        updateContinue = true;
-        updateContinueLock.notify();
-      }
-    }
-
-    private static void waitUpdateContinue() {
-      synchronized (updateContinueLock) {
-        while (!updateContinue) {
-          try {
-            updateContinueLock.wait();
-          } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-          }
-        }
-        updateContinue = false;
-      }
-    }
+    private static Semaphore updateStartedSemaphore = new Semaphore(0);
+    private static Semaphore updateContinueSemaphore = new Semaphore(0);
 
     @Override
     public void block() {
-      signalUpdateStarted();
-      waitUpdateContinue();
+      updateStartedSemaphore.release();
+      updateContinueSemaphore.acquireUninterruptibly();
     }
 
     @Override
@@ -117,11 +76,11 @@ public interface feature extends Feature {
           runner.client.newWorkflowStub(feature.IntWorkflow.class, run.execution.getWorkflowId());
 
       CompletableFuture<Integer> updateResult = CompletableFuture.supplyAsync(() -> stub.update(1));
-      waitUpdateStarted();
-      runner.getWorkerFactory().shutdown();
+      updateStartedSemaphore.acquireUninterruptibly();
+      runner.getWorkerFactory();
       Thread.sleep(1000);
       runner.restartWorker();
-      signalUpdateContinue();
+      updateContinueSemaphore.release();
 
       Assertions.assertEquals(0, updateResult.get());
       stub.finish();

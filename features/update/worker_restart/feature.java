@@ -77,7 +77,7 @@ public interface feature extends Feature {
 
       CompletableFuture<Integer> updateResult = CompletableFuture.supplyAsync(() -> stub.update(1));
       updateStartedSemaphore.acquireUninterruptibly();
-      runner.getWorkerFactory();
+      runner.getWorkerFactory().shutdown();
       Thread.sleep(1000);
       runner.restartWorker();
       updateContinueSemaphore.release();

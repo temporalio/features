@@ -3,6 +3,7 @@ package build_id_versioning
 import (
 	"context"
 
+	"go.temporal.io/api/workflowservice/v1"
 	"go.temporal.io/sdk/client"
 )
 
@@ -29,4 +30,15 @@ func AddSomeVersions(ctx context.Context, c client.Client, tq string) error {
 	}
 
 	return nil
+}
+
+func ServerSupportsBuildIDVersioning(ctx context.Context, c client.Client) (bool, error) {
+	capabilities, err := c.WorkflowService().GetSystemInfo(ctx, &workflowservice.GetSystemInfoRequest{})
+	if err != nil {
+		return false, err
+	}
+	if capabilities.Capabilities.BuildIdBasedVersioning {
+		return true, nil
+	}
+	return false, nil
 }

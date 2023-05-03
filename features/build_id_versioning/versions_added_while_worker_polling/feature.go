@@ -3,8 +3,10 @@ package versions_added_while_worker_polling
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
+	"go.temporal.io/features/features/build_id_versioning"
 	"go.temporal.io/features/harness/go/harness"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
@@ -18,6 +20,12 @@ var Feature = harness.Feature{
 }
 
 func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error) {
+	if supported, err := build_id_versioning.ServerSupportsBuildIDVersioning(ctx, r.Client); !supported || err != nil {
+		if err != nil {
+			return nil, err
+		}
+		return nil, r.Skip(fmt.Sprintf("server does not support build id versioning"))
+	}
 	// Add 1.0 to the queue
 	err := r.Client.UpdateWorkerBuildIdCompatibility(ctx, &client.UpdateWorkerBuildIdCompatibilityOptions{
 		TaskQueue:     r.TaskQueue,

@@ -20,6 +20,12 @@ var Feature = harness.Feature{
 }
 
 func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error) {
+	if supported, err := build_id_versioning.ServerSupportsBuildIDVersioning(ctx, r.Client); !supported || err != nil {
+		if err != nil {
+			return nil, err
+		}
+		return nil, r.Skip(fmt.Sprintf("server does not support build id versioning"))
+	}
 	// Add some versions to the queue
 	err := build_id_versioning.AddSomeVersions(ctx, r.Client, r.TaskQueue)
 	if err != nil {

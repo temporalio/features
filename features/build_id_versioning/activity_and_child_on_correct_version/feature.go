@@ -146,7 +146,7 @@ func RanBy2Child(_ workflow.Context) int {
 }
 
 func CheckHistory(ctx context.Context, r *harness.Runner, run client.WorkflowRun) error {
-	// Shut down the 2.1 worker
+	// Shut down the 2.0 worker
 	twoWorker.Stop()
 	return r.CheckHistoryDefault(ctx, run)
 }

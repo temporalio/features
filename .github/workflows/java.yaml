@@ -53,6 +53,7 @@ jobs:
           path: features
           repository: ${{ inputs.features-repo-path }}
           ref: ${{ inputs.features-repo-ref }}
+          fetch-depth: 0
       - name: Checkout Java SDK repo
         uses: actions/checkout@v3
         if: ${{ inputs.version-is-repo-ref }}

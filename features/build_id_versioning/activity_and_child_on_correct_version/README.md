@@ -11,9 +11,9 @@ queue's default version (if it has one - or no versioning at all).
 
 * Create versioned task queue which has version sets `{1.0}` 
 * Start a `1.0` worker
-* Start a `2.1` worker
+* Start a `2.0` worker
 * Start the workflow and it should wait for signal to proceed
 * Add version `{2.0}` to the queue
 * Signal the workflow to proceed
 * Run an activity & child wf w/ default options - they must complete on the `1.0` worker
-* Run an activity & child wf w/ option to use default version - it must complete on the `2.1` worker
+* Run an activity & child wf w/ option to use default version - it must complete on the `2.0` worker

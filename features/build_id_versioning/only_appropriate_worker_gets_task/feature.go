@@ -6,8 +6,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"go.temporal.io/api/common/v1"
-	"go.temporal.io/api/workflowservice/v1"
 	"go.temporal.io/features/features/build_id_versioning"
 	"go.temporal.io/features/harness/go/harness"
 	"go.temporal.io/sdk/client"
@@ -40,13 +38,7 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 	}
 	// Stop the worker
 	r.StopWorker()
-	_, err = r.Client.WorkflowService().ResetStickyTaskQueue(ctx, &workflowservice.ResetStickyTaskQueueRequest{
-		Namespace: r.Namespace,
-		Execution: &common.WorkflowExecution{
-			WorkflowId: run.GetID(),
-			RunId:      run.GetRunID(),
-		},
-	})
+	err = r.ResetStickyQueue(ctx, run)
 	// Now issue the signal - if any of the subsequently launched workers is compatible then the
 	// workflow will complete.
 	err = r.Client.SignalWorkflow(ctx, run.GetID(), run.GetRunID(), "unblocker", nil)
@@ -56,19 +48,6 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 
 	// Start workers with version `2.0` and `1.0` and make sure they don't get tasks
 	for _, version := range []string{"2.0", "1.0"} {
-		// Clear sticky status so query is not delayed. This also errors if workflow is finished
-		// already which is convenient.
-		_, err = r.Client.WorkflowService().ResetStickyTaskQueue(ctx, &workflowservice.ResetStickyTaskQueueRequest{
-			Namespace: r.Namespace,
-			Execution: &common.WorkflowExecution{
-				WorkflowId: run.GetID(),
-				RunId:      run.GetRunID(),
-			},
-		})
-		if err != nil {
-			return nil, err
-		}
-
 		r.Feature.WorkerOptions.BuildIDForVersioning = version
 		err = r.StartWorker()
 		if err != nil {
@@ -82,6 +61,10 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 		}
 
 		r.StopWorker()
+		err = r.ResetStickyQueue(ctx, run)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Complete the workflow with `2.1` worker

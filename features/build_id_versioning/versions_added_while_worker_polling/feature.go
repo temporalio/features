@@ -5,8 +5,6 @@ import (
 	"errors"
 	"time"
 
-	"go.temporal.io/api/common/v1"
-	"go.temporal.io/api/workflowservice/v1"
 	"go.temporal.io/features/harness/go/harness"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
@@ -46,13 +44,7 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 
 	// Stop worker & start 1.1 worker
 	r.StopWorker()
-	_, err = r.Client.WorkflowService().ResetStickyTaskQueue(ctx, &workflowservice.ResetStickyTaskQueueRequest{
-		Namespace: r.Namespace,
-		Execution: &common.WorkflowExecution{
-			WorkflowId: run.GetID(),
-			RunId:      run.GetRunID(),
-		},
-	})
+	err = r.ResetStickyQueue(ctx, run)
 	if err != nil {
 		return nil, err
 	}
@@ -106,13 +98,7 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 	}
 	// Stop and start at 1.2
 	r.StopWorker()
-	_, err = r.Client.WorkflowService().ResetStickyTaskQueue(ctx, &workflowservice.ResetStickyTaskQueueRequest{
-		Namespace: r.Namespace,
-		Execution: &common.WorkflowExecution{
-			WorkflowId: run.GetID(),
-			RunId:      run.GetRunID(),
-		},
-	})
+	err = r.ResetStickyQueue(ctx, run)
 	if err != nil {
 		return nil, err
 	}

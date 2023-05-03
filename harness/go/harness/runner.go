@@ -11,7 +11,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.temporal.io/api/common/v1"
 	"go.temporal.io/api/serviceerror"
+	"go.temporal.io/api/workflowservice/v1"
 	"go.temporal.io/features/harness/go/history"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/log"
@@ -330,6 +332,19 @@ func (r *Runner) StopWorker() {
 		r.Worker.Stop()
 		r.Worker = nil
 	}
+}
+
+// ResetStickyQueue resets the sticky queue for the given run -- use this after StopWorker to avoid
+// a delay waiting for the task to get shuffled to the normal queue.
+func (r *Runner) ResetStickyQueue(ctx context.Context, run client.WorkflowRun) error {
+	_, err := r.Client.WorkflowService().ResetStickyTaskQueue(ctx, &workflowservice.ResetStickyTaskQueueRequest{
+		Namespace: r.Namespace,
+		Execution: &common.WorkflowExecution{
+			WorkflowId: run.GetID(),
+			RunId:      run.GetRunID(),
+		},
+	})
+	return err
 }
 
 func (r *Runner) StartWorker() error {

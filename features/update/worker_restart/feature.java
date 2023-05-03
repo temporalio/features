@@ -6,11 +6,10 @@ import io.temporal.sdkfeatures.Feature;
 import io.temporal.sdkfeatures.Run;
 import io.temporal.sdkfeatures.Runner;
 import io.temporal.workflow.*;
-import org.junit.jupiter.api.Assertions;
-
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Semaphore;
+import org.junit.jupiter.api.Assertions;
 
 @ActivityInterface
 public interface feature extends Feature {

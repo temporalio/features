@@ -1,23 +1,22 @@
 package io.temporal.sdkfeatures;
 
+import static picocli.CommandLine.*;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Verify;
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslContext;
 import io.micrometer.core.instrument.util.StringUtils;
 import io.temporal.serviceclient.SimpleSslContextBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import picocli.CommandLine;
-
-import javax.net.ssl.SSLException;
 import java.io.*;
 import java.net.Socket;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
 import java.util.NoSuchElementException;
-
-import static picocli.CommandLine.*;
+import javax.net.ssl.SSLException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import picocli.CommandLine;
 
 @Command(name = "features", description = "Runs Java features")
 public class Main implements Runnable {

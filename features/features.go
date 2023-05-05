@@ -27,7 +27,7 @@ import (
 	"go.temporal.io/features/features/update/intercept"
 	"go.temporal.io/features/features/update/non_durable_reject"
 	"go.temporal.io/features/features/update/self"
-	"go.temporal.io/features/features/update/user_panics"
+	"go.temporal.io/features/features/update/task_failure"
 	"go.temporal.io/features/features/update/validation_replay"
 	"go.temporal.io/features/features/update/worker_restart"
 	"go.temporal.io/features/harness/go/harness"
@@ -61,7 +61,7 @@ func init() {
 		non_remote_activities_worker.Feature,
 		non_durable_reject.Feature,
 		activities.Feature,
-		user_panics.Feature,
+		task_failure.Feature,
 		intercept.Feature,
 		validation_replay.Feature,
 		self.Feature,

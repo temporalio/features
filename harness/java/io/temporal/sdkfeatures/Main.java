@@ -110,7 +110,7 @@ public class Main implements Runnable {
       throw new RuntimeException("Client cert path must be specified since key path is");
     }
 
-    try (BufferedWriter writer = createSummaryServerWriter(); ) {
+    try (BufferedWriter writer = createSummaryServerWriter()) {
       ObjectMapper mapper = new ObjectMapper();
 
       // Run each

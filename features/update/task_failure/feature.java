@@ -1,4 +1,4 @@
-package update.user_panics;
+package update.task_failure;
 
 import io.temporal.activity.ActivityInterface;
 import io.temporal.client.WorkflowUpdateException;

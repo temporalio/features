@@ -1,4 +1,4 @@
-package user_panics
+package task_failure
 
 import (
 	"context"

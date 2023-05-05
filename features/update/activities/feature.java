@@ -14,8 +14,8 @@ import org.junit.jupiter.api.Assertions;
 
 @ActivityInterface
 public interface feature extends Feature, SimpleWorkflow {
-  int activityResult = 6;
-  int activityCount = 5;
+  int ACTIVITY_RESULT = 6;
+  int ACTIVITY_COUNT = 5;
 
   @ActivityMethod
   int someActivity();
@@ -32,7 +32,7 @@ public interface feature extends Feature, SimpleWorkflow {
 
     @Override
     public int someActivity() {
-      return activityResult;
+      return ACTIVITY_RESULT;
     }
 
     @Override
@@ -45,11 +45,10 @@ public interface feature extends Feature, SimpleWorkflow {
       var activities =
           activities(
               feature.class, builder -> builder.setScheduleToCloseTimeout(Duration.ofSeconds(5)));
-      List<String> results = new ArrayList();
 
       List<Promise<Integer>> promiseList = new ArrayList<>();
       var total = 0;
-      for (int i = 0; i < activityCount; i++) {
+      for (int i = 0; i < ACTIVITY_COUNT; i++) {
         promiseList.add(Async.function(activities::someActivity));
       }
 
@@ -58,9 +57,7 @@ public interface feature extends Feature, SimpleWorkflow {
 
       // Loop through promises and total results
       for (Promise<Integer> promise : promiseList) {
-        if (promise.getFailure() == null) {
-          total += promise.get();
-        }
+        total += promise.get();
       }
 
       return total;
@@ -79,7 +76,7 @@ public interface feature extends Feature, SimpleWorkflow {
       var stub = runner.client.newWorkflowStub(feature.class, run.execution.getWorkflowId());
 
       Integer updateResult = stub.update();
-      Assertions.assertEquals(activityResult * activityCount, updateResult);
+      Assertions.assertEquals(ACTIVITY_RESULT * ACTIVITY_COUNT, updateResult);
 
       stub.finish();
       return run;

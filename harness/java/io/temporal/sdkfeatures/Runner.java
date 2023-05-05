@@ -6,15 +6,14 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.uber.m3.tally.NoopScope;
 import com.uber.m3.tally.Scope;
+import io.grpc.StatusRuntimeException;
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslContext;
 import io.temporal.activity.ActivityInterface;
 import io.temporal.api.common.v1.WorkflowExecution;
 import io.temporal.api.history.v1.History;
 import io.temporal.api.workflow.v1.WorkflowExecutionInfo;
 import io.temporal.api.workflowservice.v1.DescribeWorkflowExecutionRequest;
-import io.temporal.client.WorkflowClient;
-import io.temporal.client.WorkflowClientOptions;
-import io.temporal.client.WorkflowOptions;
+import io.temporal.client.*;
 import io.temporal.internal.client.WorkflowClientHelper;
 import io.temporal.internal.common.WorkflowExecutionHistory;
 import io.temporal.serviceclient.WorkflowServiceStubs;
@@ -23,15 +22,14 @@ import io.temporal.worker.Worker;
 import io.temporal.worker.WorkerFactory;
 import io.temporal.worker.WorkerFactoryOptions;
 import io.temporal.worker.WorkerOptions;
-import org.reflections.Reflections;
-import org.reflections.scanners.Scanners;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.Closeable;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.*;
+import org.reflections.Reflections;
+import org.reflections.scanners.Scanners;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Runner implements Closeable {
   private static final Logger log = LoggerFactory.getLogger(Main.class);
@@ -61,17 +59,17 @@ public class Runner implements Closeable {
     feature = featureInfo.newInstance();
 
     // Build service
-    var serviceBuild = WorkflowServiceStubsOptions.newBuilder()
-        .setTarget(config.serverHostPort)
-        .setSslContext(config.sslContext)
-        .setMetricsScope(config.metricsScope);
+    var serviceBuild =
+        WorkflowServiceStubsOptions.newBuilder()
+            .setTarget(config.serverHostPort)
+            .setSslContext(config.sslContext)
+            .setMetricsScope(config.metricsScope);
     feature.workflowServiceOptions(serviceBuild);
     service = WorkflowServiceStubs.newServiceStubs(serviceBuild.build());
     // Shutdown service on failure
     try {
       // Build client
-      var clientBuild = WorkflowClientOptions.newBuilder()
-              .setNamespace(config.namespace);
+      var clientBuild = WorkflowClientOptions.newBuilder().setNamespace(config.namespace);
       feature.workflowClientOptions(clientBuild);
       client = WorkflowClient.newInstance(service, clientBuild.build());
 
@@ -84,8 +82,8 @@ public class Runner implements Closeable {
   }
 
   /**
-   * Instantiates a new worker, replacing the existing worker and workerFactory. You should
-   * shut down the worker factory before calling this.
+   * Instantiates a new worker, replacing the existing worker and workerFactory. You should shut
+   * down the worker factory before calling this.
    */
   public void restartWorker() {
     var factoryBuild = WorkerFactoryOptions.newBuilder();
@@ -99,7 +97,8 @@ public class Runner implements Closeable {
     worker.registerWorkflowImplementationTypes(featureInfo.factoryClass);
 
     // Register activity impl if any direct interfaces have the annotation
-    if (Arrays.stream(feature.getClass().getInterfaces()).anyMatch(i -> i.isAnnotationPresent(ActivityInterface.class))) {
+    if (Arrays.stream(feature.getClass().getInterfaces())
+        .anyMatch(i -> i.isAnnotationPresent(ActivityInterface.class))) {
       worker.registerActivitiesImplementations(feature);
     }
 
@@ -120,13 +119,15 @@ public class Runner implements Closeable {
   public Run executeSingleParameterlessWorkflow() {
     // Find single workflow method or fail if multiple
     var methods = featureInfo.metadata.getWorkflowMethods();
-    Preconditions.checkState(methods.size() == 1,
-            "expected only one workflow method, got %s", methods.size());
+    Preconditions.checkState(
+        methods.size() == 1, "expected only one workflow method, got %s", methods.size());
 
     // Expect no parameters
     var reflectMethod = methods.get(0).getWorkflowMethod();
-    Preconditions.checkState(reflectMethod.getParameterCount() == 0,
-            "expected no parameters, got %s", reflectMethod.getParameterCount());
+    Preconditions.checkState(
+        reflectMethod.getParameterCount() == 0,
+        "expected no parameters, got %s",
+        reflectMethod.getParameterCount());
 
     // Call
     return new Run(methods.get(0), executeWorkflow(methods.get(0).getName()));
@@ -135,8 +136,8 @@ public class Runner implements Closeable {
   public Run executeSingleWorkflow(WorkflowOptions options, Object... args) {
     // Find single workflow method or fail if multiple
     var methods = featureInfo.metadata.getWorkflowMethods();
-    Preconditions.checkState(methods.size() == 1,
-            "expected only one workflow method, got %s", methods.size());
+    Preconditions.checkState(
+        methods.size() == 1, "expected only one workflow method, got %s", methods.size());
 
     var stub = client.newUntypedWorkflowStub(methods.get(0).getName(), options);
 
@@ -154,7 +155,8 @@ public class Runner implements Closeable {
   }
 
   public WorkflowExecution executeWorkflow(String workflowType, Object... args) {
-    var builder = WorkflowOptions.newBuilder()
+    var builder =
+        WorkflowOptions.newBuilder()
             .setTaskQueue(config.taskQueue)
             .setWorkflowExecutionTimeout(Duration.ofMinutes(1));
     feature.workflowOptions(builder);
@@ -163,16 +165,23 @@ public class Runner implements Closeable {
   }
 
   public History getWorkflowHistory(Run run) throws Exception {
-    var eventIter = WorkflowClientHelper.getHistory(service, config.namespace, run.execution, config.metricsScope);
+    var eventIter =
+        WorkflowClientHelper.getHistory(
+            service, config.namespace, run.execution, config.metricsScope);
     return History.newBuilder().addAllEvents(() -> eventIter).build();
   }
 
   public WorkflowExecutionInfo getWorkflowExecutionInfo(Run run) throws Exception {
-    var describeRequest = DescribeWorkflowExecutionRequest.newBuilder()
+    var describeRequest =
+        DescribeWorkflowExecutionRequest.newBuilder()
             .setNamespace(this.config.namespace)
             .setExecution(run.execution)
             .build();
-    var exec = this.client.getWorkflowServiceStubs().blockingStub().describeWorkflowExecution(describeRequest);
+    var exec =
+        this.client
+            .getWorkflowServiceStubs()
+            .blockingStub()
+            .describeWorkflowExecution(describeRequest);
     return exec.getWorkflowExecutionInfo();
   }
 
@@ -213,7 +222,9 @@ public class Runner implements Closeable {
       // Get version
       Version version;
       try {
-        version = new Version(jsonFile.substring("history.java.".length(), jsonFile.length() - ".json".length()));
+        version =
+            new Version(
+                jsonFile.substring("history.java.".length(), jsonFile.length() - ".json".length()));
       } catch (Exception e) {
         throw new RuntimeException("file " + jsonPath + " has invalid version", e);
       }
@@ -260,5 +271,36 @@ public class Runner implements Closeable {
 
   public Worker getWorker() {
     return worker;
+  }
+
+  public void requireNoUpdateRejectedEvents(Run run) throws Exception {
+    var history = getWorkflowHistory(run);
+    var event =
+        history.getEventsList().stream()
+            .filter(e -> e.hasWorkflowExecutionUpdateRejectedEventAttributes())
+            .findFirst();
+    Assertions.assertFalse(event.isPresent());
+  }
+
+  public void skipIfUpdateNotSupported() {
+    try {
+      client.newUntypedWorkflowStub("fake").update("also_fake", Void.class);
+    } catch (WorkflowNotFoundException exception) {
+      return;
+    } catch (WorkflowServiceException exception) {
+      StatusRuntimeException e = (StatusRuntimeException) exception.getCause();
+      switch (e.getStatus().getCode()) {
+        case PERMISSION_DENIED:
+          skip(
+              "server support for update is disabled; set frontend.enableUpdateWorkflowExecution=true in dynamic config to enable");
+        case UNIMPLEMENTED:
+          skip("server version too old to support update");
+      }
+    }
+    skip("unknown");
+  }
+
+  public void skip(String message) {
+    throw new TestSkippedException(message);
   }
 }

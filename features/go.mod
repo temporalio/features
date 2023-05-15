@@ -8,7 +8,7 @@ require (
 	github.com/uber-go/tally/v4 v4.1.1
 	go.temporal.io/api v1.19.1-0.20230322213042-07fb271d475b
 	go.temporal.io/features/harness/go v1.0.0
-	go.temporal.io/sdk v1.22.1
+	go.temporal.io/sdk v1.22.2
 	go.temporal.io/sdk/contrib/tally v0.1.0
 	golang.org/x/mod v0.8.0
 	google.golang.org/grpc v1.54.0

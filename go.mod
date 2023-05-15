@@ -9,7 +9,7 @@ require (
 	github.com/urfave/cli/v2 v2.24.3
 	go.temporal.io/features/features v1.0.0
 	go.temporal.io/features/harness/go v1.0.0
-	go.temporal.io/sdk v1.22.1
+	go.temporal.io/sdk v1.22.2
 	golang.org/x/mod v0.8.0
 )
 

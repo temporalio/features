@@ -187,6 +187,11 @@ func scrubRunSpecificScalars(v interface{}) {
 	case *history.WorkflowTaskCompletedEventAttributes:
 		v.Identity = ""
 		v.BinaryChecksum = ""
+		// _Indirectly_ important for correctness, but, if something has changed here that'll have
+		// knock-on effects that we will pick up on anyway.
+		v.SdkMetadata = nil
+		// Definitely unimportant for correctness purposes
+		v.MeteringMetadata = nil
 	case *history.WorkflowTaskTimedOutEventAttributes:
 	case *history.WorkflowTaskFailedEventAttributes:
 		v.Identity = ""

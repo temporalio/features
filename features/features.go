@@ -23,13 +23,14 @@ import (
 	"go.temporal.io/features/features/schedule/trigger"
 	"go.temporal.io/features/features/signal/external"
 	"go.temporal.io/features/features/telemetry/metrics"
-	"go.temporal.io/features/features/update/activities"
-	"go.temporal.io/features/features/update/intercept"
-	"go.temporal.io/features/features/update/non_durable_reject"
-	"go.temporal.io/features/features/update/self"
-	"go.temporal.io/features/features/update/task_failure"
-	"go.temporal.io/features/features/update/validation_replay"
-	"go.temporal.io/features/features/update/worker_restart"
+	update_async_accepted "go.temporal.io/features/features/update/activities"
+	update_activities "go.temporal.io/features/features/update/async_accepted"
+	update_intercept "go.temporal.io/features/features/update/intercept"
+	update_non_durable_reject "go.temporal.io/features/features/update/non_durable_reject"
+	update_self "go.temporal.io/features/features/update/self"
+	update_task_failure "go.temporal.io/features/features/update/task_failure"
+	update_validation_replay "go.temporal.io/features/features/update/validation_replay"
+	update_worker_restart "go.temporal.io/features/features/update/worker_restart"
 	"go.temporal.io/features/harness/go/harness"
 )
 
@@ -59,12 +60,13 @@ func init() {
 		unexpected_query_type_name.Feature,
 		unexpected_return_type.Feature,
 		non_remote_activities_worker.Feature,
-		non_durable_reject.Feature,
-		activities.Feature,
-		task_failure.Feature,
-		intercept.Feature,
-		validation_replay.Feature,
-		self.Feature,
-		worker_restart.Feature,
+		update_non_durable_reject.Feature,
+		update_async_accepted.Feature,
+		update_activities.Feature,
+		update_task_failure.Feature,
+		update_intercept.Feature,
+		update_validation_replay.Feature,
+		update_self.Feature,
+		update_worker_restart.Feature,
 	)
 }

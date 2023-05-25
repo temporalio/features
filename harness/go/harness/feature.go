@@ -43,8 +43,15 @@ type Feature struct {
 
 	// Start workflow options that are used by the default executor. Some values
 	// such as task queue and workflow execution timeout, are set by default if
-	// not already set.
+	// not already set. By default the harness sets the WorkflowPanicPolicy to
+	// FailWorkflow - in order to set that one option here you must *also* set the
+	// DisableWorkflowPanicPolicyOverride field to true.
 	StartWorkflowOptions client.StartWorkflowOptions
+
+	// The harness will override the WorkflowPanicPolicy to be FailWorkflow
+	// unless this field is set to true, in which case the WorkflowPanicPolicy
+	// provided via the StartWorkflowOptions field will be honored.
+	DisableWorkflowPanicPolicyOverride bool
 
 	// Default is runner.ExecuteDefault which just runs the first workflow with no
 	// params. If this returns a nil run, no replay or checks are performed. This

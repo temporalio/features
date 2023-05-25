@@ -60,13 +60,13 @@ func init() {
 		unexpected_query_type_name.Feature,
 		unexpected_return_type.Feature,
 		non_remote_activities_worker.Feature,
-		update_non_durable_reject.Feature,
-		update_async_accepted.Feature,
 		update_activities.Feature,
-		update_task_failure.Feature,
+		update_async_accepted.Feature,
 		update_intercept.Feature,
-		update_validation_replay.Feature,
+		update_non_durable_reject.Feature,
 		update_self.Feature,
+		update_task_failure.Feature,
+		update_validation_replay.Feature,
 		update_worker_restart.Feature,
 	)
 }

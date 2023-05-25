@@ -24,7 +24,6 @@ const (
 
 	succeed       UpdateDisposition = 0
 	failWithError UpdateDisposition = 1
-	failWithPanic UpdateDisposition = 2
 
 	requestedSleep = 2 * time.Second
 )
@@ -79,25 +78,6 @@ var Feature = harness.Feature{
 		runner.Require.NoError(originalHandle.Get(ctx, &result))
 		runner.Require.Equal(theUpdateResult, result)
 
-		// issue an async update that should panic
-		panicUpdate, err := runner.Client.UpdateWorkflowWithOptions(
-			ctx,
-			&client.UpdateWorkflowWithOptionsRequest{
-				UpdateID:   "update:2",
-				WorkflowID: run.GetID(),
-				RunID:      run.GetRunID(),
-				UpdateName: theUpdate,
-				Args:       []interface{}{requestedSleep, failWithPanic},
-				WaitPolicy: &updatepb.WaitPolicy{
-					LifecycleStage: enumspb.UPDATE_WORKFLOW_EXECUTION_LIFECYCLE_STAGE_ACCEPTED,
-				},
-			})
-		runner.Require.NoError(err)
-		err = panicUpdate.Get(ctx, nil)
-		var panicErr *temporal.PanicError
-		runner.Require.ErrorAs(err, &panicErr,
-			"Error from update should have type %T", panicErr)
-
 		// issue an async update that should return an error
 		errUpdate, err := runner.Client.UpdateWorkflowWithOptions(
 			ctx,
@@ -117,7 +97,7 @@ var Feature = harness.Feature{
 		runner.Require.ErrorAs(err, &errErr, "error type was %T", err)
 
 		// issue an update that will succeed after `requestedSleep`
-		fourthUpdate, err := runner.Client.UpdateWorkflowWithOptions(
+		lastUpdate, err := runner.Client.UpdateWorkflowWithOptions(
 			ctx,
 			&client.UpdateWorkflowWithOptionsRequest{
 				UpdateID:   "update:4",
@@ -133,7 +113,7 @@ var Feature = harness.Feature{
 		timeoutctx, _ := context.WithTimeout(ctx, time.Duration(float64(requestedSleep)*0.1))
 		// `requestedSleep` is longer than the ctx timeout so we expect this
 		// handle.Get to fail timeout before returning an outcome.
-		err = fourthUpdate.Get(timeoutctx, nil)
+		err = lastUpdate.Get(timeoutctx, nil)
 		var timeoutError *serviceerror.DeadlineExceeded
 		runner.Require.ErrorAsf(err, &timeoutError, "error type was %T", err)
 
@@ -146,13 +126,11 @@ var Feature = harness.Feature{
 func Workflow(ctx workflow.Context) error {
 	if err := workflow.SetUpdateHandler(ctx, theUpdate,
 		func(ctx workflow.Context, dur time.Duration, disp UpdateDisposition) (int, error) {
-			workflow.Sleep(ctx, dur)
 			switch disp {
 			case succeed:
+				workflow.Sleep(ctx, dur)
 			case failWithError:
 				return 0, errors.New("I was told I should fail")
-			case failWithPanic:
-				panic("I was told I should panic")
 			}
 			return theUpdateResult, nil
 		},

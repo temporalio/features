@@ -91,7 +91,9 @@ func NewRunner(config RunnerConfig, feature *PreparedFeature) (*Runner, error) {
 
 	// Create worker
 	r.CreateTime = time.Now()
-	r.Feature.WorkerOptions.WorkflowPanicPolicy = worker.FailWorkflow
+	if !r.Feature.DisableWorkflowPanicPolicyOverride {
+		r.Feature.WorkerOptions.WorkflowPanicPolicy = worker.FailWorkflow
+	}
 	err = r.StartWorker()
 	if err != nil {
 		return nil, err

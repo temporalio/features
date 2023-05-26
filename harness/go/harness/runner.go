@@ -154,7 +154,11 @@ func (r *Runner) ExecuteDefault(ctx context.Context) (client.WorkflowRun, error)
 	if opts.WorkflowExecutionTimeout == 0 {
 		opts.WorkflowExecutionTimeout = 1 * time.Minute
 	}
-	return r.Client.ExecuteWorkflow(ctx, opts, r.Feature.Workflows[0])
+	firstWorkflow, err := r.Feature.GetPrimaryWorkflow()
+	if err != nil {
+		return nil, err
+	}
+	return r.Client.ExecuteWorkflow(ctx, opts, firstWorkflow)
 }
 
 // CheckResultDefault performs the default result checks which just waits on
@@ -241,7 +245,13 @@ func (r *Runner) ReplayHistories(ctx context.Context, histories history.Historie
 	// Create replayer with all the workflow funcs
 	replayer := worker.NewWorkflowReplayer()
 	for _, workflow := range r.Feature.Workflows {
-		replayer.RegisterWorkflow(workflow)
+		switch workflow.(type) {
+		case WorkflowWithOptions:
+			casted := workflow.(WorkflowWithOptions)
+			replayer.RegisterWorkflowWithOptions(casted.Workflow, casted.Options)
+		default:
+			replayer.RegisterWorkflow(workflow)
+		}
 	}
 	// Replay each
 	for _, history := range histories {
@@ -355,10 +365,22 @@ func (r *Runner) StartWorker() error {
 
 	// Register the workflows and activities
 	for _, workflow := range r.Feature.Workflows {
-		r.Worker.RegisterWorkflow(workflow)
+		switch workflow.(type) {
+		case WorkflowWithOptions:
+			casted := workflow.(WorkflowWithOptions)
+			r.Worker.RegisterWorkflowWithOptions(casted.Workflow, casted.Options)
+		default:
+			r.Worker.RegisterWorkflow(workflow)
+		}
 	}
 	for _, activity := range r.Feature.Activities {
-		r.Worker.RegisterActivity(activity)
+		switch activity.(type) {
+		case ActivityWithOptions:
+			casted := activity.(ActivityWithOptions)
+			r.Worker.RegisterActivityWithOptions(casted.Activity, casted.Options)
+		default:
+			r.Worker.RegisterActivity(activity)
+		}
 	}
 
 	// Start the worker

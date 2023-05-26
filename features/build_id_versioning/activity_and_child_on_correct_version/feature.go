@@ -2,10 +2,10 @@ package activity_on_same_version
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
-	"github.com/pkg/errors"
 	"go.temporal.io/features/features/build_id_versioning"
 	"go.temporal.io/features/harness/go/harness"
 	"go.temporal.io/sdk/activity"

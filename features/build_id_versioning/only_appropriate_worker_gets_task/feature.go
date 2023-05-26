@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/pkg/errors"
 	"go.temporal.io/features/features/build_id_versioning"
 	"go.temporal.io/features/harness/go/harness"
 	"go.temporal.io/sdk/client"
@@ -91,7 +90,7 @@ func mustTimeoutQuery(ctx context.Context, r *harness.Runner, run client.Workflo
 	_, err := r.Client.QueryWorkflow(shortTimeout, run.GetID(), run.GetRunID(), "waiting")
 	// TODO: Invert
 	if err != nil {
-		return errors.WithMessage(err, "query should have timed out")
+		return fmt.Errorf("query should have timed out: %w", err)
 	}
 	return nil
 }

@@ -37,6 +37,13 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 		return nil, err
 	}
 
+	// Re-jigger the worker so they'll get a task quickly
+	r.StopWorker()
+	err = r.StartWorker()
+	if err != nil {
+		return nil, err
+	}
+
 	// Start workflow & process a task
 	run, err := r.ExecuteDefault(ctx)
 	if err != nil {
@@ -70,8 +77,8 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 		return nil, err
 	}
 	// Signal should not have been seen yet
-	err = r.QueryUntilEventually(ctx, run, "counter", 2, time.Millisecond*200, time.Second*2)
-	if err == nil {
+	err = build_id_versioning.MustTimeoutQuery(ctx, r, run)
+	if err != nil {
 		return nil, errors.New("1.1 worker should not have seen task since 1.1 is not yet in sets")
 	}
 
@@ -85,12 +92,17 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 	if err != nil {
 		return nil, err
 	}
+	r.StopWorker()
+	err = r.StartWorker()
+	if err != nil {
+		return nil, err
+	}
 	err = r.QueryUntilEventually(ctx, run, "counter", 2, time.Millisecond*200, time.Second*2)
 	if err != nil {
 		return nil, err
 	}
 
-	// Add 1.2 and see that no new tasks aren't received
+	// Add 1.2 and see that new tasks aren't received
 	err = r.Client.UpdateWorkerBuildIdCompatibility(ctx, &client.UpdateWorkerBuildIdCompatibilityOptions{
 		TaskQueue: r.TaskQueue,
 		Operation: &client.BuildIDOpAddNewCompatibleVersion{
@@ -131,16 +143,17 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 func Workflow(ctx workflow.Context) error {
 	counter := 0
 	addChan := workflow.GetSignalChannel(ctx, "add1")
-	err := workflow.SetQueryHandler(ctx, "counter", func() int { return counter })
+	err := workflow.SetQueryHandler(ctx, "counter", func() (int, error) { return counter, nil })
 	if err != nil {
 		return err
 	}
 
-	go func() {
-		for addChan.Receive(ctx, nil) {
-			counter += 1
-		}
-	}()
+	workflow.Go(ctx,
+		func(ctx workflow.Context) {
+			for addChan.Receive(ctx, nil) {
+				counter += 1
+			}
+		})
 
 	ctx.Done().Receive(ctx, nil)
 

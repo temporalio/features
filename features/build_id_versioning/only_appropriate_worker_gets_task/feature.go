@@ -30,6 +30,12 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 	if err != nil {
 		return nil, err
 	}
+	// Re-jigger the worker so they'll get a task quickly
+	r.StopWorker()
+	err = r.StartWorker()
+	if err != nil {
+		return nil, err
+	}
 
 	// Start workflow
 	run, err := r.ExecuteDefault(ctx)
@@ -61,9 +67,9 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 		}
 
 		// Try a query, which should time out
-		err = mustTimeoutQuery(ctx, r, run)
-		if err == nil {
-			return nil, fmt.Errorf("worker with version %s should not have gotten task", version)
+		err = build_id_versioning.MustTimeoutQuery(ctx, r, run)
+		if err != nil {
+			return nil, fmt.Errorf("worker with version %s should not have gotten task: %w", version, err)
 		}
 
 		r.StopWorker()
@@ -82,17 +88,6 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 	}
 
 	return run, nil
-}
-
-func mustTimeoutQuery(ctx context.Context, r *harness.Runner, run client.WorkflowRun) error {
-	shortTimeout, shortCancel := context.WithTimeout(ctx, 3*time.Second)
-	defer shortCancel()
-	_, err := r.Client.QueryWorkflow(shortTimeout, run.GetID(), run.GetRunID(), "waiting")
-	// TODO: Invert
-	if err != nil {
-		return fmt.Errorf("query should have timed out: %w", err)
-	}
-	return nil
 }
 
 func Workflow(ctx workflow.Context) error {

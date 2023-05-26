@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"sync"
 	"time"
 
@@ -158,7 +159,10 @@ func (r *Runner) ExecuteDefault(ctx context.Context) (client.WorkflowRun, error)
 	if err != nil {
 		return nil, err
 	}
-	return r.Client.ExecuteWorkflow(ctx, opts, firstWorkflow)
+	if firstWorkflow.Options.Name == "" {
+		return r.Client.ExecuteWorkflow(ctx, opts, firstWorkflow.Workflow)
+	}
+	return r.Client.ExecuteWorkflow(ctx, opts, firstWorkflow.Options.Name)
 }
 
 // CheckResultDefault performs the default result checks which just waits on
@@ -296,9 +300,11 @@ func (r *Runner) QueryUntilEventually(
 			return fmt.Errorf("timeout waiting for query %v to get proper value, last error: %w", query, lastErr)
 		case <-ticker.C:
 			val, err := r.Client.QueryWorkflow(ctx, run.GetID(), run.GetRunID(), query)
-			// We allow a "query failed" if the query is not registered yet
+			// We allow a "query failed" if the query is not registered yet, as well as queries that
+			// might have been issued too fast.
 			var queryFailed *serviceerror.QueryFailed
-			if errors.As(err, &queryFailed) {
+			if errors.As(err, &queryFailed) ||
+				(err != nil && strings.Contains(err.Error(), "task is not scheduled")) {
 				continue
 			} else if err != nil {
 				return fmt.Errorf("failed querying %v: %w", query, err)

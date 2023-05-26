@@ -96,16 +96,20 @@ type PreparedFeature struct {
 	Activities []interface{}
 }
 
-func (p *PreparedFeature) GetPrimaryWorkflow() (interface{}, error) {
+func (p *PreparedFeature) GetPrimaryWorkflow() (*WorkflowWithOptions, error) {
 	if len(p.Workflows) == 0 {
 		return nil, fmt.Errorf("feature missing workflow")
 	}
 	firstWF := p.Workflows[0]
 	switch firstWF.(type) {
 	case WorkflowWithOptions:
-		return firstWF.(WorkflowWithOptions).Workflow, nil
+		asOpts := firstWF.(WorkflowWithOptions)
+		return &asOpts, nil
 	default:
-		return firstWF, nil
+		return &WorkflowWithOptions{
+			Workflow: firstWF,
+			Options:  workflow.RegisterOptions{},
+		}, nil
 	}
 }
 
@@ -150,7 +154,7 @@ func PrepareFeature(feature Feature) (*PreparedFeature, error) {
 		return nil, err
 	}
 	// Use the first the dir of the first workflow
-	if p.Dir, p.AbsDir, err = featureDirFromFuncPointer(firstWorkflow); err != nil {
+	if p.Dir, p.AbsDir, err = featureDirFromFuncPointer(firstWorkflow.Workflow); err != nil {
 		return nil, err
 	}
 	return p, nil

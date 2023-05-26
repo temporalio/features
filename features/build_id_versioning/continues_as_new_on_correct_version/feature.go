@@ -14,7 +14,10 @@ import (
 )
 
 var Feature = harness.Feature{
-	Workflows:     Workflow,
+	Workflows: harness.WorkflowWithOptions{
+		Workflow: Worker1WF,
+		Options:  workflow.RegisterOptions{Name: "Workflow"},
+	},
 	Execute:       Execute,
 	CheckHistory:  CheckHistory,
 	WorkerOptions: worker.Options{BuildID: "1.0", UseBuildIDForVersioning: true},
@@ -45,6 +48,7 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 		BuildID:                 "2.0",
 		UseBuildIDForVersioning: true,
 	})
+	twoWorker.RegisterWorkflowWithOptions(Worker2WF, workflow.RegisterOptions{Name: "Workflow"})
 	err = twoWorker.Start()
 	if err != nil {
 		return nil, err
@@ -55,6 +59,8 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 	if err != nil {
 		return nil, err
 	}
+
+	time.Sleep(1 * time.Second)
 
 	// Add 2.0 to the queue
 	err = r.Client.UpdateWorkerBuildIdCompatibility(ctx, &client.UpdateWorkerBuildIdCompatibilityOptions{
@@ -113,6 +119,13 @@ const (
 	End
 )
 
+func Worker1WF(ctx workflow.Context) error {
+	return Workflow(ctx, "1.0")
+}
+func Worker2WF(ctx workflow.Context) error {
+	return Workflow(ctx, "2.0")
+}
+
 func Workflow(ctx workflow.Context, myVer string) error {
 	err := workflow.SetQueryHandler(ctx, "runningOn", func() (string, error) {
 		return myVer, nil
@@ -136,7 +149,7 @@ func Workflow(ctx workflow.Context, myVer string) error {
 		canCtx = workflow.WithWorkflowVersioningIntent(ctx, temporal.VersioningIntentDefault)
 	}
 
-	return workflow.NewContinueAsNewError(canCtx, Workflow)
+	return workflow.NewContinueAsNewError(canCtx, "Workflow")
 }
 
 func CheckHistory(ctx context.Context, r *harness.Runner, run client.WorkflowRun) error {

@@ -2,8 +2,11 @@ package build_id_versioning
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"go.temporal.io/api/workflowservice/v1"
+	"go.temporal.io/features/harness/go/harness"
 	"go.temporal.io/sdk/client"
 )
 
@@ -45,4 +48,14 @@ func ServerSupportsBuildIDVersioning(ctx context.Context, c client.Client) (bool
 		return true, nil
 	}
 	return false, nil
+}
+
+func MustTimeoutQuery(ctx context.Context, r *harness.Runner, run client.WorkflowRun) error {
+	shortTimeout, shortCancel := context.WithTimeout(ctx, 3*time.Second)
+	defer shortCancel()
+	_, err := r.Client.QueryWorkflow(shortTimeout, run.GetID(), run.GetRunID(), "waiting")
+	if err == nil {
+		return fmt.Errorf("query should have timed out: %w", err)
+	}
+	return nil
 }

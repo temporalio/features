@@ -16,7 +16,7 @@ import (
 var Feature = harness.Feature{
 	Workflows:     Workflow,
 	Execute:       Execute,
-	WorkerOptions: worker.Options{BuildIDForVersioning: "2.1"},
+	WorkerOptions: worker.Options{BuildID: "2.1", UseBuildIDForVersioning: true},
 }
 
 func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error) {
@@ -54,7 +54,8 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 
 	// Start workers with version `2.0` and `1.0` and make sure they don't get tasks
 	for _, version := range []string{"2.0", "1.0"} {
-		r.Feature.WorkerOptions.BuildIDForVersioning = version
+		r.Feature.WorkerOptions.BuildID = version
+		r.Feature.WorkerOptions.UseBuildIDForVersioning = true
 		err = r.StartWorker()
 		if err != nil {
 			return nil, err
@@ -74,7 +75,8 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 	}
 
 	// Complete the workflow with `2.1` worker
-	r.Feature.WorkerOptions.BuildIDForVersioning = "2.1"
+	r.Feature.WorkerOptions.BuildID = "2.1"
+	r.Feature.WorkerOptions.UseBuildIDForVersioning = true
 	err = r.StartWorker()
 	if err != nil {
 		return nil, err

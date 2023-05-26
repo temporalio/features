@@ -16,7 +16,7 @@ import (
 var Feature = harness.Feature{
 	Workflows:     Workflow,
 	Execute:       Execute,
-	WorkerOptions: worker.Options{BuildIDForVersioning: "1.0"},
+	WorkerOptions: worker.Options{BuildID: "1.0", UseBuildIDForVersioning: true},
 }
 
 func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error) {
@@ -28,9 +28,10 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 	}
 	// Add 1.0 to the queue
 	err := r.Client.UpdateWorkerBuildIdCompatibility(ctx, &client.UpdateWorkerBuildIdCompatibilityOptions{
-		TaskQueue:     r.TaskQueue,
-		WorkerBuildID: "1.0",
-		BecomeDefault: true,
+		TaskQueue: r.TaskQueue,
+		Operation: &client.BuildIDOpAddNewIDInNewDefaultSet{
+			BuildID: "1.0",
+		},
 	})
 	if err != nil {
 		return nil, err
@@ -56,7 +57,8 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 	if err != nil {
 		return nil, err
 	}
-	r.Feature.WorkerOptions.BuildIDForVersioning = "1.1"
+	r.Feature.WorkerOptions.BuildID = "1.1"
+	r.Feature.WorkerOptions.UseBuildIDForVersioning = true
 	err = r.StartWorker()
 	if err != nil {
 		return nil, err
@@ -74,10 +76,11 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 	}
 
 	err = r.Client.UpdateWorkerBuildIdCompatibility(ctx, &client.UpdateWorkerBuildIdCompatibilityOptions{
-		TaskQueue:         r.TaskQueue,
-		WorkerBuildID:     "1.1",
-		CompatibleBuildID: "1.0",
-		BecomeDefault:     true,
+		TaskQueue: r.TaskQueue,
+		Operation: &client.BuildIDOpAddNewCompatibleVersion{
+			BuildID:                   "1.1",
+			ExistingCompatibleBuildId: "1.0",
+		},
 	})
 	if err != nil {
 		return nil, err
@@ -89,9 +92,11 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 
 	// Add 1.2 and see that no new tasks aren't received
 	err = r.Client.UpdateWorkerBuildIdCompatibility(ctx, &client.UpdateWorkerBuildIdCompatibilityOptions{
-		TaskQueue:     r.TaskQueue,
-		WorkerBuildID: "1.2",
-		BecomeDefault: true,
+		TaskQueue: r.TaskQueue,
+		Operation: &client.BuildIDOpAddNewCompatibleVersion{
+			BuildID:                   "1.2",
+			ExistingCompatibleBuildId: "1.1",
+		},
 	})
 	if err != nil {
 		return nil, err
@@ -110,7 +115,8 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 	if err != nil {
 		return nil, err
 	}
-	r.Feature.WorkerOptions.BuildIDForVersioning = "1.2"
+	r.Feature.WorkerOptions.BuildID = "1.2"
+	r.Feature.WorkerOptions.UseBuildIDForVersioning = true
 	err = r.StartWorker()
 
 	// Cancel workflow to end it

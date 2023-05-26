@@ -10,6 +10,7 @@ import (
 	"go.temporal.io/features/harness/go/harness"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/client"
+	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/worker"
 	"go.temporal.io/sdk/workflow"
 )
@@ -18,7 +19,7 @@ var Feature = harness.Feature{
 	Workflows:     Workflow,
 	Execute:       Execute,
 	CheckHistory:  CheckHistory,
-	WorkerOptions: worker.Options{BuildIDForVersioning: "1.0"},
+	WorkerOptions: worker.Options{BuildID: "1.0", UseBuildIDForVersioning: true},
 }
 
 var twoWorker worker.Worker
@@ -32,9 +33,10 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 	}
 	// Add 1.0 to the queue
 	err := r.Client.UpdateWorkerBuildIdCompatibility(ctx, &client.UpdateWorkerBuildIdCompatibilityOptions{
-		TaskQueue:     r.TaskQueue,
-		WorkerBuildID: "1.0",
-		BecomeDefault: true,
+		TaskQueue: r.TaskQueue,
+		Operation: &client.BuildIDOpAddNewIDInNewDefaultSet{
+			BuildID: "1.0",
+		},
 	})
 	if err != nil {
 		return nil, err
@@ -44,7 +46,8 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 
 	// Also start a 2.0 activity worker
 	twoWorker = worker.New(r.Client, r.RunnerConfig.TaskQueue, worker.Options{
-		BuildIDForVersioning: "2.0",
+		BuildID:                 "2.0",
+		UseBuildIDForVersioning: true,
 	})
 	twoWorker.RegisterActivityWithOptions(RanBy2Act, activity.RegisterOptions{Name: "RanBy"})
 	twoWorker.RegisterWorkflowWithOptions(RanBy2Child, workflow.RegisterOptions{Name: "RanByWf"})
@@ -61,9 +64,10 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 
 	// Add 2.0 to the queue
 	err = r.Client.UpdateWorkerBuildIdCompatibility(ctx, &client.UpdateWorkerBuildIdCompatibilityOptions{
-		TaskQueue:     r.TaskQueue,
-		WorkerBuildID: "2.0",
-		BecomeDefault: true,
+		TaskQueue: r.TaskQueue,
+		Operation: &client.BuildIDOpAddNewIDInNewDefaultSet{
+			BuildID: "2.0",
+		},
 	})
 	if err != nil {
 		return nil, err
@@ -108,7 +112,7 @@ func Workflow(ctx workflow.Context) error {
 	}
 
 	useDefaultVer := workflow.ActivityOptions{
-		// TODO: Use default version
+		VersioningIntent: temporal.VersioningIntentDefault,
 	}
 	err = workflow.ExecuteActivity(workflow.WithActivityOptions(actCtx, useDefaultVer), "RanBy").Get(ctx, &res)
 	if err != nil {
@@ -118,7 +122,7 @@ func Workflow(ctx workflow.Context) error {
 		return errors.New("expected activity to run on default version worker")
 	}
 	useDefaultVerChild := workflow.ChildWorkflowOptions{
-		// TODO: Use default version
+		VersioningIntent: temporal.VersioningIntentDefault,
 	}
 	err = workflow.ExecuteChildWorkflow(workflow.WithChildOptions(childCtx, useDefaultVerChild), "RanByWf").Get(ctx, &res)
 	if err != nil {

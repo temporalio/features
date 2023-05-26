@@ -11,8 +11,10 @@ import (
 func AddSomeVersions(ctx context.Context, c client.Client, tq string) error {
 	for _, version := range []string{"1.0", "2.0"} {
 		err := c.UpdateWorkerBuildIdCompatibility(ctx, &client.UpdateWorkerBuildIdCompatibilityOptions{
-			TaskQueue:     tq,
-			WorkerBuildID: version,
+			TaskQueue: tq,
+			Operation: &client.BuildIDOpAddNewIDInNewDefaultSet{
+				BuildID: version,
+			},
 		})
 		if err != nil {
 			return err
@@ -20,10 +22,12 @@ func AddSomeVersions(ctx context.Context, c client.Client, tq string) error {
 	}
 
 	err := c.UpdateWorkerBuildIdCompatibility(ctx, &client.UpdateWorkerBuildIdCompatibilityOptions{
-		TaskQueue:         tq,
-		WorkerBuildID:     "2.1",
-		CompatibleBuildID: "2.0",
-		BecomeDefault:     true,
+		TaskQueue: tq,
+		Operation: &client.BuildIDOpAddNewCompatibleVersion{
+			BuildID:                   "2.1",
+			ExistingCompatibleBuildId: "2.0",
+			MakeSetDefault:            true,
+		},
 	})
 	if err != nil {
 		return err

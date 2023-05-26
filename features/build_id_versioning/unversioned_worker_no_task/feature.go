@@ -45,7 +45,8 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 	r.StopWorker()
 
 	// Restart worker with appropriate version
-	r.Feature.WorkerOptions.BuildIDForVersioning = "2.1"
+	r.Feature.WorkerOptions.BuildID = "2.1"
+	r.Feature.WorkerOptions.UseBuildIDForVersioning = true
 	err = r.StartWorker()
 	if err != nil {
 		return nil, err

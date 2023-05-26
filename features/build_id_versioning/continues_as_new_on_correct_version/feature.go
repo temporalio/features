@@ -8,6 +8,7 @@ import (
 	"go.temporal.io/features/features/build_id_versioning"
 	"go.temporal.io/features/harness/go/harness"
 	"go.temporal.io/sdk/client"
+	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/worker"
 	"go.temporal.io/sdk/workflow"
 )
@@ -16,7 +17,7 @@ var Feature = harness.Feature{
 	Workflows:     Workflow,
 	Execute:       Execute,
 	CheckHistory:  CheckHistory,
-	WorkerOptions: worker.Options{BuildIDForVersioning: "1.0"},
+	WorkerOptions: worker.Options{BuildID: "1.0", UseBuildIDForVersioning: true},
 }
 
 var twoWorker worker.Worker
@@ -30,9 +31,10 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 	}
 	// Add 1.0 to the queue
 	err := r.Client.UpdateWorkerBuildIdCompatibility(ctx, &client.UpdateWorkerBuildIdCompatibilityOptions{
-		TaskQueue:     r.TaskQueue,
-		WorkerBuildID: "1.0",
-		BecomeDefault: true,
+		TaskQueue: r.TaskQueue,
+		Operation: &client.BuildIDOpAddNewIDInNewDefaultSet{
+			BuildID: "1.0",
+		},
 	})
 	if err != nil {
 		return nil, err
@@ -40,7 +42,8 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 
 	// Also start a 2.0 activity worker
 	twoWorker = worker.New(r.Client, r.RunnerConfig.TaskQueue, worker.Options{
-		BuildIDForVersioning: "2.0",
+		BuildID:                 "2.0",
+		UseBuildIDForVersioning: true,
 	})
 	err = twoWorker.Start()
 	if err != nil {
@@ -55,9 +58,10 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 
 	// Add 2.0 to the queue
 	err = r.Client.UpdateWorkerBuildIdCompatibility(ctx, &client.UpdateWorkerBuildIdCompatibilityOptions{
-		TaskQueue:     r.TaskQueue,
-		WorkerBuildID: "2.0",
-		BecomeDefault: true,
+		TaskQueue: r.TaskQueue,
+		Operation: &client.BuildIDOpAddNewIDInNewDefaultSet{
+			BuildID: "2.0",
+		},
 	})
 	if err != nil {
 		return nil, err
@@ -125,8 +129,14 @@ func Workflow(ctx workflow.Context, myVer string) error {
 		return nil
 	}
 
-	// TODO: Use `useDefault` as C-A-N once it's added
-	return workflow.NewContinueAsNewError(ctx, Workflow)
+	var canCtx workflow.Context
+	if useDefault == ContinueSame {
+		canCtx = workflow.WithWorkflowVersioningIntent(ctx, temporal.VersioningIntentCompatible)
+	} else {
+		canCtx = workflow.WithWorkflowVersioningIntent(ctx, temporal.VersioningIntentDefault)
+	}
+
+	return workflow.NewContinueAsNewError(canCtx, Workflow)
 }
 
 func CheckHistory(ctx context.Context, r *harness.Runner, run client.WorkflowRun) error {

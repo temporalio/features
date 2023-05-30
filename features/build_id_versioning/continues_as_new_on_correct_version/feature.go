@@ -26,7 +26,7 @@ var Feature = harness.Feature{
 var twoWorker worker.Worker
 
 func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error) {
-	if supported, err := build_id_versioning.ServerSupportsBuildIDVersioning(ctx, r.Client); !supported || err != nil {
+	if supported, err := build_id_versioning.ServerSupportsBuildIDVersioning(ctx, r); !supported || err != nil {
 		if err != nil {
 			return nil, err
 		}

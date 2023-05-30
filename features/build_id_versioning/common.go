@@ -39,10 +39,17 @@ func AddSomeVersions(ctx context.Context, c client.Client, tq string) error {
 	return nil
 }
 
-func ServerSupportsBuildIDVersioning(ctx context.Context, c client.Client) (bool, error) {
-	capabilities, err := c.WorkflowService().GetSystemInfo(ctx, &workflowservice.GetSystemInfoRequest{})
+func ServerSupportsBuildIDVersioning(ctx context.Context, r *harness.Runner) (bool, error) {
+	capabilities, err := r.Client.WorkflowService().GetSystemInfo(ctx, &workflowservice.GetSystemInfoRequest{})
 	if err != nil {
 		return false, err
+	}
+	// Also need to make sure dynamic configs are set and no great way to do that besides trying
+	_, err = r.Client.GetWorkerBuildIdCompatibility(ctx, &client.GetWorkerBuildIdCompatibilityOptions{
+		TaskQueue: r.TaskQueue,
+	})
+	if err != nil {
+		return false, nil
 	}
 	if capabilities.Capabilities.BuildIdBasedVersioning {
 		return true, nil

@@ -10,9 +10,11 @@ import (
 	"strings"
 	"sync"
 
+	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/worker"
+	"go.temporal.io/sdk/workflow"
 )
 
 // SDKVersion is the Go SDK version with the "v" prefix.
@@ -21,10 +23,12 @@ const SDKVersion = "v" + temporal.SDKVersion
 // Feature represents a feature that can be executed.
 type Feature struct {
 
-	// Set of workflows to register. This can be a single workflow or a slice.
+	// Set of workflows to register. This can be a single workflow or a slice. You can provide
+	// a function pointer, or WorkflowWithOptions.
 	Workflows interface{}
 
-	// Set of activities to register. This can be a single activity or a slice.
+	// Set of activities to register. This can be a single activity or a slice. You can provide
+	// a function pointer, or ActivityWithOptions.
 	Activities interface{}
 
 	// If present, expects workflow to fail with this activity error string.
@@ -70,6 +74,16 @@ type Feature struct {
 	SkipReason string
 }
 
+type WorkflowWithOptions struct {
+	Workflow interface{}
+	Options  workflow.RegisterOptions
+}
+
+type ActivityWithOptions struct {
+	Activity interface{}
+	Options  activity.RegisterOptions
+}
+
 // PreparedFeature represents a feature that has been validated and the
 // directory has been derived.
 type PreparedFeature struct {
@@ -80,6 +94,23 @@ type PreparedFeature struct {
 	AbsDir     string
 	Workflows  []interface{}
 	Activities []interface{}
+}
+
+func (p *PreparedFeature) GetPrimaryWorkflow() (*WorkflowWithOptions, error) {
+	if len(p.Workflows) == 0 {
+		return nil, fmt.Errorf("feature missing workflow")
+	}
+	firstWF := p.Workflows[0]
+	switch firstWF.(type) {
+	case WorkflowWithOptions:
+		asOpts := firstWF.(WorkflowWithOptions)
+		return &asOpts, nil
+	default:
+		return &WorkflowWithOptions{
+			Workflow: firstWF,
+			Options:  workflow.RegisterOptions{},
+		}, nil
+	}
 }
 
 var registeredFeatures []*PreparedFeature
@@ -118,12 +149,12 @@ func PrepareFeature(feature Feature) (*PreparedFeature, error) {
 	if p.SkipReason != "" {
 		return p, nil
 	}
-	if len(p.Workflows) == 0 {
-		return nil, fmt.Errorf("feature missing workflow")
+	firstWorkflow, err := p.GetPrimaryWorkflow()
+	if err != nil {
+		return nil, err
 	}
 	// Use the first the dir of the first workflow
-	var err error
-	if p.Dir, p.AbsDir, err = featureDirFromFuncPointer(p.Workflows[0]); err != nil {
+	if p.Dir, p.AbsDir, err = featureDirFromFuncPointer(firstWorkflow.Workflow); err != nil {
 		return nil, err
 	}
 	return p, nil

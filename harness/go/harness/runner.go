@@ -6,12 +6,15 @@ import (
 	"fmt"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.temporal.io/api/common/v1"
 	"go.temporal.io/api/serviceerror"
+	"go.temporal.io/api/workflowservice/v1"
 	"go.temporal.io/features/harness/go/history"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/log"
@@ -152,7 +155,14 @@ func (r *Runner) ExecuteDefault(ctx context.Context) (client.WorkflowRun, error)
 	if opts.WorkflowExecutionTimeout == 0 {
 		opts.WorkflowExecutionTimeout = 1 * time.Minute
 	}
-	return r.Client.ExecuteWorkflow(ctx, opts, r.Feature.Workflows[0])
+	firstWorkflow, err := r.Feature.GetPrimaryWorkflow()
+	if err != nil {
+		return nil, err
+	}
+	if firstWorkflow.Options.Name == "" {
+		return r.Client.ExecuteWorkflow(ctx, opts, firstWorkflow.Workflow)
+	}
+	return r.Client.ExecuteWorkflow(ctx, opts, firstWorkflow.Options.Name)
 }
 
 // CheckResultDefault performs the default result checks which just waits on
@@ -239,7 +249,13 @@ func (r *Runner) ReplayHistories(ctx context.Context, histories history.Historie
 	// Create replayer with all the workflow funcs
 	replayer := worker.NewWorkflowReplayer()
 	for _, workflow := range r.Feature.Workflows {
-		replayer.RegisterWorkflow(workflow)
+		switch workflow.(type) {
+		case WorkflowWithOptions:
+			casted := workflow.(WorkflowWithOptions)
+			replayer.RegisterWorkflowWithOptions(casted.Workflow, casted.Options)
+		default:
+			replayer.RegisterWorkflow(workflow)
+		}
 	}
 	// Replay each
 	for _, history := range histories {
@@ -284,9 +300,11 @@ func (r *Runner) QueryUntilEventually(
 			return fmt.Errorf("timeout waiting for query %v to get proper value, last error: %w", query, lastErr)
 		case <-ticker.C:
 			val, err := r.Client.QueryWorkflow(ctx, run.GetID(), run.GetRunID(), query)
-			// We allow a "query failed" if the query is not registered yet
+			// We allow a "query failed" if the query is not registered yet, as well as queries that
+			// might have been issued too fast.
 			var queryFailed *serviceerror.QueryFailed
-			if errors.As(err, &queryFailed) {
+			if errors.As(err, &queryFailed) ||
+				(err != nil && strings.Contains(err.Error(), "task is not scheduled")) {
 				continue
 			} else if err != nil {
 				return fmt.Errorf("failed querying %v: %w", query, err)
@@ -332,6 +350,19 @@ func (r *Runner) StopWorker() {
 	}
 }
 
+// ResetStickyQueue resets the sticky queue for the given run -- use this after StopWorker to avoid
+// a delay waiting for the task to get shuffled to the normal queue.
+func (r *Runner) ResetStickyQueue(ctx context.Context, run client.WorkflowRun) error {
+	_, err := r.Client.WorkflowService().ResetStickyTaskQueue(ctx, &workflowservice.ResetStickyTaskQueueRequest{
+		Namespace: r.Namespace,
+		Execution: &common.WorkflowExecution{
+			WorkflowId: run.GetID(),
+			RunId:      run.GetRunID(),
+		},
+	})
+	return err
+}
+
 func (r *Runner) StartWorker() error {
 	if r.Worker != nil {
 		return errors.New("worker is currently running, cannot start a new one")
@@ -340,10 +371,22 @@ func (r *Runner) StartWorker() error {
 
 	// Register the workflows and activities
 	for _, workflow := range r.Feature.Workflows {
-		r.Worker.RegisterWorkflow(workflow)
+		switch workflow.(type) {
+		case WorkflowWithOptions:
+			casted := workflow.(WorkflowWithOptions)
+			r.Worker.RegisterWorkflowWithOptions(casted.Workflow, casted.Options)
+		default:
+			r.Worker.RegisterWorkflow(workflow)
+		}
 	}
 	for _, activity := range r.Feature.Activities {
-		r.Worker.RegisterActivity(activity)
+		switch activity.(type) {
+		case ActivityWithOptions:
+			casted := activity.(ActivityWithOptions)
+			r.Worker.RegisterActivityWithOptions(casted.Activity, casted.Options)
+		default:
+			r.Worker.RegisterActivity(activity)
+		}
 	}
 
 	// Start the worker

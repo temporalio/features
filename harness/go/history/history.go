@@ -173,6 +173,8 @@ func scrubRunSpecificScalars(v interface{}) {
 		v.Identity = ""
 		v.FirstExecutionRunId = ""
 		v.WorkflowExecutionExpirationTime = nil
+		// TODO: Shouldn't be fully ignorable, but should be ignorable if not present in old hist
+		v.WorkflowId = ""
 	case *history.WorkflowExecutionCompletedEventAttributes:
 		// TODO(cretz): Do we want something to show it is set or not though?
 		v.NewExecutionRunId = ""
@@ -192,22 +194,44 @@ func scrubRunSpecificScalars(v interface{}) {
 		v.SdkMetadata = nil
 		// Definitely unimportant for correctness purposes
 		v.MeteringMetadata = nil
+		// Because binary checksum will show up in the stamp where it didn't before, ignore unless
+		// versioning was actually turned on.
+		if v.GetWorkerVersion() != nil && !v.GetWorkerVersion().GetUseVersioning() {
+			v.WorkerVersion = nil
+		}
 	case *history.WorkflowTaskTimedOutEventAttributes:
 	case *history.WorkflowTaskFailedEventAttributes:
 		v.Identity = ""
 		v.BaseRunId = ""
 		v.NewRunId = ""
 		v.BinaryChecksum = ""
+		// Because binary checksum will show up in the stamp where it didn't before, ignore unless
+		// versioning was actually turned on.
+		if v.GetWorkerVersion() != nil && !v.GetWorkerVersion().GetUseVersioning() {
+			v.WorkerVersion = nil
+		}
 	case *history.ActivityTaskScheduledEventAttributes:
 		// These are UUIDs in Java, even though they are deterministic numbers in Go
 		v.ActivityId = ""
+		// TODO: Shouldn't be fully ignorable, but should be ignorable if not present in old hist
+		v.UseCompatibleVersion = false
 	case *history.ActivityTaskStartedEventAttributes:
 		v.Identity = ""
 		v.RequestId = ""
 	case *history.ActivityTaskCompletedEventAttributes:
 		v.Identity = ""
+		// Because binary checksum will show up in the stamp where it didn't before, ignore unless
+		// versioning was actually turned on.
+		if v.GetWorkerVersion() != nil && !v.GetWorkerVersion().GetUseVersioning() {
+			v.WorkerVersion = nil
+		}
 	case *history.ActivityTaskFailedEventAttributes:
 		v.Identity = ""
+		// Because binary checksum will show up in the stamp where it didn't before, ignore unless
+		// versioning was actually turned on.
+		if v.GetWorkerVersion() != nil && !v.GetWorkerVersion().GetUseVersioning() {
+			v.WorkerVersion = nil
+		}
 	case *history.ActivityTaskTimedOutEventAttributes:
 	case *history.TimerStartedEventAttributes:
 	case *history.TimerFiredEventAttributes:
@@ -231,8 +255,12 @@ func scrubRunSpecificScalars(v interface{}) {
 		v.Namespace = ""
 	case *history.WorkflowExecutionContinuedAsNewEventAttributes:
 		v.NewExecutionRunId = ""
+		// TODO: Shouldn't be fully ignorable, but should be ignorable if not present in old hist
+		v.UseCompatibleVersion = false
 	case *history.StartChildWorkflowExecutionInitiatedEventAttributes:
 		v.Namespace = ""
+		// TODO: Shouldn't be fully ignorable, but should be ignorable if not present in old hist
+		v.UseCompatibleVersion = false
 	case *history.StartChildWorkflowExecutionFailedEventAttributes:
 		v.Namespace = ""
 	case *history.ChildWorkflowExecutionStartedEventAttributes:
@@ -255,5 +283,6 @@ func scrubRunSpecificScalars(v interface{}) {
 	case *history.UpsertWorkflowSearchAttributesEventAttributes:
 	case *taskqueue.TaskQueue:
 		v.Name = ""
+		v.NormalName = ""
 	}
 }

@@ -4,7 +4,7 @@ version: "3.5"
 
 services:
   temporal-server:
-    image: temporalio/auto-setup:latest
+    image: temporal-autosetup:latest
     environment:
       - CASSANDRA_SEEDS=cassandra
     ports:

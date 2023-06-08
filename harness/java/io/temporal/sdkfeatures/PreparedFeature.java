@@ -22,6 +22,7 @@ public class PreparedFeature {
           signal.external.feature.Impl.class,
           update.activities.feature.Impl.class,
           update.async_accepted.feature.Impl.class,
+          update.intercept.feature.Impl.class,
           update.non_durable_reject.feature.Impl.class,
           update.task_failure.feature.Impl.class,
           update.worker_restart.feature.Impl.class,

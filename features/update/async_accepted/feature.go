@@ -39,7 +39,7 @@ var Feature = harness.Feature{
 			return nil, err
 		}
 
-		// Issue an asyc update that should succeed after `requestedSleep`
+		// Issue an async update that should succeed after `requestedSleep`
 		start := time.Now()
 		originalHandle, err := runner.Client.UpdateWorkflowWithOptions(
 			ctx,

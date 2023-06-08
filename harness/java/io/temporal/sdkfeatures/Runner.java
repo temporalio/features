@@ -300,6 +300,24 @@ public class Runner implements Closeable {
     skip("unknown");
   }
 
+  public void skipIfAsyncAcceptedUpdateNotSupported() {
+    try {
+      client.newUntypedWorkflowStub("fake").startUpdate("also_fake", Void.class);
+    } catch (WorkflowNotFoundException exception) {
+      return;
+    } catch (WorkflowServiceException exception) {
+      StatusRuntimeException e = (StatusRuntimeException) exception.getCause();
+      switch (e.getStatus().getCode()) {
+        case PERMISSION_DENIED:
+          skip(
+              "server support for async accepted update is disabled; set frontend.enableUpdateWorkflowExecutionAsyncAccepted=true in dynamic config to enable");
+        case UNIMPLEMENTED:
+          skip("server version too old to support update");
+      }
+    }
+    skip("unknown");
+  }
+
   public void skip(String message) {
     throw new TestSkippedException(message);
   }

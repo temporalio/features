@@ -2,13 +2,15 @@
 
 Protobuf values can be converted to and from `binary/protobuf` Payloads.
 
-This feature:
+Steps:
 
-- runs a [`BinaryMessage`](../messages.proto) with a single byte `0000 0101` for `data` through the Binary Protobuf
-  Payload Converter, writes it to `payloads/binary_protobuf.[lang]`, and verifies it matches the other files in
-  `payloads/`
-- decodes all files in `payloads/` with the default Payload Converter and verifies the value is a `Binary Message` with
-  `data: 0000 0101`
+- run a workflow that returns [`BinaryMessage`](../messages.proto) with
+binary value `0xdeadbeef`
+- verify client result is [`BinaryMessage`] with value `0xdeadbeef`
+- get result payload of WorkflowExecutionCompleted event from workflow history
+- verify payload encoding is `binary/protobuf`, unmarshall its data into a
+`BinaryMessage` using `protobuf` library, and compare it to the client
+result
 
 # Detailed spec
 

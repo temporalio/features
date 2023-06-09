@@ -14,8 +14,13 @@ import (
 	"go.temporal.io/features/features/child_workflow/result"
 	"go.temporal.io/features/features/continue_as_new/continue_as_same"
 	"go.temporal.io/features/features/data_converter/binary"
+	"go.temporal.io/features/features/data_converter/binary_protobuf"
+	"go.temporal.io/features/features/data_converter/compression"
 	"go.temporal.io/features/features/data_converter/empty"
+	"go.temporal.io/features/features/data_converter/encryption"
 	"go.temporal.io/features/features/data_converter/failure"
+	"go.temporal.io/features/features/data_converter/json"
+	"go.temporal.io/features/features/data_converter/json_protobuf"
 	"go.temporal.io/features/features/eager_activity/non_remote_activities_worker"
 	"go.temporal.io/features/features/query/successful_query"
 	"go.temporal.io/features/features/query/timeout_due_to_no_active_workers"
@@ -48,12 +53,17 @@ func init() {
 		backfill.Feature,
 		basic.Feature,
 		binary.Feature,
+		binary_protobuf.Feature,
 		cancel_try_cancel.Feature,
 		child_workflow_cancel_panic.Feature,
 		continue_as_same.Feature,
+		compression.Feature,
 		cron.Feature,
 		empty.Feature,
+		encryption.Feature,
 		external.Feature,
+		json.Feature,
+		json_protobuf.Feature,
 		metrics.Feature,
 		pause.Feature,
 		result.Feature,

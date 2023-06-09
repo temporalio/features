@@ -2,12 +2,15 @@
 
 Payloads can be run through a `binary/zlib` compression Payload Codec.
 
-This feature:
+Steps:
 
-- runs the JSON value `{ "spec": true }` through the default Payload Converter, runs the Payload through the zlib
-  compression Codec, writes it to `payloads/compressed.[lang]`, and verifies it matches the other files in `payloads/`
-- decodes all files in `payloads/` with the compression Codec and default Payload Converter and verifies the JSON value
-  is `{ "spec": true }`
+- run a workflow that returns the JSON value `{ "spec": true }`
+- verify client result is object `{ "spec": true }`
+- get result payload of WorkflowExecutionCompleted event from workflow history
+- verify payload encoding is "binary/zlib", uncompress data to extract an inner
+payload
+- check that the inner payload encoding is `json/plain`, unmarshall its data
+using a `json` library, and compare it to the client result
 
 # Detailed spec
 

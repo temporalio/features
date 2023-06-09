@@ -10,13 +10,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"go.temporal.io/sdk/log"
-	"go.temporal.io/sdk/worker"
-	"go.temporal.io/sdk/workflow"
-
+	common "go.temporal.io/api/common/v1"
 	historypb "go.temporal.io/api/history/v1"
 	"go.temporal.io/sdk/client"
+	"go.temporal.io/sdk/log"
 	"go.temporal.io/sdk/temporal"
+	"go.temporal.io/sdk/worker"
+	"go.temporal.io/sdk/workflow"
 )
 
 // RetryDisabled is a retry policy with 1 max attempt.
@@ -39,6 +39,29 @@ func FindEvent(history client.HistoryEventIterator, cond func(*historypb.History
 		}
 	}
 	return nil, nil
+}
+
+// GetWorkflowResultPayload returns the first payload of a workflow result
+func GetWorkflowResultPayload(ctx context.Context, client client.Client,
+	workflowId string) (*common.Payload, error) {
+	history := client.GetWorkflowHistory(ctx, workflowId, "", false, 0)
+
+	event, err := FindEvent(history, func(ev *historypb.HistoryEvent) bool {
+		attrs := ev.GetWorkflowExecutionCompletedEventAttributes()
+		return attrs != nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if event == nil {
+		return nil, errors.New("missing WorkflowExecutionCompleted event")
+	}
+
+	attrs := event.GetWorkflowExecutionCompletedEventAttributes()
+	if attrs == nil {
+		return nil, errors.New("could not locate WorkflowExecutionCompleted event")
+	}
+	return attrs.GetResult().GetPayloads()[0], nil
 }
 
 // WaitNamespaceAvailable waits for up to 5 seconds for the provided namespace to become available

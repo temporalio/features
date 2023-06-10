@@ -1,4 +1,4 @@
-package encryption
+package codecs
 
 // Adapted from samples-go/encryption/data_converter.go and crypto.go
 
@@ -7,9 +7,10 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"fmt"
+	"io"
+
 	commonpb "go.temporal.io/api/common/v1"
 	"go.temporal.io/sdk/converter"
-	"io"
 )
 
 const (
@@ -60,7 +61,7 @@ func (e *Codec) Encode(payloads []*commonpb.Payload) ([]*commonpb.Payload, error
 
 		key := e.getKey(e.KeyID)
 
-		b, err := encrypt(origBytes, key)
+		b, err := Encrypt(origBytes, key)
 		if err != nil {
 			return payloads, err
 		}
@@ -94,7 +95,7 @@ func (e *Codec) Decode(payloads []*commonpb.Payload) ([]*commonpb.Payload, error
 
 		key := e.getKey(string(keyID))
 
-		b, err := decrypt(p.Data, key)
+		b, err := Decrypt(p.Data, key)
 		if err != nil {
 			return payloads, err
 		}
@@ -109,7 +110,7 @@ func (e *Codec) Decode(payloads []*commonpb.Payload) ([]*commonpb.Payload, error
 	return result, nil
 }
 
-func encrypt(plainData []byte, key []byte) ([]byte, error) {
+func Encrypt(plainData []byte, key []byte) ([]byte, error) {
 	c, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
@@ -128,7 +129,7 @@ func encrypt(plainData []byte, key []byte) ([]byte, error) {
 	return gcm.Seal(nonce, nonce, plainData, nil), nil
 }
 
-func decrypt(encryptedData []byte, key []byte) ([]byte, error) {
+func Decrypt(encryptedData []byte, key []byte) ([]byte, error) {
 	c, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err

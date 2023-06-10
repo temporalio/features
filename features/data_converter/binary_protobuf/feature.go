@@ -1,18 +1,17 @@
 package binary_protobuf
 
 import (
-	"bytes"
 	"context"
-	"fmt"
+
 	"github.com/gogo/protobuf/proto"
-	pb "go.temporal.io/features/features/data_converter"
+	commonpb "go.temporal.io/api/common/v1"
 	"go.temporal.io/features/harness/go/harness"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/converter"
 	"go.temporal.io/sdk/workflow"
 )
 
-var EXPECTED_RESULT = []byte{0xde, 0xad, 0xbe, 0xef}
+var expectedResult = commonpb.DataBlob{Data: []byte{0xde, 0xad, 0xbe, 0xef}}
 
 var Feature = harness.Feature{
 	Workflows:   Workflow,
@@ -20,44 +19,41 @@ var Feature = harness.Feature{
 	ClientOptions: client.Options{
 		DataConverter: converter.NewCompositeDataConverter(
 			converter.NewNilPayloadConverter(),
-			// Disable ByteSlice and ProtoJSON converters
+			// Disable ByteSlice, ProtoJSON, and JSON converters
 			converter.NewProtoPayloadConverter(),
-			converter.NewJSONPayloadConverter(),
 		),
 	},
 }
 
-func Workflow(ctx workflow.Context) (pb.BinaryMessage, error) {
-	return pb.BinaryMessage{Data: EXPECTED_RESULT}, nil
+func Workflow(ctx workflow.Context) (commonpb.DataBlob, error) {
+	return expectedResult, nil
 }
 
 func CheckResult(ctx context.Context, runner *harness.Runner, run client.WorkflowRun) error {
-	// verify client result is BinaryMessage `0xdeadbeef`
-	result := pb.BinaryMessage{}
+	// verify client result is DataBlob `0xdeadbeef`
+	result := commonpb.DataBlob{}
 	if err := run.Get(ctx, &result); err != nil {
 		return err
 	}
-	if !bytes.Equal(result.Data, EXPECTED_RESULT) {
-		return fmt.Errorf("invalid result: %v", result)
-	}
+
+	runner.Require.True(proto.Equal(&expectedResult, &result))
 
 	payload, err := harness.GetWorkflowResultPayload(ctx, runner.Client, run.GetID())
 	if err != nil {
 		return err
 	}
 
-	var encoding = string(payload.GetMetadata()["encoding"])
+	encoding := string(payload.GetMetadata()["encoding"])
 	runner.Require.Equal("binary/protobuf", encoding)
 
-	resultInHistory := pb.BinaryMessage{}
+	messageType := string(payload.GetMetadata()["messageType"])
+	runner.Require.Equal("temporal.api.common.v1.DataBlob", messageType)
+
+	resultInHistory := commonpb.DataBlob{}
 	if err := proto.Unmarshal(payload.GetData(), &resultInHistory); err != nil {
 		return err
 	}
 
-	if !bytes.Equal(resultInHistory.GetData(), EXPECTED_RESULT) {
-		return fmt.Errorf("invalid result in history: %v", resultInHistory)
-	}
-
-	runner.Require.Equal(result, resultInHistory)
+	runner.Require.True(proto.Equal(&result, &resultInHistory))
 	return nil
 }

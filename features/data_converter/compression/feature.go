@@ -5,13 +5,14 @@ import (
 	"compress/zlib"
 	"context"
 	"encoding/json"
+	"io"
+
 	"github.com/gogo/protobuf/proto"
 	commonpb "go.temporal.io/api/common/v1"
 	"go.temporal.io/features/harness/go/harness"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/converter"
 	"go.temporal.io/sdk/workflow"
-	"io"
 )
 
 // Add Zlib compression codec to default data converter

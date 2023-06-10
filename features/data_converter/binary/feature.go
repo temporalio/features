@@ -14,7 +14,7 @@ import (
 	"go.temporal.io/sdk/workflow"
 )
 
-var EXPECTED_RESULT = []byte{0xde, 0xad, 0xbe, 0xef}
+var expectedResult = []byte{0xde, 0xad, 0xbe, 0xef}
 
 var Feature = harness.Feature{
 	Workflows:   Workflow,
@@ -23,7 +23,7 @@ var Feature = harness.Feature{
 
 // run a workflow that returns binary value `0xdeadbeef`
 func Workflow(ctx workflow.Context) ([]byte, error) {
-	return EXPECTED_RESULT, nil
+	return expectedResult, nil
 }
 
 func CheckResult(ctx context.Context, runner *harness.Runner, run client.WorkflowRun) error {
@@ -32,7 +32,7 @@ func CheckResult(ctx context.Context, runner *harness.Runner, run client.Workflo
 	if err := run.Get(ctx, &result); err != nil {
 		return err
 	}
-	if !bytes.Equal(result, EXPECTED_RESULT) {
+	if !bytes.Equal(result, expectedResult) {
 		return fmt.Errorf("invalid result: %v", result)
 	}
 

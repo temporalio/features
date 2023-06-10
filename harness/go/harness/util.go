@@ -10,7 +10,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	common "go.temporal.io/api/common/v1"
+	commonpb "go.temporal.io/api/common/v1"
+	enumspb "go.temporal.io/api/enums/v1"
 	historypb "go.temporal.io/api/history/v1"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/log"
@@ -42,9 +43,12 @@ func FindEvent(history client.HistoryEventIterator, cond func(*historypb.History
 }
 
 // GetWorkflowResultPayload returns the first payload of a workflow result
-func GetWorkflowResultPayload(ctx context.Context, client client.Client,
-	workflowId string) (*common.Payload, error) {
-	history := client.GetWorkflowHistory(ctx, workflowId, "", false, 0)
+func GetWorkflowResultPayload(
+	ctx context.Context,
+	client client.Client,
+	workflowID string,
+) (*commonpb.Payload, error) {
+	history := client.GetWorkflowHistory(ctx, workflowID, "", false, enumspb.HISTORY_EVENT_FILTER_TYPE_CLOSE_EVENT)
 
 	event, err := FindEvent(history, func(ev *historypb.HistoryEvent) bool {
 		attrs := ev.GetWorkflowExecutionCompletedEventAttributes()

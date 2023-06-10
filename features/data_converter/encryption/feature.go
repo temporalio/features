@@ -3,8 +3,10 @@ package encryption
 import (
 	"context"
 	"encoding/json"
+
 	"github.com/gogo/protobuf/proto"
 	commonpb "go.temporal.io/api/common/v1"
+	"go.temporal.io/features/features/data_converter/encryption/codecs"
 	"go.temporal.io/features/harness/go/harness"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/converter"
@@ -13,9 +15,9 @@ import (
 
 // Add encryption codec to default data converter
 func getEncryptionConverter() converter.DataConverter {
-	return NewEncryptionDataConverter(
+	return codecs.NewEncryptionDataConverter(
 		converter.GetDefaultDataConverter(),
-		DataConverterOptions{KeyID: "testKey"},
+		codecs.DataConverterOptions{KeyID: "testKey"},
 	)
 }
 
@@ -51,7 +53,7 @@ func CheckResult(ctx context.Context, runner *harness.Runner, run client.Workflo
 	var encoding = string(payload.GetMetadata()["encoding"])
 	runner.Require.Equal("binary/encrypted", encoding)
 
-	clearData, err := decrypt(payload.GetData(), []byte(TEST_KEY_STR))
+	clearData, err := codecs.Decrypt(payload.GetData(), []byte(codecs.TEST_KEY_STR))
 	if err != nil {
 		return err
 	}

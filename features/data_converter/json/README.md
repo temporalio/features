@@ -2,11 +2,17 @@
 
 JSON values can be converted to and from `json/plain` Payloads.
 
-This feature: 
+Steps:
 
-- runs the JSON value `{ "spec": true }` through the default Payload Converter, writes it to `payloads/json.[lang]`, and
-  verifies it matches the other files in `payloads/`
-- decodes all files in `payloads/` with the default Payload Converter and verifies the JSON value is `{ "spec": true }`
+- run an echo workflow that accepts and returns the JSON value
+`{ "spec": true }`
+- verify client result is object `{ "spec": true }`
+- get result payload of WorkflowExecutionCompleted event from workflow history
+- verify payload encoding is `json/plain`, unmarshall its data using a
+`json` library, and compare it to the client result
+- get argument payload of WorkflowExecutionStarted event from workflow history
+- verify that argument and result payloads are the same
+
 
 # Detailed spec
 

@@ -23,4 +23,7 @@ bin
 # VS Code config
 .vscode
 
+# Emacs backup files
+*~
+
 /dist/

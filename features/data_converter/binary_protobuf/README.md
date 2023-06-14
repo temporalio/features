@@ -2,15 +2,20 @@
 
 Protobuf values can be converted to and from `binary/protobuf` Payloads.
 
-This feature:
+Steps:
 
-- runs a [`BinaryMessage`](../messages.proto) with a single byte `0000 0101` for `data` through the Binary Protobuf
-  Payload Converter, writes it to `payloads/binary_protobuf.[lang]`, and verifies it matches the other files in
-  `payloads/`
-- decodes all files in `payloads/` with the default Payload Converter and verifies the value is a `Binary Message` with
-  `data: 0000 0101`
+- run an echo workflow that accepts and returns a
+[`DataBlob`](https://pkg.go.dev/go.temporal.io/api/common/v1#DataBlob)
+with binary value `0xdeadbeef`
+- verify client result is [`DataBlob`] with value `0xdeadbeef`
+- get result payload of WorkflowExecutionCompleted event from workflow history
+- verify payload encoding is `binary/protobuf`, unmarshall its data into a
+`DataBlob` using `protobuf` library, and compare it to the client
+result
+- get argument payload of WorkflowExecutionStarted event from workflow history
+- verify that argument and result payloads are the same
 
 # Detailed spec
 
 `metadata.encoding = toBinary("binary/protobuf")`
-`metadata.messageType = toBinary("BinaryMessage")` (used by languages that cannot get a parameter's type at runtime)
+`metadata.messageType = toBinary("temporal.api.common.v1.DataBlob")` (used by languages that cannot get a parameter's type at runtime)

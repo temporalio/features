@@ -8,12 +8,11 @@ import io.temporal.sdkfeatures.Run;
 import io.temporal.sdkfeatures.Runner;
 import io.temporal.workflow.WorkflowInterface;
 import io.temporal.workflow.WorkflowMethod;
-import org.junit.jupiter.api.Assertions;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.UUID;
+import org.junit.jupiter.api.Assertions;
 
 @WorkflowInterface
 public interface feature extends Feature {

@@ -22,12 +22,11 @@ func getCustomConverter() converter.DataConverter {
 }
 
 func decodeBase64(in []byte) ([]byte, error) {
-	dst := make([]byte, base64.StdEncoding.DecodedLen(len(in)))
-	n, err := base64.StdEncoding.Decode(dst, in)
+	dst, err := base64.StdEncoding.DecodeString(string(in))
 	if err != nil {
 		return nil, err
 	}
-	return dst[:n], nil
+	return dst, nil
 }
 
 type Message struct {
@@ -108,11 +107,9 @@ func (b *base64Codec) Encode(payloads []*commonpb.Payload) ([]*commonpb.Payload,
 		if err != nil {
 			return payloads, err
 		}
-		dst := make([]byte, base64.StdEncoding.EncodedLen(len(b)))
-		base64.StdEncoding.Encode(dst, b)
 		result[i] = &commonpb.Payload{
 			Metadata: map[string][]byte{converter.MetadataEncoding: []byte("my-encoding")},
-			Data:     dst,
+			Data:     []byte(base64.StdEncoding.EncodeToString(b)),
 		}
 	}
 	return result, nil
@@ -126,12 +123,10 @@ func (b *base64Codec) Decode(payloads []*commonpb.Payload) ([]*commonpb.Payload,
 			result[i] = p
 			continue
 		}
-		dst := make([]byte, base64.StdEncoding.DecodedLen(len(p.Data)))
-		n, err := base64.StdEncoding.Decode(dst, p.Data)
+		dst, err := base64.StdEncoding.DecodeString(string(p.Data))
 		if err != nil {
 			return payloads, err
 		}
-		dst = dst[:n]
 		result[i] = &commonpb.Payload{}
 		err = proto.Unmarshal(dst, result[i])
 		if err != nil {

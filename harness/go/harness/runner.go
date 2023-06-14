@@ -247,7 +247,19 @@ func (r *Runner) CheckHistoryDefault(ctx context.Context, _ client.WorkflowRun) 
 // ReplayHistories replays the given histories checking for errors.
 func (r *Runner) ReplayHistories(ctx context.Context, histories history.Histories) error {
 	// Create replayer with all the workflow funcs
-	replayer := worker.NewWorkflowReplayer()
+	var replayer worker.WorkflowReplayer
+	dataConverter := r.Feature.ClientOptions.DataConverter
+	if dataConverter != nil {
+		var err error
+		replayer, err = worker.NewWorkflowReplayerWithOptions(
+			worker.WorkflowReplayerOptions{DataConverter: dataConverter},
+		)
+		if err != nil {
+			return err
+		}
+	} else {
+		replayer = worker.NewWorkflowReplayer()
+	}
 	for _, workflow := range r.Feature.Workflows {
 		switch workflow.(type) {
 		case WorkflowWithOptions:

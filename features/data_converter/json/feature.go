@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/gogo/protobuf/proto"
 	"go.temporal.io/features/harness/go/harness"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/workflow"
@@ -16,10 +17,13 @@ type Message struct {
 var Feature = harness.Feature{
 	Workflows:   Workflow,
 	CheckResult: CheckResult,
+	// ExecuteDefault does not support workflow arguments
+	Execute: harness.ExecuteWithArgs(Workflow, Message{true}),
 }
 
-func Workflow(ctx workflow.Context) (Message, error) {
-	return Message{true}, nil
+// An "echo" workflow
+func Workflow(ctx workflow.Context, res Message) (Message, error) {
+	return res, nil
 }
 
 func CheckResult(ctx context.Context, runner *harness.Runner, run client.WorkflowRun) error {
@@ -43,6 +47,13 @@ func CheckResult(ctx context.Context, runner *harness.Runner, run client.Workflo
 		return err
 	}
 	runner.Require.Equal(result, resultInHistory)
+
+	payloadArg, err := harness.GetWorkflowArgumentPayload(ctx, runner.Client, run.GetID())
+	if err != nil {
+		return err
+	}
+
+	runner.Require.True(proto.Equal(payload, payloadArg))
 
 	return nil
 }

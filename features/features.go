@@ -5,7 +5,7 @@ import (
 	"go.temporal.io/features/features/activity/retry_on_error"
 	"go.temporal.io/features/features/bugs/go/activity_start_race"
 	"go.temporal.io/features/features/bugs/go/child_workflow_cancel_panic"
-	"go.temporal.io/features/features/build_id_versioning/activity_and_child_on_correct_version"
+	activity_on_same_version "go.temporal.io/features/features/build_id_versioning/activity_and_child_on_correct_version"
 	"go.temporal.io/features/features/build_id_versioning/continues_as_new_on_correct_version"
 	"go.temporal.io/features/features/build_id_versioning/only_appropriate_worker_gets_task"
 	"go.temporal.io/features/features/build_id_versioning/unversioned_worker_gets_unversioned_task"
@@ -15,9 +15,8 @@ import (
 	"go.temporal.io/features/features/continue_as_new/continue_as_same"
 	"go.temporal.io/features/features/data_converter/binary"
 	"go.temporal.io/features/features/data_converter/binary_protobuf"
-	"go.temporal.io/features/features/data_converter/compression"
+	"go.temporal.io/features/features/data_converter/codec"
 	"go.temporal.io/features/features/data_converter/empty"
-	"go.temporal.io/features/features/data_converter/encryption"
 	"go.temporal.io/features/features/data_converter/failure"
 	"go.temporal.io/features/features/data_converter/json"
 	"go.temporal.io/features/features/data_converter/json_protobuf"
@@ -57,10 +56,9 @@ func init() {
 		cancel_try_cancel.Feature,
 		child_workflow_cancel_panic.Feature,
 		continue_as_same.Feature,
-		compression.Feature,
+		codec.Feature,
 		cron.Feature,
 		empty.Feature,
-		encryption.Feature,
 		external.Feature,
 		json.Feature,
 		json_protobuf.Feature,

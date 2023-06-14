@@ -17,12 +17,15 @@ var expectedResult = commonpb.DataBlob{Data: []byte{0xde, 0xad, 0xbe, 0xef}}
 var Feature = harness.Feature{
 	Workflows:   Workflow,
 	CheckResult: CheckResult,
+	// ExecuteDefault does not support workflow arguments
+	Execute: harness.ExecuteWithArgs(Workflow, expectedResult),
 	// No need of a custom data converter, the default one prioritizes
-	//  ProtoJSONPayload over ProtoPayload
+	// ProtoJSONPayload over ProtoPayload
 }
 
-func Workflow(ctx workflow.Context) (commonpb.DataBlob, error) {
-	return expectedResult, nil
+// An "echo" workflow
+func Workflow(ctx workflow.Context, res commonpb.DataBlob) (commonpb.DataBlob, error) {
+	return res, nil
 }
 
 func CheckResult(ctx context.Context, runner *harness.Runner, run client.WorkflowRun) error {
@@ -51,5 +54,13 @@ func CheckResult(ctx context.Context, runner *harness.Runner, run client.Workflo
 	}
 
 	runner.Require.True(proto.Equal(&result, &resultInHistory))
+
+	payloadArg, err := harness.GetWorkflowArgumentPayload(ctx, runner.Client, run.GetID())
+	if err != nil {
+		return err
+	}
+
+	runner.Require.True(proto.Equal(payload, payloadArg))
+
 	return nil
 }

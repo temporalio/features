@@ -42,6 +42,20 @@ func FindEvent(history client.HistoryEventIterator, cond func(*historypb.History
 	return nil, nil
 }
 
+// ExecuteWithArgs runs a workflow with default arguments
+func ExecuteWithArgs(workflow interface{}, args ...interface{}) func(ctx context.Context, r *Runner) (client.WorkflowRun, error) {
+	return func(ctx context.Context, r *Runner) (client.WorkflowRun, error) {
+		opts := r.Feature.StartWorkflowOptions
+		if opts.TaskQueue == "" {
+			opts.TaskQueue = r.TaskQueue
+		}
+		if opts.WorkflowExecutionTimeout == 0 {
+			opts.WorkflowExecutionTimeout = 1 * time.Minute
+		}
+		return r.Client.ExecuteWorkflow(ctx, opts, workflow, args...)
+	}
+}
+
 // GetWorkflowResultPayload returns the first payload of a workflow result
 func GetWorkflowResultPayload(
 	ctx context.Context,
@@ -66,6 +80,32 @@ func GetWorkflowResultPayload(
 		return nil, errors.New("could not locate WorkflowExecutionCompleted event")
 	}
 	return attrs.GetResult().GetPayloads()[0], nil
+}
+
+// GetWorkflowArgumentPayload returns the first payload of a workflow argument
+func GetWorkflowArgumentPayload(
+	ctx context.Context,
+	client client.Client,
+	workflowID string,
+) (*commonpb.Payload, error) {
+	history := client.GetWorkflowHistory(ctx, workflowID, "", false, enumspb.HISTORY_EVENT_FILTER_TYPE_UNSPECIFIED)
+
+	event, err := FindEvent(history, func(ev *historypb.HistoryEvent) bool {
+		attrs := ev.GetWorkflowExecutionStartedEventAttributes()
+		return attrs != nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if event == nil {
+		return nil, errors.New("missing WorkflowExecutionStarted event")
+	}
+
+	attrs := event.GetWorkflowExecutionStartedEventAttributes()
+	if attrs == nil {
+		return nil, errors.New("could not locate WorkflowExecutionStarted event")
+	}
+	return attrs.GetInput().GetPayloads()[0], nil
 }
 
 // WaitNamespaceAvailable waits for up to 5 seconds for the provided namespace to become available

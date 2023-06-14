@@ -23,10 +23,13 @@ var Feature = harness.Feature{
 			converter.NewProtoPayloadConverter(),
 		),
 	},
+	// ExecuteDefault does not support workflow arguments
+	Execute: harness.ExecuteWithArgs(Workflow, expectedResult),
 }
 
-func Workflow(ctx workflow.Context) (commonpb.DataBlob, error) {
-	return expectedResult, nil
+// An "echo" workflow
+func Workflow(ctx workflow.Context, res commonpb.DataBlob) (commonpb.DataBlob, error) {
+	return res, nil
 }
 
 func CheckResult(ctx context.Context, runner *harness.Runner, run client.WorkflowRun) error {
@@ -55,5 +58,13 @@ func CheckResult(ctx context.Context, runner *harness.Runner, run client.Workflo
 	}
 
 	runner.Require.True(proto.Equal(&result, &resultInHistory))
+
+	payloadArg, err := harness.GetWorkflowArgumentPayload(ctx, runner.Client, run.GetID())
+	if err != nil {
+		return err
+	}
+
+	runner.Require.True(proto.Equal(payload, payloadArg))
+
 	return nil
 }

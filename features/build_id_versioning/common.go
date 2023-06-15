@@ -28,7 +28,7 @@ func AddSomeVersions(ctx context.Context, c client.Client, tq string) error {
 		TaskQueue: tq,
 		Operation: &client.BuildIDOpAddNewCompatibleVersion{
 			BuildID:                   "2.1",
-			ExistingCompatibleBuildId: "2.0",
+			ExistingCompatibleBuildID: "2.0",
 			MakeSetDefault:            true,
 		},
 	})

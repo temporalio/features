@@ -86,7 +86,7 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 		TaskQueue: r.TaskQueue,
 		Operation: &client.BuildIDOpAddNewCompatibleVersion{
 			BuildID:                   "1.1",
-			ExistingCompatibleBuildId: "1.0",
+			ExistingCompatibleBuildID: "1.0",
 		},
 	})
 	if err != nil {
@@ -107,7 +107,7 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 		TaskQueue: r.TaskQueue,
 		Operation: &client.BuildIDOpAddNewCompatibleVersion{
 			BuildID:                   "1.2",
-			ExistingCompatibleBuildId: "1.1",
+			ExistingCompatibleBuildID: "1.1",
 		},
 	})
 	if err != nil {

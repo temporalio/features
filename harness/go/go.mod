@@ -8,7 +8,7 @@ require (
 	github.com/stretchr/testify v1.8.3
 	github.com/urfave/cli/v2 v2.3.0
 	go.temporal.io/api v1.21.0
-	go.temporal.io/sdk v1.23.1-0.20230615233919-ae9ed7bebea6
+	go.temporal.io/sdk v1.23.1
 	go.uber.org/zap v1.19.1
 	golang.org/x/mod v0.9.0
 )

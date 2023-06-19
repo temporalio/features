@@ -2,10 +2,10 @@ import { Feature } from '@temporalio/harness';
 import * as assert from 'assert';
 
 type resultType = {
-  spec: boolean
-}
+  spec: boolean;
+};
 
-const expectedResult: resultType = {spec: true};
+const expectedResult: resultType = { spec: true };
 
 // An "echo" workflow
 export async function workflow(res: resultType): Promise<resultType> {
@@ -28,16 +28,16 @@ export const feature = new Feature({
     assert.ok(payload);
 
     assert.ok(payload.metadata?.encoding);
-    assert.equal(Buffer.from(payload.metadata.encoding).toString(), 'json/plain')
+    assert.equal(Buffer.from(payload.metadata.encoding).toString(), 'json/plain');
 
-    assert.ok(payload.data)
-    const resultInHistory = JSON.parse(payload.data.toString())
+    assert.ok(payload.data);
+    const resultInHistory = JSON.parse(payload.data.toString());
     assert.deepEqual(resultInHistory, expectedResult);
 
     // get argument payload of WorkflowExecutionStarted event from workflow history
     const payloadArg = await runner.getWorkflowArgumentPayload(handle);
 
-    assert.ok(payloadArg?.data)
+    assert.ok(payloadArg?.data);
     const resultArgInHistory = JSON.parse(payloadArg.data.toString());
     assert.deepEqual(resultInHistory, resultArgInHistory);
   },

@@ -26,6 +26,7 @@ import java.io.Closeable;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.*;
+import java.util.function.Supplier;
 import org.reflections.Reflections;
 import org.reflections.scanners.Scanners;
 import org.slf4j.Logger;
@@ -109,7 +110,10 @@ public class Runner implements Closeable {
   void run() throws Exception {
     log.info("Executing feature {}", featureInfo.dir);
     var run = feature.execute(this);
-
+    if (run == null) {
+      log.info("Feature {} returned null", featureInfo.dir);
+      return;
+    }
     log.info("Checking result of feature {}", featureInfo.dir);
     feature.checkResult(this, run);
 
@@ -146,6 +150,9 @@ public class Runner implements Closeable {
   }
 
   public Object waitForRunResult(Run run) {
+    if (run == null) {
+      return null;
+    }
     return waitForRunResult(run, run.method.getWorkflowMethod().getReturnType());
   }
 
@@ -320,5 +327,19 @@ public class Runner implements Closeable {
 
   public void skip(String message) {
     throw new TestSkippedException(message);
+  }
+
+  public void retry(Supplier<Boolean> fn, int retries, Duration sleepBetweenRetries) {
+    for (int i = 0; i < retries; i++) {
+      if (fn.get()) {
+        return;
+      }
+      try {
+        Thread.sleep(sleepBetweenRetries.toMillis());
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      }
+    }
+    Assertions.fail("retry limit exceeded");
   }
 }

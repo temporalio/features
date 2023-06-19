@@ -1,7 +1,7 @@
 import * as proto from '@temporalio/proto';
 import {
   DefaultPayloadConverterWithProtobufsOptions,
-  ProtobufBinaryPayloadConverter,
+  ProtobufJsonPayloadConverter,
 } from '@temporalio/common/lib/protobufs';
 
 import { CompositePayloadConverter } from '@temporalio/common';
@@ -9,7 +9,7 @@ import { CompositePayloadConverter } from '@temporalio/common';
 class PayloadConverterWithProtobufs extends CompositePayloadConverter {
   constructor({ protobufRoot }: DefaultPayloadConverterWithProtobufsOptions) {
     super(
-      new ProtobufBinaryPayloadConverter(protobufRoot),
+      new ProtobufJsonPayloadConverter(protobufRoot),
     );
   }
 }

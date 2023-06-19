@@ -18,12 +18,7 @@ export const feature = new Feature({
     assert.deepEqual(result, deadbeef);
 
     // get result payload of WorkflowExecutionCompleted event from workflow history
-    const events = await runner.getHistoryEvents(handle);
-    const completedEvent = events.find(
-      ({ workflowExecutionCompletedEventAttributes }) => !!workflowExecutionCompletedEventAttributes
-    );
-
-    const payload = completedEvent?.workflowExecutionCompletedEventAttributes?.result?.payloads?.[0];
+    const payload = await runner.getWorkflowResultPayload(handle);
     assert.ok(payload);
 
     // load JSON payload from `./payload.json` and compare it to result payload

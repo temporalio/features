@@ -14,7 +14,8 @@
     "@temporalio/common": "^1.5.2",
     "@temporalio/worker": "^1.5.2",
     "@temporalio/workflow": "^1.5.2",
-    "commander": "^8.3.0"
+    "commander": "^8.3.0",
+    "proto3-json-serializer": "^1.1.1"
   },
   "devDependencies": {
     "@tsconfig/node16": "^1.0.0",

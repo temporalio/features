@@ -118,6 +118,7 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
   "dependencies": {
     ` + packageJSONDepStr + `
     "commander": "^8.3.0",
+	"proto3-json-serializer": "^1.1.1",
     "uuid": "^8.3.2"
   },
   "devDependencies": {

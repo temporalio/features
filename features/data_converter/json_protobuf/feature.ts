@@ -9,7 +9,7 @@ import * as assert from 'assert';
 const patched = patchProtobufRoot(proto) as any;
 const dataBlobType = patched.lookupType('temporal.api.common.v1.DataBlob');
 
-// Inject Buffer and Uint8Array into isolate to workaround SDK bug
+// Inject Buffer and Uint8Array from the node context to the workflow context to workaround SDK bug
 // TODO(antlai-temporal) Remove workaround when SDK bug is fixed
 const g = globalThis as any;
 g.Buffer = g.constructor.constructor('return globalThis.Buffer')();
@@ -57,6 +57,12 @@ export const feature = new Feature({
     // get argument payload of WorkflowExecutionStarted event from workflow history
     const payloadArg = await runner.getWorkflowArgumentPayload(handle);
     assert.ok(payloadArg);
+
+    assert.ok(payloadArg.metadata?.encoding);
+    assert.equal(Buffer.from(payloadArg.metadata.encoding).toString(), 'json/protobuf');
+
+    assert.ok(payloadArg.metadata?.messageType);
+    assert.equal(Buffer.from(payloadArg.metadata.messageType).toString(), 'temporal.api.common.v1.DataBlob');
 
     assert.ok(payloadArg.data);
     const resultArgInHistory = fromProto3JSON(dataBlobType, JSON.parse(decode(payloadArg.data)));

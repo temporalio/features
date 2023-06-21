@@ -22,7 +22,7 @@ func (p *Preparer) BuildPythonProgram(ctx context.Context) (sdkbuild.Program, er
 	if version == "" {
 		b, err := os.ReadFile(filepath.Join(p.rootDir, "pyproject.toml"))
 		if err != nil {
-			return nil, fmt.Errorf("failed reading package.json: %w", err)
+			return nil, fmt.Errorf("failed reading pyproject.toml: %w", err)
 		}
 		for _, line := range strings.Split(string(b), "\n") {
 			line = strings.TrimSpace(line)

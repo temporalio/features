@@ -30,7 +30,7 @@ export const feature = new Feature({
   async checkResult(runner, handle) {
     // verify client result is DataBlob `0xdeadbeef`
     const result = await handle.result();
-    assert.deepEqual(result.toJSON(), expectedResult.toJSON());
+    assert.deepEqual(result, expectedResult);
 
     // get result payload of WorkflowExecutionCompleted event from workflow history
     const payload = await runner.getWorkflowResultPayload(handle);
@@ -45,7 +45,7 @@ export const feature = new Feature({
     assert.ok(payload.data);
     const resultInHistory = proto.temporal.api.common.v1.DataBlob.decode(payload.data);
 
-    assert.deepEqual(resultInHistory.toJSON(), expectedResult.toJSON());
+    assert.deepEqual(resultInHistory, expectedResult);
 
     // get argument payload of WorkflowExecutionStarted event from workflow history
     const payloadArg = await runner.getWorkflowArgumentPayload(handle);
@@ -59,6 +59,6 @@ export const feature = new Feature({
 
     assert.ok(payloadArg.data);
     const resultArgInHistory = proto.temporal.api.common.v1.DataBlob.decode(payloadArg.data);
-    assert.deepEqual(resultInHistory.toJSON(), resultArgInHistory.toJSON());
+    assert.deepEqual(resultInHistory, resultArgInHistory);
   },
 });

@@ -6,7 +6,7 @@ import { decode, encode } from '@temporalio/common/lib/encoding';
 
 const toBase64 = (inArray: Uint8Array): Uint8Array => {
   const buf = Buffer.from(inArray);
-  return encode(buf.toString('base64'));
+  return Buffer.from(buf.toString('base64'), 'ascii');
 };
 const fromBase64 = (inArray: Uint8Array): Uint8Array => Buffer.from(decode(inArray), 'base64');
 

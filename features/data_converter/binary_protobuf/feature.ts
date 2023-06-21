@@ -2,11 +2,10 @@ import { Feature } from '@temporalio/harness';
 import * as proto from '@temporalio/proto';
 import * as assert from 'assert';
 
-// Inject Buffer and Uint8Array into isolate to workaround SDK bug
+// Inject Buffer and Uint8Array from the node context to the workflow context to workaround SDK bug
 // TODO(antlai-temporal) Remove when SDK bug is fixed
 const g = globalThis as any;
 g.Uint8Array = g.constructor.constructor('return globalThis.Uint8Array')();
-g.Buffer = g.constructor.constructor('return globalThis.Buffer')();
 
 const expectedResult = proto.temporal.api.common.v1.DataBlob.create({
   encodingType: proto.temporal.api.enums.v1.EncodingType.ENCODING_TYPE_UNSPECIFIED,
@@ -51,6 +50,12 @@ export const feature = new Feature({
     // get argument payload of WorkflowExecutionStarted event from workflow history
     const payloadArg = await runner.getWorkflowArgumentPayload(handle);
     assert.ok(payloadArg);
+
+    assert.ok(payloadArg.metadata?.encoding);
+    assert.equal(Buffer.from(payloadArg.metadata.encoding).toString(), 'binary/protobuf');
+
+    assert.ok(payloadArg.metadata?.messageType);
+    assert.equal(Buffer.from(payloadArg.metadata.messageType).toString(), 'temporal.api.common.v1.DataBlob');
 
     assert.ok(payloadArg.data);
     const resultArgInHistory = proto.temporal.api.common.v1.DataBlob.decode(payloadArg.data);

@@ -12,7 +12,6 @@ const dataBlobType = patched.lookupType('temporal.api.common.v1.DataBlob');
 // Inject Buffer and Uint8Array into isolate to workaround SDK bug
 // TODO(antlai-temporal) Remove workaround when SDK bug is fixed
 const g = globalThis as any;
-g.Uint8Array = g.constructor.constructor('return globalThis.Uint8Array')();
 g.Buffer = g.constructor.constructor('return globalThis.Buffer')();
 
 const expectedResult = proto.temporal.api.common.v1.DataBlob.create({

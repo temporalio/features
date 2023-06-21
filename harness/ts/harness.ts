@@ -285,6 +285,22 @@ export class Runner<W extends Workflow, A extends UntypedActivities> {
     }
     return history;
   }
+
+  async getWorkflowResultPayload(handle: WorkflowHandle): Promise<proto.temporal.api.common.v1.IPayload | void> {
+    const events = await this.getHistoryEvents(handle);
+    const completedEvent = events.find(
+      ({ workflowExecutionCompletedEventAttributes }) => !!workflowExecutionCompletedEventAttributes
+    );
+    return completedEvent?.workflowExecutionCompletedEventAttributes?.result?.payloads?.[0];
+  }
+
+  async getWorkflowArgumentPayload(handle: WorkflowHandle): Promise<proto.temporal.api.common.v1.IPayload | void> {
+    const events = await this.getHistoryEvents(handle);
+    const startedEvent = events.find(
+      ({ workflowExecutionStartedEventAttributes }) => !!workflowExecutionStartedEventAttributes
+    );
+    return startedEvent?.workflowExecutionStartedEventAttributes?.input?.payloads?.[0];
+  }
 }
 
 export async function retry(fn: () => Promise<boolean>, retries = 3, duration = 1000): Promise<boolean> {

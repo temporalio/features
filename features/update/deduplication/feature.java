@@ -6,9 +6,9 @@ import io.temporal.sdkfeatures.Feature;
 import io.temporal.sdkfeatures.Run;
 import io.temporal.sdkfeatures.Runner;
 import io.temporal.workflow.*;
-import org.junit.jupiter.api.Assertions;
 import java.time.Duration;
 import java.util.Optional;
+import org.junit.jupiter.api.Assertions;
 
 @WorkflowInterface
 public interface feature extends Feature {
@@ -55,17 +55,17 @@ public interface feature extends Feature {
       var stub = runner.client.newWorkflowStub(feature.class, run.execution.getWorkflowId());
 
       var untypedStub =
-        runner.client.newUntypedWorkflowStub(
-          run.execution.getWorkflowId(),
-          Optional.of(run.execution.getRunId()),
-          Optional.empty());
+          runner.client.newUntypedWorkflowStub(
+              run.execution.getWorkflowId(),
+              Optional.of(run.execution.getRunId()),
+              Optional.empty());
 
       var updateOptions =
-        UpdateOptions.newBuilder(Integer.class)
-        .setUpdateName("incrementCount")
-        .setUpdateId(REUSED_UPDATE_ID)
-        .setFirstExecutionRunId(run.execution.getRunId())
-        .build();
+          UpdateOptions.newBuilder(Integer.class)
+              .setUpdateName("incrementCount")
+              .setUpdateId(REUSED_UPDATE_ID)
+              .setFirstExecutionRunId(run.execution.getRunId())
+              .build();
 
       UpdateHandle<Integer> handle1 = untypedStub.startUpdate(updateOptions);
       UpdateHandle<Integer> handle2 = untypedStub.startUpdate(updateOptions);

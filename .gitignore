@@ -26,4 +26,9 @@ bin
 # Emacs backup files
 *~
 
+# Eclipse config files
+.classpath
+.project
+.settings
+
 /dist/

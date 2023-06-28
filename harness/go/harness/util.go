@@ -108,6 +108,28 @@ func GetWorkflowArgumentPayload(
 	return attrs.GetInput().GetPayloads()[0], nil
 }
 
+func CountEvents(history client.HistoryEventIterator, cond func(*historypb.HistoryEvent) bool) (int, error) {
+	count := 0
+	for history.HasNext() {
+		ev, err := history.Next()
+		if err != nil {
+			return -1, err
+		}
+		if cond(ev) {
+			count += 1
+		}
+	}
+	return count, nil
+}
+
+func GetCountCompletedUpdates(ctx context.Context, client client.Client, workflowID string) (int, error) {
+	history := client.GetWorkflowHistory(ctx, workflowID, "", false, enumspb.HISTORY_EVENT_FILTER_TYPE_UNSPECIFIED)
+	return CountEvents(history, func(ev *historypb.HistoryEvent) bool {
+		attrs := ev.GetWorkflowExecutionUpdateCompletedEventAttributes()
+		return attrs != nil
+	})
+}
+
 // WaitNamespaceAvailable waits for up to 5 seconds for the provided namespace to become available
 func WaitNamespaceAvailable(ctx context.Context, logger log.Logger,
 	hostPortStr, namespace, clientCertPath, clientKeyPath string) error {

@@ -60,6 +60,12 @@ var Feature = harness.Feature{
 		runner.Require.NoError(runner.Client.SignalWorkflow(ctx, run.GetID(), run.GetRunID(), shutdownSignal, nil))
 		updateutil.RequireNoUpdateRejectedEvents(ctx, runner)
 
+		nUpdates, err := harness.GetCountCompletedUpdates(ctx, runner.Client, run.GetID())
+		if err != nil {
+			return nil, err
+		}
+		runner.Require.Equal(expectedCount, nUpdates)
+
 		return run, ctx.Err()
 	},
 }

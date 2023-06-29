@@ -47,6 +47,13 @@ public interface feature extends Feature {
       doFinish = true;
     }
 
+    public static long getCountCompletedUpdates(Runner runner, Run run) throws Exception {
+      var history = runner.getWorkflowHistory(run);
+      return history.getEventsList().stream()
+          .filter(e -> e.hasWorkflowExecutionUpdateCompletedEventAttributes())
+          .count();
+    }
+
     @Override
     public Run execute(Runner runner) throws Exception {
       runner.skipIfUpdateNotSupported();
@@ -73,6 +80,7 @@ public interface feature extends Feature {
       Assertions.assertEquals(1, handle1.getResultAsync().get());
       Assertions.assertEquals(1, handle2.getResultAsync().get());
 
+      Assertions.assertEquals(1, getCountCompletedUpdates(runner, run));
       stub.finish();
       return run;
     }

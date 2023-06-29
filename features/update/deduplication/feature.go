@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	enumspb "go.temporal.io/api/enums/v1"
+	updatepb "go.temporal.io/api/update/v1"
 	"go.temporal.io/features/features/update/updateutil"
 	"go.temporal.io/features/harness/go/harness"
 	"go.temporal.io/sdk/client"
@@ -35,6 +37,9 @@ var Feature = harness.Feature{
 				WorkflowID: run.GetID(),
 				RunID:      run.GetRunID(),
 				UpdateName: incrementCount,
+				WaitPolicy: &updatepb.WaitPolicy{
+					LifecycleStage: enumspb.UPDATE_WORKFLOW_EXECUTION_LIFECYCLE_STAGE_ACCEPTED,
+				},
 			},
 		)
 		runner.Require.NoError(err)
@@ -46,6 +51,9 @@ var Feature = harness.Feature{
 				WorkflowID: run.GetID(),
 				RunID:      run.GetRunID(),
 				UpdateName: incrementCount,
+				WaitPolicy: &updatepb.WaitPolicy{
+					LifecycleStage: enumspb.UPDATE_WORKFLOW_EXECUTION_LIFECYCLE_STAGE_ACCEPTED,
+				},
 			},
 		)
 		runner.Require.NoError(err)

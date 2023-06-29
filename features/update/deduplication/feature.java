@@ -2,6 +2,7 @@ package update.deduplication;
 
 import io.temporal.client.UpdateHandle;
 import io.temporal.client.UpdateOptions;
+import io.temporal.client.UpdateWaitPolicy;
 import io.temporal.sdkfeatures.Feature;
 import io.temporal.sdkfeatures.Run;
 import io.temporal.sdkfeatures.Runner;
@@ -71,6 +72,7 @@ public interface feature extends Feature {
           UpdateOptions.newBuilder(Integer.class)
               .setUpdateName("incrementCount")
               .setUpdateId(REUSED_UPDATE_ID)
+              .setWaitPolicy(UpdateWaitPolicy.ACCEPTED)
               .setFirstExecutionRunId(run.execution.getRunId())
               .build();
 

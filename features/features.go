@@ -35,6 +35,7 @@ import (
 	"go.temporal.io/features/features/telemetry/metrics"
 	update_async_accepted "go.temporal.io/features/features/update/activities"
 	update_activities "go.temporal.io/features/features/update/async_accepted"
+	update_deduplication "go.temporal.io/features/features/update/deduplication"
 	update_intercept "go.temporal.io/features/features/update/intercept"
 	update_non_durable_reject "go.temporal.io/features/features/update/non_durable_reject"
 	update_self "go.temporal.io/features/features/update/self"
@@ -76,6 +77,7 @@ func init() {
 		non_remote_activities_worker.Feature,
 		update_activities.Feature,
 		update_async_accepted.Feature,
+		update_deduplication.Feature,
 		update_intercept.Feature,
 		update_non_durable_reject.Feature,
 		update_self.Feature,

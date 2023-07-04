@@ -19,12 +19,12 @@ import io.temporal.workflow.WorkflowMethod;
 @WorkflowInterface
 public interface feature extends Feature {
 
-  static byte[] deadbeef = new byte[] {(byte) 0xde, (byte) 0xad, (byte) 0xbe, (byte) 0xef};
-  DataBlob expected = DataBlob.newBuilder().setData(ByteString.copyFrom(deadbeef)).build();
+  byte[] DEAD_BEEF = new byte[] {(byte) 0xde, (byte) 0xad, (byte) 0xbe, (byte) 0xef};
+  DataBlob expected = DataBlob.newBuilder().setData(ByteString.copyFrom(DEAD_BEEF)).build();
 
   // An "echo" workflow
   @WorkflowMethod
-  public DataBlob workflow(DataBlob res);
+  DataBlob workflow(DataBlob res);
 
   class Impl implements feature {
 

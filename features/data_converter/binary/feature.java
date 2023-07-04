@@ -15,23 +15,23 @@ import java.nio.file.Paths;
 
 @WorkflowInterface
 public interface feature extends Feature {
-  static byte[] deadbeef = new byte[] {(byte) 0xde, (byte) 0xad, (byte) 0xbe, (byte) 0xef};
+  byte[] DEAD_BEEF = new byte[] {(byte) 0xde, (byte) 0xad, (byte) 0xbe, (byte) 0xef};
 
   @WorkflowMethod
-  public byte[] workflow();
+  byte[] workflow();
 
   class Impl implements feature {
     /** run a workflow that returns binary value `0xdeadbeef` */
     @Override
     public byte[] workflow() {
-      return deadbeef;
+      return DEAD_BEEF;
     }
 
     @Override
     public void checkResult(Runner runner, Run run) throws Exception {
       // verify client result is binary `0xdeadbeef`
       var result = runner.waitForRunResult(run, byte[].class);
-      assertArrayEquals(deadbeef, result);
+      assertArrayEquals(DEAD_BEEF, result);
 
       // get result payload of WorkflowExecutionCompleted event from workflow history
       var payload = runner.getWorkflowResultPayload(run);

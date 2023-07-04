@@ -19,7 +19,7 @@ public interface feature extends Feature {
 
   // An "echo" workflow
   @WorkflowMethod
-  public Message workflow(Message res);
+  Message workflow(Message res);
 
   class Impl implements feature {
 

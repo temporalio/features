@@ -9,6 +9,7 @@ import com.uber.m3.tally.Scope;
 import io.grpc.StatusRuntimeException;
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslContext;
 import io.temporal.activity.ActivityInterface;
+import io.temporal.api.common.v1.Payload;
 import io.temporal.api.common.v1.WorkflowExecution;
 import io.temporal.api.history.v1.History;
 import io.temporal.api.workflow.v1.WorkflowExecutionInfo;
@@ -143,6 +144,16 @@ public class Runner implements Closeable {
     Preconditions.checkState(
         methods.size() == 1, "expected only one workflow method, got %s", methods.size());
 
+    // Use default options if not provided
+    if (options == null) {
+      var builder =
+          WorkflowOptions.newBuilder()
+              .setTaskQueue(config.taskQueue)
+              .setWorkflowExecutionTimeout(Duration.ofMinutes(1));
+      feature.workflowOptions(builder);
+      options = builder.build();
+    }
+
     var stub = client.newUntypedWorkflowStub(methods.get(0).getName(), options);
 
     // Call workflow with args
@@ -176,6 +187,24 @@ public class Runner implements Closeable {
         WorkflowClientHelper.getHistory(
             service, config.namespace, run.execution, config.metricsScope);
     return History.newBuilder().addAllEvents(() -> eventIter).build();
+  }
+
+  public Payload getWorkflowResultPayload(Run run) throws Exception {
+    var history = getWorkflowHistory(run);
+    var event =
+        history.getEventsList().stream()
+            .filter(e -> e.hasWorkflowExecutionCompletedEventAttributes())
+            .findFirst();
+    return event.get().getWorkflowExecutionCompletedEventAttributes().getResult().getPayloads(0);
+  }
+
+  public Payload getWorkflowArgumentPayload(Run run) throws Exception {
+    var history = getWorkflowHistory(run);
+    var event =
+        history.getEventsList().stream()
+            .filter(e -> e.hasWorkflowExecutionStartedEventAttributes())
+            .findFirst();
+    return event.get().getWorkflowExecutionStartedEventAttributes().getInput().getPayloads(0);
   }
 
   public WorkflowExecutionInfo getWorkflowExecutionInfo(Run run) throws Exception {

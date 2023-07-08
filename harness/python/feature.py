@@ -10,6 +10,8 @@ from pathlib import Path
 from typing import Any, Awaitable, Callable, Dict, List, Mapping, Optional, Type, Union
 
 from temporalio import workflow
+from temporalio.api.common.v1 import Payload
+from temporalio.api.enums.v1 import EventType
 from temporalio.client import Client, WorkflowFailureError, WorkflowHandle
 from temporalio.converter import DataConverter
 from temporalio.exceptions import ActivityError, ApplicationError
@@ -58,6 +60,24 @@ def register_feature(
         worker_config=worker_config,
         data_converter=data_converter,
     )
+
+
+async def get_workflow_result_payload(handle: WorkflowHandle) -> Payload:
+    event = await anext(
+        e
+        async for e in handle.fetch_history_events()
+        if e.event_type == EventType.EVENT_TYPE_WORKFLOW_EXECUTION_COMPLETED
+    )
+    return event.workflow_execution_completed_event_attributes.result.payloads[0]
+
+
+async def get_workflow_argument_payload(handle: WorkflowHandle) -> Payload:
+    event = await anext(
+        e
+        async for e in handle.fetch_history_events()
+        if e.event_type == EventType.EVENT_TYPE_WORKFLOW_EXECUTION_STARTED
+    )
+    return event.workflow_execution_started_event_attributes.input.payloads[0]
 
 
 @dataclass

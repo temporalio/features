@@ -16,6 +16,7 @@ node_modules
 
 # Python stuff
 __pycache__
+pyrightconfig.json
 
 # Build stuff
 bin

@@ -107,7 +107,7 @@ jobs:
   feature-tests-java:
     uses: ./.github/workflows/java.yaml
     with:
-      version: v1.20.0
+      version: v1.20.1
       version-is-repo-ref: false
       features-repo-ref: ${{ github.head_ref }}
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
@@ -120,5 +120,5 @@ jobs:
       do-push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
       go-ver: 'v1.23.1'
       ts-ver: 'v1.5.2'
-      java-ver: 'v1.20.0'
+      java-ver: 'v1.20.1'
       py-ver: 'v1.0.0'

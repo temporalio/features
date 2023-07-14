@@ -12,6 +12,7 @@ import (
 	"go.temporal.io/features/features/build_id_versioning/unversioned_worker_no_task"
 	"go.temporal.io/features/features/build_id_versioning/versions_added_while_worker_polling"
 	"go.temporal.io/features/features/child_workflow/result"
+	"go.temporal.io/features/features/child_workflow/signal"
 	"go.temporal.io/features/features/continue_as_new/continue_as_same"
 	"go.temporal.io/features/features/data_converter/binary"
 	"go.temporal.io/features/features/data_converter/binary_protobuf"
@@ -68,6 +69,7 @@ func init() {
 		result.Feature,
 		retry_on_error.Feature,
 		failure.Feature,
+		signal.Feature,
 		successful_query.Feature,
 		timeout_due_to_no_active_workers.Feature,
 		trigger.Feature,

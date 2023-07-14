@@ -18,13 +18,18 @@ public interface feature extends Feature {
   byte[] DEAD_BEEF = new byte[] {(byte) 0xde, (byte) 0xad, (byte) 0xbe, (byte) 0xef};
 
   @WorkflowMethod
-  byte[] workflow();
+  byte[] workflow(byte[] res);
 
   class Impl implements feature {
-    /** run a workflow that returns binary value `0xdeadbeef` */
+    /** run an echo workflow that returns binary value `0xdeadbeef` */
     @Override
-    public byte[] workflow() {
-      return DEAD_BEEF;
+    public byte[] workflow(byte[] res) {
+      return res;
+    }
+
+    @Override
+    public Run execute(Runner runner) throws Exception {
+      return runner.executeSingleWorkflow(null, DEAD_BEEF);
     }
 
     @Override
@@ -50,6 +55,9 @@ public interface feature extends Feature {
       JsonFormat.parser().merge(new String(content), builder);
       var expected = builder.build();
       assertEquals(expected, payload);
+
+      var payloadArg = runner.getWorkflowArgumentPayload(run);
+      assertEquals(payload, payloadArg);
     }
   }
 }

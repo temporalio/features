@@ -5,13 +5,16 @@ import expectedPayload from './payload.json';
 
 const deadbeef = new Uint8Array([0xde, 0xad, 0xbe, 0xef]);
 
-// run a workflow that returns binary value `0xdeadbeef`
-export async function workflow(): Promise<Uint8Array> {
-  return deadbeef;
+// run an echo workflow that returns binary value `0xdeadbeef`
+export async function workflow(res: Uint8Array): Promise<Uint8Array> {
+  return res;
 }
 
 export const feature = new Feature({
   workflow,
+  workflowStartOptions: {
+    args: [deadbeef],
+  },
   async checkResult(runner, handle) {
     // verify client result is binary `0xdeadbeef`
     const result = await handle.result();
@@ -23,5 +26,10 @@ export const feature = new Feature({
 
     // load JSON payload from `./payload.json` and compare it to result payload
     assert.deepEqual(JSONToPayload(expectedPayload), payload);
+
+    const payloadArg = await runner.getWorkflowArgumentPayload(handle);
+    assert.ok(payloadArg);
+
+    assert.deepEqual(payload, payloadArg);
   },
 });

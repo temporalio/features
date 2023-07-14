@@ -19,11 +19,13 @@ var expectedResult = []byte{0xde, 0xad, 0xbe, 0xef}
 var Feature = harness.Feature{
 	Workflows:   Workflow,
 	CheckResult: CheckResult,
+	// ExecuteDefault does not support workflow arguments
+	Execute: harness.ExecuteWithArgs(Workflow, expectedResult),
 }
 
-// run a workflow that returns binary value `0xdeadbeef`
-func Workflow(ctx workflow.Context) ([]byte, error) {
-	return expectedResult, nil
+// run an echo workflow that returns binary value `0xdeadbeef`
+func Workflow(ctx workflow.Context, res []byte) ([]byte, error) {
+	return res, nil
 }
 
 func CheckResult(ctx context.Context, runner *harness.Runner, run client.WorkflowRun) error {
@@ -54,5 +56,13 @@ func CheckResult(ctx context.Context, runner *harness.Runner, run client.Workflo
 		return err
 	}
 	runner.Require.Equal(expectedPayload, payload)
+
+	payloadArg, err := harness.GetWorkflowArgumentPayload(ctx, runner.Client, run.GetID())
+	if err != nil {
+		return err
+	}
+
+	runner.Require.Equal(payload, payloadArg)
+
 	return nil
 }

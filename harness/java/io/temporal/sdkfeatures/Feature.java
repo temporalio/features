@@ -4,10 +4,10 @@ import io.temporal.activity.ActivityOptions;
 import io.temporal.client.WorkflowClientOptions;
 import io.temporal.client.WorkflowOptions;
 import io.temporal.serviceclient.WorkflowServiceStubsOptions;
+import io.temporal.worker.Worker;
 import io.temporal.worker.WorkerFactoryOptions;
 import io.temporal.worker.WorkerOptions;
 import io.temporal.workflow.Workflow;
-
 import java.util.function.Consumer;
 
 public interface Feature {
@@ -19,15 +19,15 @@ public interface Feature {
     return (T) Workflow.newActivityStub(activityIface, builder.build());
   }
 
-  default void workflowServiceOptions(WorkflowServiceStubsOptions.Builder builder) { }
+  default void workflowServiceOptions(WorkflowServiceStubsOptions.Builder builder) {}
 
-  default void workflowClientOptions(WorkflowClientOptions.Builder builder) { }
+  default void workflowClientOptions(WorkflowClientOptions.Builder builder) {}
 
-  default void workerFactoryOptions(WorkerFactoryOptions.Builder builder) { }
+  default void workerFactoryOptions(WorkerFactoryOptions.Builder builder) {}
 
-  default void workerOptions(WorkerOptions.Builder builder) { }
+  default void workerOptions(WorkerOptions.Builder builder) {}
 
-  default void workflowOptions(WorkflowOptions.Builder builder) { }
+  default void workflowOptions(WorkflowOptions.Builder builder) {}
 
   default Run execute(Runner runner) throws Exception {
     return runner.executeSingleParameterlessWorkflow();
@@ -41,4 +41,7 @@ public interface Feature {
   default void checkHistory(Runner runner, Run run) throws Exception {
     runner.checkCurrentAndPastHistories(run);
   }
+
+  // This may be used to e.g. register additional workflow classes
+  default void prepareWorker(Worker worker) {}
 }

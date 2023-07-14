@@ -94,6 +94,7 @@ public class Runner implements Closeable {
     var workerBuild = WorkerOptions.newBuilder();
     feature.workerOptions(workerBuild);
     this.worker = workerFactory.newWorker(config.taskQueue, workerBuild.build());
+    feature.prepareWorker(this.worker);
 
     // Register workflow class
     worker.registerWorkflowImplementationTypes(featureInfo.factoryClass);

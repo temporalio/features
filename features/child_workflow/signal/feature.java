@@ -16,31 +16,31 @@ import io.temporal.workflow.WorkflowMethod;
 public interface feature extends Feature {
 
   @WorkflowInterface
-  public interface ChildWorkflow {
+  interface ChildWorkflow {
 
     @WorkflowMethod
     String workflow();
 
     @SignalMethod
     void unblock(String message);
-  }
 
-  class ChildWorkflowImpl implements ChildWorkflow {
-    /*
-     * A workflow that waits for a signal and returns the data received.
-     */
+    class Impl implements ChildWorkflow {
+      /*
+       * A workflow that waits for a signal and returns the data received.
+       */
 
-    private String childWorkflowUnblockMessage;
+      private String childWorkflowUnblockMessage;
 
-    @Override
-    public String workflow() {
-      Workflow.await(() -> childWorkflowUnblockMessage != null);
-      return childWorkflowUnblockMessage;
-    }
+      @Override
+      public String workflow() {
+        Workflow.await(() -> childWorkflowUnblockMessage != null);
+        return childWorkflowUnblockMessage;
+      }
 
-    @Override
-    public void unblock(String message) {
-      childWorkflowUnblockMessage = message;
+      @Override
+      public void unblock(String message) {
+        childWorkflowUnblockMessage = message;
+      }
     }
   }
 
@@ -51,7 +51,7 @@ public interface feature extends Feature {
 
     @Override
     public void prepareWorker(Worker worker) {
-      worker.registerWorkflowImplementationTypes(ChildWorkflowImpl.class);
+      worker.registerWorkflowImplementationTypes(ChildWorkflow.Impl.class);
     }
 
     private static final String UNBLOCK_MESSAGE = "unblock";

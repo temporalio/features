@@ -150,7 +150,10 @@ class Runner:
     async def start_single_parameterless_workflow(self) -> WorkflowHandle:
         if len(self.feature.workflows) != 1:
             raise ValueError("Must have a single workflow")
-        defn = workflow._Definition.must_from_class(self.feature.workflows[0])
+        return await self.start_parameterless_workflow(self.feature.workflows[0])
+
+    async def start_parameterless_workflow(self, workflow_cls: Type) -> WorkflowHandle:
+        defn = workflow._Definition.must_from_class(workflow_cls)
         start_options = {
             "id": f"{self.feature.rel_dir}-{uuid.uuid4()}",
             "task_queue": self.task_queue,

@@ -1,7 +1,5 @@
 package child_workflow.signal;
 
-import io.temporal.client.WorkflowClient;
-import io.temporal.client.WorkflowOptions;
 import io.temporal.sdkfeatures.Assertions;
 import io.temporal.sdkfeatures.Feature;
 import io.temporal.sdkfeatures.Run;
@@ -13,7 +11,6 @@ import io.temporal.workflow.SignalMethod;
 import io.temporal.workflow.Workflow;
 import io.temporal.workflow.WorkflowInterface;
 import io.temporal.workflow.WorkflowMethod;
-import java.time.Duration;
 
 @WorkflowInterface
 public interface feature extends Feature {
@@ -78,15 +75,7 @@ public interface feature extends Feature {
 
     @Override
     public Run execute(Runner runner) throws Exception {
-      var options =
-          WorkflowOptions.newBuilder()
-              .setTaskQueue(runner.config.taskQueue)
-              .setWorkflowExecutionTimeout(Duration.ofMinutes(1))
-              .build();
-      var stub = runner.client.newWorkflowStub(feature.class, options);
-      var execution = WorkflowClient.start(stub::workflow);
-      var method = runner.featureInfo.metadata.getWorkflowMethods().get(0);
-      return new Run(method, execution);
+      return runner.executeSingleParameterlessWorkflow();
     }
 
     @Override

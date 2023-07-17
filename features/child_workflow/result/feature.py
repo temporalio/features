@@ -28,12 +28,7 @@ class ChildWorkflow:
 
 
 async def start(runner: Runner) -> WorkflowHandle:
-    return await runner.client.start_workflow(
-        Workflow,
-        id=f"{runner.feature.rel_dir}-{uuid4()}",
-        task_queue=runner.task_queue,
-        execution_timeout=timedelta(minutes=1),
-    )
+    return await runner.start_parameterless_workflow(Workflow)
 
 
 register_feature(

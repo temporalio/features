@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto';
 import * as assert from 'assert';
 import { Feature } from '@temporalio/harness';
 import * as wf from '@temporalio/workflow';
@@ -28,12 +27,7 @@ export async function childWorkflow(): Promise<string> {
 export const feature = new Feature({
   workflow,
   async execute(runner) {
-    return await runner.client.start(workflow, {
-      taskQueue: runner.options.taskQueue,
-      workflowId: `${runner.source.relDir}-${randomUUID()}`,
-      workflowExecutionTimeout: 60000,
-      ...(runner.feature.options.workflowStartOptions ?? {}),
-    });
+    return await runner.executeParameterlessWorkflow(workflow);
   },
   async checkResult(runner, handle) {
     const result = await handle.result();

@@ -243,7 +243,10 @@ export class Runner<W extends Workflow, A extends UntypedActivities> {
   }
 
   async executeSingleParameterlessWorkflow(): Promise<WorkflowHandleWithFirstExecutionRunId> {
-    const workflow = this.feature.options.workflow ?? 'workflow';
+    return this.executeParameterlessWorkflow(this.feature.options.workflow ?? 'workflow');
+  }
+
+  async executeParameterlessWorkflow(workflow: W | 'workflow'): Promise<WorkflowHandleWithFirstExecutionRunId> {
     const startOptions: WorkflowStartOptions = {
       taskQueue: this.options.taskQueue,
       workflowId: `${this.source.relDir}-${randomUUID()}`,

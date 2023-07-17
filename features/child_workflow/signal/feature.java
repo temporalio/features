@@ -1,7 +1,5 @@
 package child_workflow.signal;
 
-import io.temporal.client.WorkflowClient;
-import io.temporal.client.WorkflowOptions;
 import io.temporal.sdkfeatures.Assertions;
 import io.temporal.sdkfeatures.Feature;
 import io.temporal.sdkfeatures.Run;
@@ -13,37 +11,36 @@ import io.temporal.workflow.SignalMethod;
 import io.temporal.workflow.Workflow;
 import io.temporal.workflow.WorkflowInterface;
 import io.temporal.workflow.WorkflowMethod;
-import java.time.Duration;
 
 @WorkflowInterface
 public interface feature extends Feature {
 
   @WorkflowInterface
-  public interface ChildWorkflow {
+  interface ChildWorkflow {
 
     @WorkflowMethod
     String workflow();
 
     @SignalMethod
     void unblock(String message);
-  }
 
-  class ChildWorkflowImpl implements ChildWorkflow {
-    /*
-     * A workflow that waits for a signal and returns the data received.
-     */
+    class Impl implements ChildWorkflow {
+      /*
+       * A workflow that waits for a signal and returns the data received.
+       */
 
-    private String childWorkflowUnblockMessage;
+      private String childWorkflowUnblockMessage;
 
-    @Override
-    public String workflow() {
-      Workflow.await(() -> childWorkflowUnblockMessage != null);
-      return childWorkflowUnblockMessage;
-    }
+      @Override
+      public String workflow() {
+        Workflow.await(() -> childWorkflowUnblockMessage != null);
+        return childWorkflowUnblockMessage;
+      }
 
-    @Override
-    public void unblock(String message) {
-      childWorkflowUnblockMessage = message;
+      @Override
+      public void unblock(String message) {
+        childWorkflowUnblockMessage = message;
+      }
     }
   }
 
@@ -54,7 +51,7 @@ public interface feature extends Feature {
 
     @Override
     public void prepareWorker(Worker worker) {
-      worker.registerWorkflowImplementationTypes(ChildWorkflowImpl.class);
+      worker.registerWorkflowImplementationTypes(ChildWorkflow.Impl.class);
     }
 
     private static final String UNBLOCK_MESSAGE = "unblock";
@@ -78,15 +75,7 @@ public interface feature extends Feature {
 
     @Override
     public Run execute(Runner runner) throws Exception {
-      var options =
-          WorkflowOptions.newBuilder()
-              .setTaskQueue(runner.config.taskQueue)
-              .setWorkflowExecutionTimeout(Duration.ofMinutes(1))
-              .build();
-      var stub = runner.client.newWorkflowStub(feature.class, options);
-      var execution = WorkflowClient.start(stub::workflow);
-      var method = runner.featureInfo.metadata.getWorkflowMethods().get(0);
-      return new Run(method, execution);
+      return runner.executeSingleParameterlessWorkflow();
     }
 
     @Override

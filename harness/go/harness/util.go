@@ -240,7 +240,7 @@ func LoadTLSConfig(clientCertPath, clientKeyPath string) (*tls.Config, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to load certs: %s", err)
 		}
-		return &tls.Config{Certificates: []tls.Certificate{cert}}, nil
+		return &tls.Config{MinVersion: tls.VersionTLS12, Certificates: []tls.Certificate{cert}}, nil
 	} else if clientKeyPath != "" {
 		return nil, errors.New("got TLS key with no cert")
 	}

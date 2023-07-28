@@ -326,7 +326,10 @@ func (r *Runner) handleHistory(ctx context.Context, run *cmd.Run, summary Summar
 				if err != nil {
 					return fmt.Errorf("failed to load certs: %s", err)
 				}
-				opts.ConnectionOptions.TLS = &tls.Config{Certificates: []tls.Certificate{cert}}
+				opts.ConnectionOptions.TLS = &tls.Config{
+					MinVersion: tls.VersionTLS12,
+					Certificates: []tls.Certificate{cert},
+				}
 			}
 			var err error
 			if cl, err = client.Dial(opts); err != nil {

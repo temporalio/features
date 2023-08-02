@@ -36,7 +36,7 @@ jobs:
 
       - name: Download docker artifacts
         if: ${{ inputs.docker-image-artifact-name }}
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         with:
           name: ${{ inputs.docker-image-artifact-name }}
           path: /tmp/server-docker
@@ -47,35 +47,35 @@ jobs:
         working-directory: '.'
 
       - name: Checkout SDK features repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
         with:
           path: features
           repository: ${{ inputs.features-repo-path }}
           ref: ${{ inputs.features-repo-ref }}
       - name: Checkout typescript SDK repo
         if: ${{ inputs.version-is-repo-ref }}
-        uses: actions/checkout@v2
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
         with:
           repository: ${{ inputs.typescript-repo-path }}
           submodules: recursive
           path: sdk-ts
           ref: ${{ inputs.version }}
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # v3.7.0
         with:
           node-version: 16
 
       - name: Install protoc
         if: ${{ inputs.version-is-repo-ref }}
-        uses: arduino/setup-protoc@v1
+        uses: arduino/setup-protoc@e58d94cc5c94a8e49c8b747feac4b1c17f199561 # v2.0.0
         with:
           version: '3.x'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/setup-go@v2
+      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
           go-version: '^1.19'
 
-      - uses: Swatinem/rust-cache@v1
+      - uses: Swatinem/rust-cache@4bc1b328c33930bdf2c96264191f6bc19f640f37 # v2.6.0
         if: ${{ inputs.version-is-repo-ref }}
         with:
           working-directory: sdk-ts/packages/core-bridge

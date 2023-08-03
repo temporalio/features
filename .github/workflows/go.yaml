@@ -31,7 +31,7 @@ jobs:
         working-directory: ./features
     steps:
       - name: Print git info
-        run: 'echo head_ref: ${{ github.head_ref }}, ref: ${{ github.ref }}, go sdk version: ${{ inputs.version }}'
+        run: 'echo head_ref: "$GITHUB_HEAD_REF", ref: "$GITHUB_REF", go sdk version: ${{ inputs.version }}'
         working-directory: '.'
 
       - name: Download docker artifacts

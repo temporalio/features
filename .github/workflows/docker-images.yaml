@@ -41,7 +41,7 @@ jobs:
       REPO_URL: ${{ github.event.pull_request.head.repo.html_url }}
     steps:
       - name: Print build information
-        run: 'echo head_ref: ${{ github.head_ref }}, ref: ${{ github.ref }}'
+        run: 'echo head_ref: "$GITHUB_HEAD_REF", ref: "$GITHUB_REF"'
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
         with:

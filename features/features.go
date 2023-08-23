@@ -27,6 +27,7 @@ import (
 	"go.temporal.io/features/features/query/unexpected_arguments"
 	"go.temporal.io/features/features/query/unexpected_query_type_name"
 	"go.temporal.io/features/features/query/unexpected_return_type"
+	"go.temporal.io/features/features/reset/reset_and_delete"
 	"go.temporal.io/features/features/schedule/backfill"
 	"go.temporal.io/features/features/schedule/basic"
 	"go.temporal.io/features/features/schedule/cron"
@@ -92,5 +93,6 @@ func init() {
 		activity_on_same_version.Feature,
 		continues_as_new_on_correct_version.Feature,
 		unversioned_worker_gets_unversioned_task.Feature,
+		reset_and_delete.Feature,
 	)
 }

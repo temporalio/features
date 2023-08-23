@@ -327,6 +327,30 @@ func (r *Runner) QueryUntilEventually(
 	}
 }
 
+// DoUntilEventually runs any predicate until it returns true
+func (r *Runner) DoUntilEventually(
+	ctx context.Context,
+	interval time.Duration,
+	timeout time.Duration,
+	predicate func() bool,
+) error {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	timeoutCh := time.After(timeout)
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-timeoutCh:
+			return fmt.Errorf("timeout waiting for condition to be met")
+		case <-ticker.C:
+			if predicate() {
+				return nil
+			}
+		}
+	}
+}
+
 // Close closes this runner.
 func (r *Runner) Close() {
 	if r.Worker != nil {

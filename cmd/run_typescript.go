@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"go.temporal.io/features/harness/go/cmd"
-	"go.temporal.io/features/sdkbuild"
+	"github.com/temporalio/features/harness/go/cmd"
+	"github.com/temporalio/features/sdkbuild"
 )
 
 // BuildTypeScriptProgram prepares a TypeScript run without running it. The

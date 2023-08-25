@@ -2,8 +2,9 @@ package unexpected_query_type_name
 
 import (
 	"context"
+
+	"github.com/temporalio/features/harness/go/harness"
 	"go.temporal.io/api/serviceerror"
-	"go.temporal.io/features/harness/go/harness"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/workflow"
 )

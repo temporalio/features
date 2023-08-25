@@ -3,9 +3,9 @@ package updateutil
 import (
 	"context"
 
+	"github.com/temporalio/features/harness/go/harness"
+	"github.com/temporalio/features/harness/go/history"
 	enumspb "go.temporal.io/api/enums/v1"
-	"go.temporal.io/features/harness/go/harness"
-	"go.temporal.io/features/harness/go/history"
 )
 
 func RequireNoUpdateRejectedEvents(ctx context.Context, runner *harness.Runner) {

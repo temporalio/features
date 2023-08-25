@@ -2,11 +2,12 @@ package timeout_due_to_no_active_workers
 
 import (
 	"context"
+	"time"
+
+	"github.com/temporalio/features/harness/go/harness"
 	"go.temporal.io/api/serviceerror"
-	"go.temporal.io/features/harness/go/harness"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/workflow"
-	"time"
 )
 
 var Feature = harness.Feature{

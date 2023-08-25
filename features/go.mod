@@ -1,4 +1,4 @@
-module go.temporal.io/features/features
+module github.com/temporalio/features/features
 
 go 1.18
 
@@ -7,7 +7,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/uber-go/tally/v4 v4.1.1
 	go.temporal.io/api v1.21.0
-	go.temporal.io/features/harness/go v1.0.0
+	github.com/temporalio/features/harness/go v1.0.0
 	go.temporal.io/sdk v1.24.0
 	go.temporal.io/sdk/contrib/tally v0.1.0
 	golang.org/x/mod v0.9.0
@@ -40,4 +40,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace go.temporal.io/features/harness/go => ../harness/go
+replace github.com/temporalio/features/harness/go => ../harness/go

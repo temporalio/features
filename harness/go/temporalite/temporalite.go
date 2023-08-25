@@ -8,8 +8,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"go.temporal.io/features/harness/go/harness"
-	"go.temporal.io/sdk/log"
 	"io"
 	"net/http"
 	"os"
@@ -18,6 +16,9 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+
+	"github.com/temporalio/features/harness/go/harness"
+	"go.temporal.io/sdk/log"
 )
 
 // DefaultVersion is the default Temporalite version when not provided.

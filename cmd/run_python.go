@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"go.temporal.io/features/harness/go/cmd"
-	"go.temporal.io/features/sdkbuild"
+	"github.com/temporalio/features/harness/go/cmd"
+	"github.com/temporalio/features/sdkbuild"
 )
 
 // PreparePythonExternal prepares a Python run without running it. The preparer

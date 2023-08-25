@@ -19,12 +19,12 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/pmezard/go-difflib/difflib"
+	"github.com/temporalio/features/harness/go/cmd"
+	"github.com/temporalio/features/harness/go/harness"
+	"github.com/temporalio/features/harness/go/history"
+	"github.com/temporalio/features/harness/go/temporalite"
+	"github.com/temporalio/features/sdkbuild"
 	"github.com/urfave/cli/v2"
-	"go.temporal.io/features/harness/go/cmd"
-	"go.temporal.io/features/harness/go/harness"
-	"go.temporal.io/features/harness/go/history"
-	"go.temporal.io/features/harness/go/temporalite"
-	"go.temporal.io/features/sdkbuild"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/log"
 )

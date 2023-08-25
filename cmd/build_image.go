@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/temporalio/features/harness/go/harness"
 	"github.com/urfave/cli/v2"
-	"go.temporal.io/features/harness/go/harness"
 	"go.temporal.io/sdk/log"
 	"golang.org/x/mod/semver"
 )

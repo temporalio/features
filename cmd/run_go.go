@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"go.temporal.io/features/harness/go/cmd"
-	"go.temporal.io/features/sdkbuild"
+	"github.com/temporalio/features/harness/go/cmd"
+	"github.com/temporalio/features/sdkbuild"
 )
 
 // BuildGoProgram prepares a Go run without running it. The preparer config
@@ -21,18 +21,18 @@ func (p *Preparer) BuildGoProgram(ctx context.Context) (sdkbuild.Program, error)
 
 go 1.17
 
-require go.temporal.io/features/features v1.0.0
-require go.temporal.io/features/harness/go v1.0.0
+require github.com/temporalio/features/features v1.0.0
+require github.com/temporalio/features/harness/go v1.0.0
 
-replace go.temporal.io/features/features => ../features
-replace go.temporal.io/features/harness/go => ../harness/go
+replace github.com/temporalio/features/features => ../features
+replace github.com/temporalio/features/harness/go => ../harness/go
 
 replace github.com/cactus/go-statsd-client => github.com/cactus/go-statsd-client v3.2.1+incompatible`,
 		GoMainContents: `package main
 
 import (
-	"go.temporal.io/features/harness/go/cmd"
-	_ "go.temporal.io/features/features"
+	"github.com/temporalio/features/harness/go/cmd"
+	_ "github.com/temporalio/features/features"
 )
 
 func main() {

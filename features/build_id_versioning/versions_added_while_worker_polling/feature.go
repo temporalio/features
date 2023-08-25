@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"go.temporal.io/features/features/build_id_versioning"
-	"go.temporal.io/features/harness/go/harness"
+	"github.com/temporalio/features/features/build_id_versioning"
+	"github.com/temporalio/features/harness/go/harness"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
 	"go.temporal.io/sdk/workflow"

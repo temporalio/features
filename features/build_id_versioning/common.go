@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/temporalio/features/harness/go/harness"
 	"go.temporal.io/api/workflowservice/v1"
-	"go.temporal.io/features/harness/go/harness"
 	"go.temporal.io/sdk/client"
 )
 

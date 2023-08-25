@@ -3,8 +3,8 @@ package intercept
 import (
 	"context"
 
-	"go.temporal.io/features/features/update/updateutil"
-	"go.temporal.io/features/harness/go/harness"
+	"github.com/temporalio/features/features/update/updateutil"
+	"github.com/temporalio/features/harness/go/harness"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/interceptor"
 	"go.temporal.io/sdk/workflow"

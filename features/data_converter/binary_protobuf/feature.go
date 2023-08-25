@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/gogo/protobuf/proto"
+	"github.com/temporalio/features/harness/go/harness"
 	commonpb "go.temporal.io/api/common/v1"
-	"go.temporal.io/features/harness/go/harness"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/converter"
 	"go.temporal.io/sdk/workflow"

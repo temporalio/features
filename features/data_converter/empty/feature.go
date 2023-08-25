@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/gogo/protobuf/jsonpb"
+	"github.com/temporalio/features/harness/go/harness"
 	"go.temporal.io/api/common/v1"
 	historyProto "go.temporal.io/api/history/v1"
-	"go.temporal.io/features/harness/go/harness"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"

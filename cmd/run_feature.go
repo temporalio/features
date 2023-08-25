@@ -5,7 +5,7 @@ import (
 	"io/fs"
 	"path/filepath"
 
-	"go.temporal.io/features/harness/go/cmd"
+	"github.com/temporalio/features/harness/go/cmd"
 	"golang.org/x/mod/semver"
 )
 

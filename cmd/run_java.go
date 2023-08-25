@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"go.temporal.io/features/harness/go/cmd"
-	"go.temporal.io/features/sdkbuild"
+	"github.com/temporalio/features/harness/go/cmd"
+	"github.com/temporalio/features/sdkbuild"
 )
 
 // BuildJavaProgram prepares a Java run without running it. The preparer config

@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 
 	"github.com/gogo/protobuf/jsonpb"
+	"github.com/temporalio/features/harness/go/harness"
 	common "go.temporal.io/api/common/v1"
-	"go.temporal.io/features/harness/go/harness"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/workflow"
 )

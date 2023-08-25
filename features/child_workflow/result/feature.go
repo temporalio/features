@@ -3,7 +3,7 @@ package result
 import (
 	"time"
 
-	"go.temporal.io/features/harness/go/harness"
+	"github.com/temporalio/features/harness/go/harness"
 	"go.temporal.io/sdk/workflow"
 )
 

@@ -5,11 +5,11 @@ import (
 	"errors"
 	"time"
 
+	"github.com/temporalio/features/features/update/updateutil"
+	"github.com/temporalio/features/harness/go/harness"
 	enumspb "go.temporal.io/api/enums/v1"
 	"go.temporal.io/api/serviceerror"
 	updatepb "go.temporal.io/api/update/v1"
-	"go.temporal.io/features/features/update/updateutil"
-	"go.temporal.io/features/harness/go/harness"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"

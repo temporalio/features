@@ -3,7 +3,7 @@
 package activity_start_race
 
 import (
-	"go.temporal.io/features/harness/go/harness"
+	"github.com/temporalio/features/harness/go/harness"
 )
 
 var Feature = harness.Feature{

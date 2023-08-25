@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/temporalio/features/harness/go/harness"
 	"github.com/urfave/cli/v2"
-	"go.temporal.io/features/harness/go/harness"
 	"go.temporal.io/sdk/log"
 	"go.uber.org/zap"
 )

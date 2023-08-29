@@ -1,0 +1,110 @@
+name: .NET Features Testing
+on:
+  workflow_call:
+    inputs:
+      dotnet-repo-path:
+        type: string
+        default: 'temporalio/sdk-dotnet'
+      version:
+        required: true
+        type: string
+      # When true, the version refers to a repo tag/ref. When false, NPM package version.
+      version-is-repo-ref:
+        required: true
+        type: boolean
+      features-repo-path:
+        type: string
+        default: 'temporalio/features'
+      features-repo-ref:
+        type: string
+        default: 'main'
+      # If set, download the docker image for server from the provided artifact name
+      docker-image-artifact-name:
+        type: string
+        required: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./features
+    steps:
+      - name: Print git info
+        run: 'echo head_ref: "$GITHUB_HEAD_REF", ref: "$GITHUB_REF", ts version: ${{ inputs.version }}'
+        working-directory: '.'
+
+      - name: Download docker artifacts
+        if: ${{ inputs.docker-image-artifact-name }}
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ inputs.docker-image-artifact-name }}
+          path: /tmp/server-docker
+
+      - name: Load server Docker image
+        if: ${{ inputs.docker-image-artifact-name }}
+        run: docker load --input /tmp/server-docker/temporal-autosetup.tar
+        working-directory: '.'
+
+      - name: Checkout SDK features repo
+        uses: actions/checkout@v3
+        with:
+          path: features
+          repository: ${{ inputs.features-repo-path }}
+          ref: ${{ inputs.features-repo-ref }}
+      - name: Checkout .NET SDK repo
+        if: ${{ inputs.version-is-repo-ref }}
+        uses: actions/checkout@v2
+        with:
+          repository: ${{ inputs.dotnet-repo-path }}
+          submodules: recursive
+          path: sdk-dotnet
+          ref: ${{ inputs.version }}
+
+      - uses: actions/setup-dotnet@v3
+
+      - name: Install protoc
+        if: ${{ inputs.version-is-repo-ref }}
+        uses: arduino/setup-protoc@v1
+        with:
+          version: '3.x'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '^1.19'
+
+      - uses: Swatinem/rust-cache@v1
+        if: ${{ inputs.version-is-repo-ref }}
+        with:
+          working-directory: sdk-dotnet/src/Temporalio/Bridge
+
+      # Build .NET SDK if using repo
+      # Don't build during install phase since we're going to explicitly build
+      - run: dotnet build
+        if: ${{ inputs.version-is-repo-ref }}
+        working-directory: ./sdk-dotnet
+
+      - name: Start containerized server and dependencies
+        if: inputs.docker-image-artifact-name
+        run: |
+          docker-compose \
+            -f /tmp/server-docker/docker-compose.yml \
+            -f ./dockerfiles/docker-compose.for-server-image.yaml \
+            up -d temporal-server cassandra elasticsearch
+
+      - name: Run SDK-features tests directly
+        if: inputs.docker-image-artifact-name == ''
+        run: go run . run --lang cs ${{ inputs.docker-image-artifact-name && '--server localhost:7233 --namespace default' || ''}} --version "${{ inputs.version-is-repo-ref && '$(realpath ../sdk-dotnet)' || inputs.version }}"
+
+      # Running the tests in their own step keeps the logs readable
+      - name: Run containerized SDK-features tests
+        if: inputs.docker-image-artifact-name
+        run: |
+          docker-compose \
+            -f /tmp/server-docker/docker-compose.yml \
+            -f ./dockerfiles/docker-compose.for-server-image.yaml \
+            up --no-log-prefix --exit-code-from features-tests-cs features-tests-cs
+
+      - name: Tear down docker compose
+        if: inputs.docker-image-artifact-name && (success() || failure())
+        run: docker-compose -f /tmp/server-docker/docker-compose.yml -f ./dockerfiles/docker-compose.for-server-image.yaml down -v

@@ -92,6 +92,8 @@ func (p *Preparer) Prepare(ctx context.Context) error {
 		_, err = p.BuildTypeScriptProgram(ctx)
 	case "py":
 		_, err = p.BuildPythonProgram(ctx)
+	case "cs":
+		_, err = p.BuildDotNetProgram(ctx)
 	default:
 		err = fmt.Errorf("unrecognized language")
 	}

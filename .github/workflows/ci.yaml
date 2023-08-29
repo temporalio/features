@@ -80,6 +80,20 @@ jobs:
 
       - run: ./gradlew build
 
+  build-dotnet:
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-latest] #  windows-latest - like 8x slower. Excluded for now since we're just building.
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Print build information
+        run: 'echo head_ref: "$GITHUB_HEAD_REF", ref: "$GITHUB_REF", os: ${{ matrix.os }}'
+      - uses: actions/checkout@v2
+      - uses: actions/setup-dotnet@v3
+      - run: dotnet build
+      - run: dotnet test
+
   feature-tests-ts:
     uses: ./.github/workflows/typescript.yaml
     with:
@@ -112,6 +126,14 @@ jobs:
       features-repo-ref: ${{ github.head_ref }}
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
 
+  feature-tests-dotnet:
+    uses: ./.github/workflows/dotnet.yaml
+    with:
+      version: 0.1.0-beta1
+      version-is-repo-ref: false
+      features-repo-ref: ${{ github.head_ref }}
+      features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
+
   build-docker-images:
     uses: ./.github/workflows/all-docker-images.yaml
     secrets: inherit
@@ -122,3 +144,4 @@ jobs:
       ts-ver: 'v1.5.2'
       java-ver: 'v1.21.1'
       py-ver: 'v1.0.0'
+      cs-ver: 'v0.1.0-beta1'

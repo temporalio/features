@@ -1,0 +1,10 @@
+[*.cs]
+
+##### Temporal additions ######
+
+# Please keep in alphabetical order by field.
+
+# Some calls we mark async, like signals, that may not doing anything async
+dotnet_diagnostic.CS1998.severity = none
+
+###############################

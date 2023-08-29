@@ -54,3 +54,13 @@ services:
       - temporal-server
     networks:
       - temporal-dev-network
+
+  features-tests-cs:
+    image: temporaliotest/features:cs
+    environment:
+      - WAIT_EXTRA_FOR_NAMESPACE
+    command: ["--server", "temporal-server:7233", "--namespace", "default"]
+    depends_on:
+      - temporal-server
+    networks:
+      - temporal-dev-network

@@ -20,6 +20,7 @@ pyrightconfig.json
 
 # Build stuff
 bin
+obj
 
 # VS Code config
 .vscode

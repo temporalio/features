@@ -278,6 +278,13 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 		if err == nil {
 			err = r.RunPythonExternal(ctx, run)
 		}
+	case "cs":
+		if r.config.DirName != "" {
+			r.program, err = sdkbuild.DotNetProgramFromDir(filepath.Join(r.rootDir, r.config.DirName))
+		}
+		if err == nil {
+			err = r.RunDotNetExternal(ctx, run)
+		}
 	default:
 		err = fmt.Errorf("unrecognized language")
 	}
@@ -471,31 +478,33 @@ func (r *Runner) destroyTempDir() {
 }
 
 func normalizeLangName(lang string) (string, error) {
+	// Normalize to file extension
 	switch lang {
-	case "go", "java", "ts", "py":
-		// Allow the full typescript or python word, but we need to match the file
-		// extension for the rest of run
+	case "go", "java", "ts", "py", "cs":
 	case "typescript":
 		lang = "ts"
 	case "python":
 		lang = "py"
+	case "dotnet", "csharp":
+		lang = "cs"
 	default:
-		return "", fmt.Errorf("invalid language %q, must be one of: go or java or ts or py", lang)
+		return "", fmt.Errorf("invalid language %q, must be one of: go or java or ts or py or cs", lang)
 	}
 	return lang, nil
 }
 
 func expandLangName(lang string) (string, error) {
+	// Expand to lang name
 	switch lang {
 	case "go", "java", "typescript", "python":
-		// Allow the full typescript or python word, but we need to match the file
-		// extension for the rest of run
 	case "ts":
 		lang = "typescript"
 	case "py":
 		lang = "python"
+	case "cs":
+		lang = "dotnet"
 	default:
-		return "", fmt.Errorf("invalid language %q, must be one of: go or java or ts or py", lang)
+		return "", fmt.Errorf("invalid language %q, must be one of: go or java or ts or py or cs", lang)
 	}
 	return lang, nil
 }
@@ -503,7 +512,7 @@ func expandLangName(lang string) (string, error) {
 func langFlag(destination *string) *cli.StringFlag {
 	return &cli.StringFlag{
 		Name:        "lang",
-		Usage:       "SDK language to run ('go' or 'java' or 'ts' or 'py')",
+		Usage:       "SDK language to run ('go' or 'java' or 'ts' or 'py' or 'cs')",
 		Required:    true,
 		Destination: destination,
 	}

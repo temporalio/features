@@ -30,6 +30,7 @@ Prerequisites:
 - [Python](https://www.python.org/) 3.10+
   - [Poetry](https://python-poetry.org/): `poetry install`
   - `setuptools`: `python -m pip install -U setuptools`
+- [.NET](https://dotnet.microsoft.com) 7+
 
 Command:
 
@@ -37,8 +38,8 @@ Command:
 
 Note, `go run .` can be used in place of `go build` + `temporal-features` to save on the build step.
 
-`LANG` can be `go`, `java`, `ts`, or `py`. `VERSION` is per SDK and if left off, uses the latest version set for the
-language in this repository.
+`LANG` can be `go`, `java`, `ts`, `py`, or `cs`. `VERSION` is per SDK and if left off, uses the latest version set for
+the language in this repository.
 
 `PATTERN` must match either the features relative directory _or_ the relative directory + `/feature.<ext>` via
 [Go path match rules](https://pkg.go.dev/path#Match) which notably does not include recursive depth matching. If

@@ -16,6 +16,9 @@ on:
       java-ver:
         description: Java SDK ver to build. Skipped if not specified. Must start with v.
         type: string
+      cs-ver:
+        description: .NET SDK ver to build. Skipped if not specified. Must start with v.
+        type: string
       do-push:
         description: If set, push the built images to Docker Hub.
         type: boolean
@@ -39,6 +42,9 @@ on:
         type: string
       java-ver:
         description: Java SDK ver to build. Skipped if not specified. Must start with v.
+        type: string
+      cs-ver:
+        description: .NET SDK ver to build. Skipped if not specified. Must start with v.
         type: string
       do-push:
         description: If set, push the built images to Docker Hub.
@@ -91,6 +97,17 @@ jobs:
     with:
       lang: py
       sdk-version: ${{ inputs.py-ver }}
+      semver-latest: major
+      do-push: ${{ inputs.do-push }}
+      skip-cloud: ${{ inputs.skip-cloud }}
+
+  build-dotnet-docker-images:
+    if: inputs.cs-ver
+    uses: ./.github/workflows/docker-images.yaml
+    secrets: inherit
+    with:
+      lang: cs
+      sdk-version: ${{ inputs.cs-ver }}
       semver-latest: major
       do-push: ${{ inputs.do-push }}
       skip-cloud: ${{ inputs.skip-cloud }}

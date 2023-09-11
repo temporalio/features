@@ -30,7 +30,7 @@ import (
 )
 
 const (
-	summaryListenAddr = "127.7.2.1:0"
+	summaryListenAddr = "127.0.0.1:0"
 	FeaturePassed     = "PASSED"
 )
 

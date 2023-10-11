@@ -1,7 +1,10 @@
 # Update a workflow
 
-A Workflow Update can be performed.
+A Workflow Update can be validated and executed.
 
 # Detailed spec
 
-An Update can be defined, the handler can be set, and issuing the update results in both the expected mutation and the expected return value.
+- An Update can be defined.
+- The handler and validator can be set.
+- Issuing the update results in the expected validation.
+- If and only if the validation passes, then the expected mutation occurs and the expected value is returned.

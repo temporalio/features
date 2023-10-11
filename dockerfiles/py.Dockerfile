@@ -5,7 +5,7 @@ FROM python:3.11-bullseye as build
 RUN apt-get update \
  && DEBIAN_FRONTEND=noninteractive \
     apt-get install --no-install-recommends --assume-yes \
-      protobuf-compiler=3.12.4-1 libprotobuf-dev=3.12.4-1
+      protobuf-compiler=3.12.4* libprotobuf-dev=3.12.4*
 
 # Get go compiler
 ARG PLATFORM=amd64

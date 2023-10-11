@@ -9,7 +9,7 @@ require (
 	github.com/temporalio/features/features v1.0.0
 	github.com/temporalio/features/harness/go v1.0.0
 	github.com/urfave/cli/v2 v2.25.7
-	go.temporal.io/sdk v1.24.0
+	go.temporal.io/sdk v1.25.0
 	golang.org/x/mod v0.12.0
 )
 

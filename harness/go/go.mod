@@ -3,8 +3,8 @@ module github.com/temporalio/features/harness/go
 go 1.18
 
 replace (
-	go.temporal.io/api => github.com/tdeebswihart/temporal-api-go v0.0.0-20231003190133-d410a2a8e043
-	go.temporal.io/sdk => github.com/tdeebswihart/temporal-sdk-go v0.0.0-20231003192213-82893a201a33
+	go.temporal.io/api => github.com/tdeebswihart/temporal-api-go nomo-gogo
+	go.temporal.io/sdk => github.com/tdeebswihart/temporal-sdk-go replace-gogo-protobuf
 )
 
 require (

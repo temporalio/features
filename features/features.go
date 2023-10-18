@@ -42,6 +42,7 @@ import (
 	update_non_durable_reject "github.com/temporalio/features/features/update/non_durable_reject"
 	update_self "github.com/temporalio/features/features/update/self"
 	update_task_failure "github.com/temporalio/features/features/update/task_failure"
+	update "github.com/temporalio/features/features/update/update"
 	update_validation_replay "github.com/temporalio/features/features/update/validation_replay"
 	update_worker_restart "github.com/temporalio/features/features/update/worker_restart"
 	"github.com/temporalio/features/harness/go/harness"
@@ -78,6 +79,7 @@ func init() {
 		unexpected_query_type_name.Feature,
 		unexpected_return_type.Feature,
 		non_remote_activities_worker.Feature,
+		update.Feature,
 		update_activities.Feature,
 		update_async_accepted.Feature,
 		update_deduplication.Feature,

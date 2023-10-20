@@ -8,6 +8,7 @@ import (
 	"go.temporal.io/api/common/v1"
 	"go.temporal.io/api/history/v1"
 	"go.temporal.io/api/taskqueue/v1"
+	"go.temporal.io/api/types/timestamp"
 )
 
 func TestScrub(t *testing.T) {
@@ -18,7 +19,7 @@ func TestScrub(t *testing.T) {
 			Events: []*history.HistoryEvent{
 				{
 					EventId:   1,
-					EventTime: &now,
+					EventTime: timestamp.Proto(now),
 					TaskId:    2,
 					Attributes: &history.HistoryEvent_WorkflowExecutionStartedEventAttributes{
 						WorkflowExecutionStartedEventAttributes: &history.WorkflowExecutionStartedEventAttributes{

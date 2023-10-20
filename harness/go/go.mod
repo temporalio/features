@@ -3,8 +3,8 @@ module github.com/temporalio/features/harness/go
 go 1.18
 
 replace (
-	go.temporal.io/api => github.com/tdeebswihart/temporal-api-go nomo-gogo
-	go.temporal.io/sdk => github.com/tdeebswihart/temporal-sdk-go replace-gogo-protobuf
+	go.temporal.io/api => github.com/tdeebswihart/temporal-api-go v0.0.0-20231016220718-646941139bf7
+	go.temporal.io/sdk => github.com/tdeebswihart/temporal-sdk-go v0.0.0-20231017162805-b4c4dbb2a35a
 )
 
 require (
@@ -16,6 +16,7 @@ require (
 	go.temporal.io/sdk v1.25.0
 	go.uber.org/zap v1.19.1
 	golang.org/x/mod v0.11.0
+	google.golang.org/protobuf v1.31.0
 )
 
 require (
@@ -34,15 +35,14 @@ require (
 	github.com/stretchr/objx v0.5.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
-	golang.org/x/net v0.15.0 // indirect
-	golang.org/x/sys v0.12.0 // indirect
+	golang.org/x/net v0.17.0 // indirect
+	golang.org/x/sys v0.13.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
-	google.golang.org/genproto v0.0.0-20231002182017-d307bd883b97 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20231002182017-d307bd883b97 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20231002182017-d307bd883b97 // indirect
-	google.golang.org/grpc v1.58.2 // indirect
-	google.golang.org/protobuf v1.31.0 // indirect
+	google.golang.org/genproto v0.0.0-20231016165738-49dd2c1f3d0b // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20231016165738-49dd2c1f3d0b // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20231016165738-49dd2c1f3d0b // indirect
+	google.golang.org/grpc v1.58.3 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

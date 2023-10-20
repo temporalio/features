@@ -1,4 +1,4 @@
-package temporalite
+package devserver
 
 import (
 	"archive/tar"
@@ -21,19 +21,19 @@ import (
 	"go.temporal.io/sdk/log"
 )
 
-// DefaultVersion is the default Temporalite version when not provided.
+// DefaultVersion is the default DevServer version when not provided.
 const DefaultVersion = "v0.2.0"
 
-// Temporalite is a running Temporalite instance.
-type Temporalite struct {
+// DevServer is a running DevServer instance.
+type DevServer struct {
 	// The frontend host:port for use with Temporal SDK client.
 	FrontendHostPort string
 	cmd              *exec.Cmd
 }
 
-// Temporalite start options.
+// DevServer start options.
 type Options struct {
-	// This logger is only used by this process, not Temporalite
+	// This logger is only used by this process, not DevServer
 	Log log.Logger
 	// Defaults to random free port
 	GetFrontendPort func() (int, error)
@@ -43,12 +43,12 @@ type Options struct {
 	Version string
 	// Defaults to unset
 	LogLevel string
-	// TODO(cretz): Other Temporalite options?
+	// TODO(cretz): Other DevServer options?
 }
 
-// Start a Temporalite server. This may download the server if not already
+// Start a DevServer server. This may download the server if not already
 // downloaded.
-func Start(options Options) (*Temporalite, error) {
+func Start(options Options) (*DevServer, error) {
 	if options.Log == nil {
 		options.Log = harness.DefaultLogger
 	}
@@ -75,7 +75,7 @@ func Start(options Options) (*Temporalite, error) {
 		return nil, err
 	}
 
-	// Temporalite has no way to give us the port they chose, so we have to find
+	// DevServer has no way to give us the port they chose, so we have to find
 	// our own free port
 	port, err := options.GetFrontendPort()
 	if err != nil {
@@ -85,8 +85,8 @@ func Start(options Options) (*Temporalite, error) {
 
 	// Start
 	args := []string{
-		"start",
-		"--ephemeral", "--headless", "--namespace", options.Namespace, "--port", portStr,
+		"server", "start-dev",
+		"--headless", "--namespace", options.Namespace, "--port", portStr,
 		"--dynamic-config-value", "system.forceSearchAttributesCacheRefreshOnRead=true",
 		"--dynamic-config-value", "system.enableActivityEagerExecution=true",
 	}
@@ -95,7 +95,7 @@ func Start(options Options) (*Temporalite, error) {
 	}
 	cmd := exec.Command(exePath, args...)
 	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
-	options.Log.Info("Starting Temporalite", "ExePath", exePath, "Args", args)
+	options.Log.Info("Starting DevServer", "ExePath", exePath, "Args", args)
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("failed starting: %w", err)
 	}
@@ -105,12 +105,12 @@ func Start(options Options) (*Temporalite, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Temporalite{FrontendHostPort: "127.0.0.1:" + portStr, cmd: cmd}, nil
+	return &DevServer{FrontendHostPort: "127.0.0.1:" + portStr, cmd: cmd}, nil
 }
 
-// Stop the running Temporalite server and wait for it to stop. This errors if
-// Temporalite returned a failed exit code.
-func (t *Temporalite) Stop() error {
+// Stop the running DevServer server and wait for it to stop. This errors if
+// DevServer returned a failed exit code.
+func (t *DevServer) Stop() error {
 	if err := t.cmd.Process.Kill(); err != nil {
 		return err
 	}
@@ -119,7 +119,7 @@ func (t *Temporalite) Stop() error {
 
 func (o *Options) loadExePath() (string, error) {
 	// Build path based on version and check if already present
-	exePath := filepath.Join(os.TempDir(), "features-temporalite-"+o.Version)
+	exePath := filepath.Join(os.TempDir(), "features-cli-"+o.Version)
 	if runtime.GOOS == "windows" {
 		exePath += ".exe"
 	}
@@ -136,7 +136,7 @@ func (o *Options) loadExePath() (string, error) {
 	if arch != "amd64" && arch != "arm64" {
 		return "", fmt.Errorf("unrecognized architecture %v", arch)
 	}
-	infoURL := fmt.Sprintf("https://temporal.download/temporalite/%v?platform=%v&arch=%v", o.Version, platform, arch)
+	infoURL := fmt.Sprintf("https://temporal.download/cli/%v?platform=%v&arch=%v", o.Version, platform, arch)
 
 	// Get info
 	info := struct {
@@ -158,7 +158,7 @@ func (o *Options) loadExePath() (string, error) {
 	}
 
 	// Download and extract
-	o.Log.Info("Downloading Temporalite", "Url", info.ArchiveURL, "ExePath", exePath)
+	o.Log.Info("Downloading CLI", "Url", info.ArchiveURL, "ExePath", exePath)
 	resp, err = http.Get(info.ArchiveURL)
 	if err != nil {
 		return "", fmt.Errorf("failed downloading: %w", err)
@@ -168,7 +168,7 @@ func (o *Options) loadExePath() (string, error) {
 	// atomic downloader would use a common temp file and check whether it exists
 	// and wait on it, but doing multiple downloads in racy situations is
 	// good/simple enough for now.
-	f, err := os.CreateTemp("", "temporalite-downloading-")
+	f, err := os.CreateTemp("", "cli-downloading-")
 	if err != nil {
 		return "", fmt.Errorf("failed creating temp file: %w", err)
 	}

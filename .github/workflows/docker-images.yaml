@@ -69,7 +69,7 @@ jobs:
           ${{ !inputs.sdk-repo-ref && format('--version {0}', inputs.sdk-version) || '' }} \
           ${{ inputs.semver-latest != 'none' && format('--semver-latest {0}', inputs.semver-latest) || '' }}
 
-      - name: Test with Temporalite
+      - name: Test with Dev Server
         run: docker run --rm -i -v /tmp/temporal-certs:/certs ${{ env.FEATURES_BUILT_IMAGE_TAG }}
 
       - name: Test with Cloud
@@ -92,4 +92,3 @@ jobs:
       - name: Push image to DockerHub
         if: inputs.do-push
         run: go run . push-images
-

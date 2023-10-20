@@ -37,12 +37,12 @@ import (
 	"github.com/temporalio/features/features/telemetry/metrics"
 	update_async_accepted "github.com/temporalio/features/features/update/activities"
 	update_activities "github.com/temporalio/features/features/update/async_accepted"
+	update_basic "github.com/temporalio/features/features/update/basic"
 	update_deduplication "github.com/temporalio/features/features/update/deduplication"
 	update_intercept "github.com/temporalio/features/features/update/intercept"
 	update_non_durable_reject "github.com/temporalio/features/features/update/non_durable_reject"
 	update_self "github.com/temporalio/features/features/update/self"
 	update_task_failure "github.com/temporalio/features/features/update/task_failure"
-	update "github.com/temporalio/features/features/update/update"
 	update_validation_replay "github.com/temporalio/features/features/update/validation_replay"
 	update_worker_restart "github.com/temporalio/features/features/update/worker_restart"
 	"github.com/temporalio/features/harness/go/harness"
@@ -79,7 +79,7 @@ func init() {
 		unexpected_query_type_name.Feature,
 		unexpected_return_type.Feature,
 		non_remote_activities_worker.Feature,
-		update.Feature,
+		update_basic.Feature,
 		update_activities.Feature,
 		update_async_accepted.Feature,
 		update_deduplication.Feature,

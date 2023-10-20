@@ -49,8 +49,7 @@ import (
 )
 
 func init() {
-	// Please keep list in alphabetical order by unqualified import package
-	// reference/alias
+	// Please keep list in alphabetical order
 	harness.MustRegisterFeatures(
 		activity_cancel_try_cancel.Feature,
 		activity_retry_on_error.Feature,
@@ -65,13 +64,13 @@ func init() {
 		child_workflow_result.Feature,
 		child_workflow_signal.Feature,
 		continue_as_new_continue_as_same.Feature,
-		data_converter_binary.Feature,
 		data_converter_binary_protobuf.Feature,
+		data_converter_binary.Feature,
 		data_converter_codec.Feature,
 		data_converter_empty.Feature,
 		data_converter_failure.Feature,
-		data_converter_json.Feature,
 		data_converter_json_protobuf.Feature,
+		data_converter_json.Feature,
 		eager_activity_non_remote_activities_worker.Feature,
 		query_successful_query.Feature,
 		query_timeout_due_to_no_active_workers.Feature,

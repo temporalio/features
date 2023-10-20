@@ -20,9 +20,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/pmezard/go-difflib/difflib"
 	"github.com/temporalio/features/harness/go/cmd"
+	"github.com/temporalio/features/harness/go/devserver"
 	"github.com/temporalio/features/harness/go/harness"
 	"github.com/temporalio/features/harness/go/history"
-	"github.com/temporalio/features/harness/go/temporalite"
 	"github.com/temporalio/features/sdkbuild"
 	"github.com/urfave/cli/v2"
 	"go.temporal.io/sdk/client"
@@ -195,14 +195,14 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 
 	// If the server is not set, start it ourselves
 	if r.config.Server == "" {
-		server, err := temporalite.Start(temporalite.Options{
+		server, err := devserver.Start(devserver.Options{
 			Log: r.log,
 			// TODO(cretz): Configurable?
 			LogLevel:  "error",
 			Namespace: r.config.Namespace,
 		})
 		if err != nil {
-			return fmt.Errorf("failed starting temporalite: %w", err)
+			return fmt.Errorf("failed starting devserver: %w", err)
 		}
 		defer server.Stop()
 		r.config.Server = server.FrontendHostPort

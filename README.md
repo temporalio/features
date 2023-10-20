@@ -85,7 +85,7 @@ The built image will be tagged with `features:go-1.13.1`
 
 ### External Server and Namespace
 
-By default, a [temporalite](https://github.com/DataDog/temporalite) is dynamically started at runtime to handle all
+By default, a [CLI Dev Server](https://github.com/temporalio/cli/#start-the-server) is dynamically started at runtime to handle all
 feature runs and a namespace is dynamically generated. To not start the embedded server, use `--server` to specify the
 address of a server to use. Similarly, to not use a dynamic namespace (that may not be registered on the external
 server), use `--namespace`.

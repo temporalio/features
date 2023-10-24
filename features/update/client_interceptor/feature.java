@@ -1,4 +1,4 @@
-package update.intercept;
+package update.client_interceptor;
 
 import io.temporal.client.WorkflowClientOptions;
 import io.temporal.common.interceptors.WorkflowClientCallsInterceptor;

@@ -11,7 +11,7 @@ require (
 	go.temporal.io/sdk v1.25.0
 	go.temporal.io/sdk/contrib/tally v0.1.0
 	golang.org/x/mod v0.10.0
-	google.golang.org/grpc v1.57.0
+	google.golang.org/grpc v1.57.1
 )
 
 require (

@@ -13,6 +13,7 @@ import (
 	"go.temporal.io/api/failure/v1"
 	"go.temporal.io/api/history/v1"
 	"go.temporal.io/api/taskqueue/v1"
+	"go.temporal.io/api/temporalproto"
 )
 
 // Histories is a collection of histories.
@@ -53,7 +54,7 @@ func (h *Histories) UnmarshalJSON(b []byte) error {
 	hists := make([]*history.History, len(halfUnmarshaled))
 	for i, histJSON := range halfUnmarshaled {
 		var hist history.History
-		if err := protojson.Unmarshal(histJSON, &hist); err != nil {
+		if err := temporalproto.UnmarshalJSON(histJSON, &hist); err != nil {
 			return err
 		}
 		hists[i] = &hist

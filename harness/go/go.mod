@@ -1,14 +1,15 @@
 module github.com/temporalio/features/harness/go
 
-go 1.18
+go 1.20
 
 replace (
-	go.temporal.io/api => github.com/tdeebswihart/temporal-api-go v0.0.0-20231016220718-646941139bf7
-	go.temporal.io/sdk => github.com/tdeebswihart/temporal-sdk-go v0.0.0-20231017162805-b4c4dbb2a35a
+	go.temporal.io/api => github.com/tdeebswihart/temporal-api-go v0.0.0-20231024224906-a4867f8364cf
+	go.temporal.io/sdk => github.com/tdeebswihart/temporal-sdk-go v0.0.0-20231025182128-a3f3a93f2f0e
 )
 
 require (
-	github.com/google/uuid v1.3.0
+	github.com/google/go-cmp v0.5.9
+	github.com/google/uuid v1.3.1
 	github.com/stretchr/testify v1.8.4
 	github.com/urfave/cli/v2 v2.3.0
 	go.temporal.io/api v1.24.0
@@ -42,7 +43,7 @@ require (
 	google.golang.org/genproto v0.0.0-20231016165738-49dd2c1f3d0b // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20231016165738-49dd2c1f3d0b // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231016165738-49dd2c1f3d0b // indirect
-	google.golang.org/grpc v1.58.3 // indirect
+	google.golang.org/grpc v1.59.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

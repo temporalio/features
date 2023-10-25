@@ -3,11 +3,9 @@ package json_protobuf
 import (
 	"context"
 
-	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/proto"
-
 	"github.com/temporalio/features/harness/go/harness"
 	commonpb "go.temporal.io/api/common/v1"
+	"go.temporal.io/api/temporalproto"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/workflow"
 )
@@ -34,7 +32,7 @@ func CheckResult(ctx context.Context, runner *harness.Runner, run client.Workflo
 	if err := run.Get(ctx, &result); err != nil {
 		return err
 	}
-	runner.Require.True(proto.Equal(&expectedResult, &result))
+	runner.ProtoRequire.ProtoEqual(&expectedResult, &result)
 
 	payload, err := harness.GetWorkflowResultPayload(ctx, runner.Client, run.GetID())
 	if err != nil {
@@ -48,18 +46,18 @@ func CheckResult(ctx context.Context, runner *harness.Runner, run client.Workflo
 	runner.Require.Equal("temporal.api.common.v1.DataBlob", messageType)
 
 	resultInHistory := commonpb.DataBlob{}
-	if err := protojson.Unmarshal(payload.GetData(), &resultInHistory); err != nil {
+	if err := temporalproto.UnmarshalJSON(payload.GetData(), &resultInHistory); err != nil {
 		return err
 	}
 
-	runner.Require.True(proto.Equal(&result, &resultInHistory))
+	runner.ProtoRequire.ProtoEqual(&result, &resultInHistory)
 
 	payloadArg, err := harness.GetWorkflowArgumentPayload(ctx, runner.Client, run.GetID())
 	if err != nil {
 		return err
 	}
 
-	runner.Require.True(proto.Equal(payload, payloadArg))
+	runner.ProtoRequire.ProtoEqual(payload, payloadArg)
 
 	return nil
 }

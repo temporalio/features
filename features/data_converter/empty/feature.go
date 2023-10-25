@@ -2,17 +2,15 @@ package empty
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"os"
 	"path"
 	"time"
 
-	"google.golang.org/protobuf/encoding/protojson"
-
 	"github.com/temporalio/features/harness/go/harness"
 	"go.temporal.io/api/common/v1"
 	historyProto "go.temporal.io/api/history/v1"
+	"go.temporal.io/api/temporalproto"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
@@ -73,14 +71,10 @@ func CheckResult(ctx context.Context, runner *harness.Runner, run client.Workflo
 	}
 
 	expectedPayload := &common.Payload{}
-	var obj json.RawMessage
-	decoder := json.NewDecoder(file)
-	if err := decoder.Decode(&obj); err != nil {
+	decoder := temporalproto.NewJSONDecoder(file)
+	if err := decoder.Decode(expectedPayload); err != nil {
 		return err
 	}
-	if err := protojson.Unmarshal(obj, expectedPayload); err != nil {
-		return err
-	}
-	runner.Require.Equal(expectedPayload, payload)
+	runner.ProtoRequire.ProtoEqual(expectedPayload, payload)
 	return nil
 }

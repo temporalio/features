@@ -35,12 +35,12 @@ func Workflow(ctx workflow.Context, res *commonpb.DataBlob) (*commonpb.DataBlob,
 
 func CheckResult(ctx context.Context, runner *harness.Runner, run client.WorkflowRun) error {
 	// verify client result is DataBlob `0xdeadbeef`
-	result := commonpb.DataBlob{}
-	if err := run.Get(ctx, &result); err != nil {
+	result := &commonpb.DataBlob{}
+	if err := run.Get(ctx, result); err != nil {
 		return err
 	}
 
-	runner.Require.True(proto.Equal(&expectedResult, &result))
+	runner.ProtoRequire.ProtoEqual(&expectedResult, result)
 
 	payload, err := harness.GetWorkflowResultPayload(ctx, runner.Client, run.GetID())
 	if err != nil {
@@ -58,14 +58,14 @@ func CheckResult(ctx context.Context, runner *harness.Runner, run client.Workflo
 		return err
 	}
 
-	runner.Require.True(proto.Equal(&result, &resultInHistory))
+	runner.ProtoRequire.ProtoEqual(result, &resultInHistory)
 
 	payloadArg, err := harness.GetWorkflowArgumentPayload(ctx, runner.Client, run.GetID())
 	if err != nil {
 		return err
 	}
 
-	runner.Require.True(proto.Equal(payload, payloadArg))
+	runner.ProtoRequire.ProtoEqual(payload, payloadArg)
 
 	return nil
 }

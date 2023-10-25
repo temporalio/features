@@ -25,7 +25,7 @@ var Feature = harness.Feature{
 		),
 	},
 	// ExecuteDefault does not support workflow arguments
-	Execute: harness.ExecuteWithArgs(Workflow, expectedResult),
+	Execute: harness.ExecuteWithArgs(Workflow, &expectedResult),
 }
 
 // An "echo" workflow

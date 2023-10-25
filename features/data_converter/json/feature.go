@@ -4,7 +4,8 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/gogo/protobuf/proto"
+	"google.golang.org/protobuf/proto"
+
 	"github.com/temporalio/features/harness/go/harness"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/workflow"

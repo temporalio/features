@@ -3,11 +3,13 @@ package binary
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 
-	"github.com/gogo/protobuf/jsonpb"
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/temporalio/features/harness/go/harness"
 	common "go.temporal.io/api/common/v1"
 	"go.temporal.io/sdk/client"
@@ -50,8 +52,12 @@ func CheckResult(ctx context.Context, runner *harness.Runner, run client.Workflo
 	}
 
 	expectedPayload := &common.Payload{}
-	unmarshaler := jsonpb.Unmarshaler{}
-	err = unmarshaler.Unmarshal(file, expectedPayload)
+	decoder := json.NewDecoder(file)
+	var obj json.RawMessage
+	if err := decoder.Decode(&obj); err != nil {
+		return err
+	}
+	err = protojson.Unmarshal(obj, expectedPayload)
 	if err != nil {
 		return err
 	}

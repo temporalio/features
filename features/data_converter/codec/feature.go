@@ -5,7 +5,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 
-	"github.com/gogo/protobuf/proto"
+	"google.golang.org/protobuf/proto"
+
 	"github.com/temporalio/features/harness/go/harness"
 	commonpb "go.temporal.io/api/common/v1"
 	"go.temporal.io/sdk/client"

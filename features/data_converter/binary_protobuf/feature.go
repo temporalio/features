@@ -3,7 +3,8 @@ package binary_protobuf
 import (
 	"context"
 
-	"github.com/gogo/protobuf/proto"
+	"google.golang.org/protobuf/proto"
+
 	"github.com/temporalio/features/harness/go/harness"
 	commonpb "go.temporal.io/api/common/v1"
 	"go.temporal.io/sdk/client"
@@ -28,7 +29,7 @@ var Feature = harness.Feature{
 }
 
 // An "echo" workflow
-func Workflow(ctx workflow.Context, res commonpb.DataBlob) (commonpb.DataBlob, error) {
+func Workflow(ctx workflow.Context, res *commonpb.DataBlob) (*commonpb.DataBlob, error) {
 	return res, nil
 }
 

@@ -2,12 +2,14 @@ package empty
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"os"
 	"path"
 	"time"
 
-	"github.com/gogo/protobuf/jsonpb"
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/temporalio/features/harness/go/harness"
 	"go.temporal.io/api/common/v1"
 	historyProto "go.temporal.io/api/history/v1"
@@ -71,9 +73,12 @@ func CheckResult(ctx context.Context, runner *harness.Runner, run client.Workflo
 	}
 
 	expectedPayload := &common.Payload{}
-	unmarshaler := jsonpb.Unmarshaler{}
-	err = unmarshaler.Unmarshal(file, expectedPayload)
-	if err != nil {
+	var obj json.RawMessage
+	decoder := json.NewDecoder(file)
+	if err := decoder.Decode(&obj); err != nil {
+		return err
+	}
+	if err := protojson.Unmarshal(obj, expectedPayload); err != nil {
 		return err
 	}
 	runner.Require.Equal(expectedPayload, payload)

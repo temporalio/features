@@ -55,7 +55,6 @@ on:
         type: boolean
         default: false
 
-
 jobs:
   build-go-docker-images:
     if: inputs.go-ver
@@ -67,6 +66,9 @@ jobs:
       semver-latest: major
       do-push: ${{ inputs.do-push }}
       skip-cloud: ${{ inputs.skip-cloud }}
+      # TODO: remove these after they've hit the main branch
+      sdk-repo-url: http://github.com/tdeebswihart/temporal-sdk-go
+      sdk-repo-ref: replace-gogo-protobuf
 
   build-ts-docker-images:
     if: inputs.ts-ver

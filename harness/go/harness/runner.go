@@ -10,13 +10,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"golang.org/x/mod/semver"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/temporalio/features/harness/go/history"
-	"github.com/temporalio/features/harness/go/testing/protoassert"
-	"github.com/temporalio/features/harness/go/testing/protorequire"
 	"go.temporal.io/api/common/v1"
 	"go.temporal.io/api/serviceerror"
 	"go.temporal.io/api/workflowservice/v1"
@@ -41,8 +39,6 @@ type Runner struct {
 	Assert        *assert.Assertions
 	LastAssertErr error
 	Require       *require.Assertions
-	ProtoAssert   protoassert.ProtoAssertions
-	ProtoRequire  protorequire.ProtoAssertions
 }
 
 // RunnerConfig is configuration for NewRunner.
@@ -71,10 +67,6 @@ func NewRunner(config RunnerConfig, feature *PreparedFeature) (*Runner, error) {
 		r.LastAssertErr = fmt.Errorf(format, args...)
 	}))
 	r.Require = require.New(&requireTestingPanic{})
-	r.ProtoAssert = protoassert.New(assertTestingFunc(func(format string, args ...interface{}) {
-		r.LastAssertErr = fmt.Errorf(format, args...)
-	}))
-	r.ProtoRequire = protorequire.New(&requireTestingPanic{})
 
 	// Close on failure
 	success := false

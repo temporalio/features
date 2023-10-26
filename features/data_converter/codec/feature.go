@@ -90,7 +90,7 @@ func CheckResult(ctx context.Context, runner *harness.Runner, run client.Workflo
 		return err
 	}
 
-	runner.ProtoRequire.ProtoEqual(payload, payloadArg)
+	runner.Require.True(proto.Equal(payload, payloadArg))
 
 	return nil
 }

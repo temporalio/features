@@ -8,6 +8,7 @@ import (
 	"go.temporal.io/api/temporalproto"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/workflow"
+	"google.golang.org/protobuf/proto"
 )
 
 var expectedResult = commonpb.DataBlob{Data: []byte{0xde, 0xad, 0xbe, 0xef}}
@@ -32,7 +33,7 @@ func CheckResult(ctx context.Context, runner *harness.Runner, run client.Workflo
 	if err := run.Get(ctx, &result); err != nil {
 		return err
 	}
-	runner.ProtoRequire.ProtoEqual(&expectedResult, &result)
+	runner.Require.True(proto.Equal(&expectedResult, &result))
 
 	payload, err := harness.GetWorkflowResultPayload(ctx, runner.Client, run.GetID())
 	if err != nil {
@@ -50,14 +51,14 @@ func CheckResult(ctx context.Context, runner *harness.Runner, run client.Workflo
 		return err
 	}
 
-	runner.ProtoRequire.ProtoEqual(&result, &resultInHistory)
+	runner.Require.True(proto.Equal(&result, &resultInHistory))
 
 	payloadArg, err := harness.GetWorkflowArgumentPayload(ctx, runner.Client, run.GetID())
 	if err != nil {
 		return err
 	}
 
-	runner.ProtoRequire.ProtoEqual(payload, payloadArg)
+	runner.Require.True(proto.Equal(payload, payloadArg))
 
 	return nil
 }

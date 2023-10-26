@@ -12,6 +12,7 @@ import (
 	"go.temporal.io/api/temporalproto"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/workflow"
+	"google.golang.org/protobuf/proto"
 )
 
 var expectedResult = []byte{0xde, 0xad, 0xbe, 0xef}
@@ -54,14 +55,14 @@ func CheckResult(ctx context.Context, runner *harness.Runner, run client.Workflo
 	if err := decoder.Decode(expectedPayload); err != nil {
 		return err
 	}
-	runner.ProtoRequire.ProtoEqual(expectedPayload, payload)
+	runner.Require.True(proto.Equal(expectedPayload, payload))
 
 	payloadArg, err := harness.GetWorkflowArgumentPayload(ctx, runner.Client, run.GetID())
 	if err != nil {
 		return err
 	}
 
-	runner.ProtoRequire.ProtoEqual(payload, payloadArg)
+	runner.Require.True(proto.Equal(payload, payloadArg))
 
 	return nil
 }

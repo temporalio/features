@@ -14,6 +14,7 @@ import (
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
+	"google.golang.org/protobuf/proto"
 )
 
 var Feature = harness.Feature{
@@ -75,6 +76,6 @@ func CheckResult(ctx context.Context, runner *harness.Runner, run client.Workflo
 	if err := decoder.Decode(expectedPayload); err != nil {
 		return err
 	}
-	runner.ProtoRequire.ProtoEqual(expectedPayload, payload)
+	runner.Require.True(proto.Equal(expectedPayload, payload))
 	return nil
 }

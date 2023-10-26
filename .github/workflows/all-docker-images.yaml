@@ -62,7 +62,8 @@ jobs:
     secrets: inherit
     with:
       lang: go
-      sdk-version: ${{ inputs.go-ver }}
+      # TODO: set this to a useable version once merged
+      #sdk-version: ${{ inputs.go-ver }}
       semver-latest: major
       do-push: ${{ inputs.do-push }}
       skip-cloud: ${{ inputs.skip-cloud }}

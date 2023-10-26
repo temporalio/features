@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/fs"
 	"path/filepath"
+	"strings"
 
 	"github.com/temporalio/features/harness/go/cmd"
 	"golang.org/x/mod/semver"
@@ -39,6 +40,7 @@ func (r *Runner) GlobFeatures(patterns []string) ([]*RunFeature, error) {
 		if len(patterns) > 0 {
 			foundMatch := false
 			for _, pattern := range patterns {
+				pattern = strings.TrimPrefix(pattern, "features/")
 				match, err := filepath.Match(pattern, dir)
 				if !match && err == nil {
 					match, err = filepath.Match(pattern, dir+"/feature."+r.config.Lang)

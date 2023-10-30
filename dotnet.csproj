@@ -30,7 +30,7 @@
       -->
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="XUnit" Version="2.5.3" />
+    <PackageReference Include="XUnit.Assert" Version="2.5.3" />
   </ItemGroup>
 
   <ItemGroup>

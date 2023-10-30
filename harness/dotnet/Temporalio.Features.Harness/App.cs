@@ -90,6 +90,10 @@ public static class App
             {
                 await new Runner(client, taskQueue, feature, loggerFactory).RunAsync(ctx.GetCancellationToken());
             }
+            catch (TestSkippedException e)
+            {
+                logger.LogInformation("Feature {Feature} skipped: {Reason}", feature.Dir, e.Message);
+            }
             catch(Exception e)
             {
                 logger.LogError(e, "Feature {Feature} failed", feature.Dir);

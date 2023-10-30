@@ -3,8 +3,8 @@ module github.com/temporalio/features
 go 1.18
 
 replace (
-	go.temporal.io/api => github.com/tdeebswihart/temporal-api-go v0.0.0-20231016220718-646941139bf7
-	go.temporal.io/sdk => github.com/tdeebswihart/temporal-sdk-go v0.0.0-20231017162805-b4c4dbb2a35a
+	go.temporal.io/api => github.com/tdeebswihart/temporal-api-go v0.0.0-20231030173112-e3f2b0b8d7b6
+	go.temporal.io/sdk => github.com/tdeebswihart/temporal-sdk-go v0.0.0-20231030171429-734eb22c9c89
 )
 
 require (
@@ -25,7 +25,6 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/mock v1.6.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
-	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.18.0 // indirect
 	github.com/iancoleman/strcase v0.3.0 // indirect

@@ -3,19 +3,19 @@ module github.com/temporalio/features/features
 go 1.20
 
 replace (
-	go.temporal.io/api => github.com/tdeebswihart/temporal-api-go v0.0.0-20231024224906-a4867f8364cf
-	go.temporal.io/sdk => github.com/tdeebswihart/temporal-sdk-go v0.0.0-20231025182128-a3f3a93f2f0e
+	go.temporal.io/api => github.com/tdeebswihart/temporal-api-go v0.0.0-20231030173112-e3f2b0b8d7b6
+	go.temporal.io/sdk => github.com/tdeebswihart/temporal-sdk-go v0.0.0-20231030171429-734eb22c9c89
 )
 
 require (
-	github.com/google/uuid v1.3.0
+	github.com/google/uuid v1.3.1
 	github.com/temporalio/features/harness/go v1.0.0
 	github.com/uber-go/tally/v4 v4.1.1
 	go.temporal.io/api v1.24.0
 	go.temporal.io/sdk v1.25.0
 	go.temporal.io/sdk/contrib/tally v0.1.0
 	golang.org/x/mod v0.11.0
-	google.golang.org/grpc v1.58.3
+	google.golang.org/grpc v1.59.0
 	google.golang.org/protobuf v1.31.0
 )
 

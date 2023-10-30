@@ -51,7 +51,7 @@ func CheckResult(ctx context.Context, runner *harness.Runner, run client.Workflo
 	}
 
 	expectedPayload := &common.Payload{}
-	decoder := temporalproto.NewJSONDecoder(file)
+	decoder := temporalproto.NewJSONDecoder(file, false)
 	if err := decoder.Decode(expectedPayload); err != nil {
 		return err
 	}

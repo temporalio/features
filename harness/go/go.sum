@@ -36,7 +36,6 @@ github.com/golang/protobuf v1.5.3/go.mod h1:XVQd3VNwM+JqD3oG2Ue2ip4fOMUkwXdXDdiu
 github.com/google/go-cmp v0.2.0/go.mod h1:oXzfMopK8JAjlY9xF4vHSVASa0yLyX7SntLO5aqRK0M=
 github.com/google/go-cmp v0.5.5/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
 github.com/google/go-cmp v0.5.9 h1:O2Tfq5qg4qc4AmwVlvv0oLiVAGB7enBSJ2x2DqQFi38=
-github.com/google/go-cmp v0.5.9/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
 github.com/google/uuid v1.0.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/google/uuid v1.3.1 h1:KjJaJ9iWZ3jOFZIf1Lqf4laDRCasjl0BCmnEGxkdLb4=
 github.com/google/uuid v1.3.1/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
@@ -84,10 +83,10 @@ github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/
 github.com/stretchr/testify v1.8.0/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO+kdMU+MU=
 github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcUk=
 github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
-github.com/tdeebswihart/temporal-api-go v0.0.0-20231024224906-a4867f8364cf h1:WlXd+zhSaEGydariuk2pTKpE7epYGJqQBANwP7UAebE=
-github.com/tdeebswihart/temporal-api-go v0.0.0-20231024224906-a4867f8364cf/go.mod h1:ZMitJTNmbXZkOJENNfv6wSysT4UenqGL918N5N6SH4I=
-github.com/tdeebswihart/temporal-sdk-go v0.0.0-20231025182128-a3f3a93f2f0e h1:4hENCBhP/X9THutfuZ8HwXwcJm4bLCq6EkrYW50G5Sk=
-github.com/tdeebswihart/temporal-sdk-go v0.0.0-20231025182128-a3f3a93f2f0e/go.mod h1:2ZJiRYA7wb4YkLQM9Pg5kOjal3DE6KE6r6eyRkYGppU=
+github.com/tdeebswihart/temporal-api-go v0.0.0-20231030173112-e3f2b0b8d7b6 h1:3VU2ATcfOHdVbBuHRDRUG+8lxxfAVcQjF52PxKHyxEE=
+github.com/tdeebswihart/temporal-api-go v0.0.0-20231030173112-e3f2b0b8d7b6/go.mod h1:ZMitJTNmbXZkOJENNfv6wSysT4UenqGL918N5N6SH4I=
+github.com/tdeebswihart/temporal-sdk-go v0.0.0-20231030171429-734eb22c9c89 h1:mcLkjxxtUvmBFd4avFcYU3f6bWGyX6FTCsmgc2Shs7Y=
+github.com/tdeebswihart/temporal-sdk-go v0.0.0-20231030171429-734eb22c9c89/go.mod h1:q9T6ccrOVY3vzbGo/9mXRMf04GWFptZWakfVHdK68uk=
 github.com/urfave/cli/v2 v2.3.0 h1:qph92Y649prgesehzOrQjdWyxFOp/QVM+6imKHad91M=
 github.com/urfave/cli/v2 v2.3.0/go.mod h1:LJmUH05zAU44vOAcrfzZQKsZbVcdbOG8rtL3/XcUArI=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=

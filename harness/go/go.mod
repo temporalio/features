@@ -3,12 +3,11 @@ module github.com/temporalio/features/harness/go
 go 1.20
 
 replace (
-	go.temporal.io/api => github.com/tdeebswihart/temporal-api-go v0.0.0-20231024224906-a4867f8364cf
-	go.temporal.io/sdk => github.com/tdeebswihart/temporal-sdk-go v0.0.0-20231025182128-a3f3a93f2f0e
+	go.temporal.io/api => github.com/tdeebswihart/temporal-api-go v0.0.0-20231030173112-e3f2b0b8d7b6
+	go.temporal.io/sdk => github.com/tdeebswihart/temporal-sdk-go v0.0.0-20231030171429-734eb22c9c89
 )
 
 require (
-	github.com/google/go-cmp v0.5.9
 	github.com/google/uuid v1.3.1
 	github.com/stretchr/testify v1.8.4
 	github.com/urfave/cli/v2 v2.3.0

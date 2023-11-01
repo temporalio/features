@@ -20,13 +20,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/pmezard/go-difflib/difflib"
 	"github.com/temporalio/features/harness/go/cmd"
-	"github.com/temporalio/features/harness/go/devserver"
 	"github.com/temporalio/features/harness/go/harness"
 	"github.com/temporalio/features/harness/go/history"
 	"github.com/temporalio/features/sdkbuild"
 	"github.com/urfave/cli/v2"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/log"
+	"go.temporal.io/sdk/testsuite"
 )
 
 const (
@@ -195,17 +195,22 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 
 	// If the server is not set, start it ourselves
 	if r.config.Server == "" {
-		server, err := devserver.Start(devserver.Options{
-			Log: r.log,
+		server, err := testsuite.StartDevServer(ctx, testsuite.DevServerOptions{
 			// TODO(cretz): Configurable?
-			LogLevel:  "error",
-			Namespace: r.config.Namespace,
+			LogLevel:      "error",
+			ClientOptions: &client.Options{Namespace: r.config.Namespace},
+			ExtraArgs: []string{
+				"--dynamic-config-value", "system.forceSearchAttributesCacheRefreshOnRead=true",
+				"--dynamic-config-value", "system.enableActivityEagerExecution=true",
+				"--dynamic-config-value", "frontend.enableUpdateWorkflowExecution=true",
+				"--dynamic-config-value", "frontend.enableUpdateWorkflowExecutionAsyncAccepted=true",
+			},
 		})
 		if err != nil {
 			return fmt.Errorf("failed starting devserver: %w", err)
 		}
 		defer server.Stop()
-		r.config.Server = server.FrontendHostPort
+		r.config.Server = server.FrontendHostPort()
 		r.log.Info("Started server", "HostPort", r.config.Server)
 	} else {
 		// Wait for namespace to become available

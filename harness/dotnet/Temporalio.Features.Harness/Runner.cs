@@ -1,13 +1,17 @@
 namespace Temporalio.Features.Harness;
 
 using Temporalio.Client;
+using Temporalio.Exceptions;
 using Temporalio.Worker;
+using Temporalio.Workflows;
 
 /// <summary>
 /// Runner for running features.
 /// </summary>
 public class Runner
 {
+    private bool? maybeUpdateSupported;
+
     internal Runner(
         ITemporalClient client,
         string taskQueue,
@@ -64,14 +68,14 @@ public class Runner
     {
         var workflow = WorkerOptions.Workflows.SingleOrDefault() ??
             throw new InvalidOperationException("Must have a single workflow");
-        return Client.StartWorkflowAsync(
-            workflow.Name!,
-            Array.Empty<object?>(),
-            new(id: $"{PreparedFeature.Dir}-{Guid.NewGuid()}", taskQueue: WorkerOptions.TaskQueue!)
-            {
-                ExecutionTimeout = TimeSpan.FromMinutes(1)
-            });
+        return Client.StartWorkflowAsync(workflow.Name!, Array.Empty<object?>(), NewWorkflowOptions());
     }
+
+    public WorkflowOptions NewWorkflowOptions() =>
+        new(id: $"{PreparedFeature.Dir}-{Guid.NewGuid()}", taskQueue: WorkerOptions.TaskQueue!)
+        {
+            ExecutionTimeout = TimeSpan.FromMinutes(1)
+        };
 
     /// <summary>
     /// Checks the current history for the given handle using the replayer.
@@ -100,5 +104,85 @@ public class Runner
         {
             throw new InvalidOperationException("Replay failed", e);
         }
+    }
+
+    /// <summary>
+    /// Throw skip exception if update not supported.
+    /// </summary>
+    /// <returns>Task for completion.</returns>
+    /// <exception cref="TestSkippedException">If update not supported.</exception>
+    public async Task SkipIfUpdateNotSupportedAsync()
+    {
+        if (await CheckUpdateSupportedAsync())
+        {
+            return;
+        }
+        throw new TestSkippedException("Update not supported");
+    }
+
+    /// <summary>
+    /// Check if update not supported.
+    /// </summary>
+    /// <returns>True if supported, false if not.</returns>
+    public Task<bool> CheckUpdateSupportedAsync() =>
+        CheckUpdateSupportCallAsync(() =>
+            Client.GetWorkflowHandle("does-not-exist").ExecuteUpdateAsync(
+                "does-not-exist", Array.Empty<object?>()));
+
+    /// <summary>
+    /// Throw skip exception if async update not supported.
+    /// </summary>
+    /// <returns>Task for completion.</returns>
+    /// <exception cref="TestSkippedException">If async update not supported.</exception>
+    public async Task SkipIfAsyncUpdateNotSupportedAsync()
+    {
+        if (await CheckAsyncUpdateSupportedAsync())
+        {
+            return;
+        }
+        throw new TestSkippedException("Async update not supported");
+    }
+
+    /// <summary>
+    /// Check if async update not supported.
+    /// </summary>
+    /// <returns>True if supported, false if not.</returns>
+    public Task<bool> CheckAsyncUpdateSupportedAsync() =>
+        CheckUpdateSupportCallAsync(() =>
+            Client.GetWorkflowHandle("does-not-exist").StartUpdateAsync(
+                "does-not-exist", Array.Empty<object?>()));
+
+    private async Task<bool> CheckUpdateSupportCallAsync(Func<Task> failingFunc)
+    {
+        // Don't care about races
+        if (maybeUpdateSupported == null)
+        {
+            try
+            {
+                try
+                {
+                    await failingFunc();
+                    throw new InvalidOperationException("Unexpected success");
+                }
+                catch (AggregateException e)
+                {
+                    // Bug with agg exception: https://github.com/temporalio/sdk-dotnet/issues/151
+                    throw e.InnerExceptions.Single();
+                }
+            }
+            catch (RpcException e) when (e.Code == RpcException.StatusCode.NotFound)
+            {
+                // Not found workflow means update does exist
+                maybeUpdateSupported = true;
+            }
+            catch (RpcException e) when (
+                e.Code == RpcException.StatusCode.Unimplemented || e.Code == RpcException.StatusCode.PermissionDenied)
+            {
+                // Not implemented or permission denied means not supported,
+                // everything else is an error
+                maybeUpdateSupported = false;
+            }
+        }
+        return maybeUpdateSupported.Value;
     }
 }

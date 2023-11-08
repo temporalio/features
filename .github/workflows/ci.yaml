@@ -113,7 +113,7 @@ jobs:
   feature-tests-python:
     uses: ./.github/workflows/python.yaml
     with:
-      version: 1.0.0
+      version: 1.4.0
       version-is-repo-ref: false
       features-repo-ref: ${{ github.head_ref }}
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
@@ -143,5 +143,5 @@ jobs:
       go-ver: 'v1.25.0'
       ts-ver: 'v1.5.2'
       java-ver: 'v1.22.0'
-      py-ver: 'v1.0.0'
+      py-ver: 'v1.4.0'
       cs-ver: 'v0.1.0-beta2'

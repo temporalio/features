@@ -11,7 +11,7 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.7"
-temporalio = "^1.0.0"
+temporalio = "^1.4.0"
 
 [tool.poetry.dev-dependencies]
 mypy = "^0.961"

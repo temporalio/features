@@ -10,7 +10,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.8"
 temporalio = "^1.4.0"
 
 [tool.poetry.dev-dependencies]

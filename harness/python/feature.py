@@ -134,7 +134,7 @@ class Runner:
             namespace=self.namespace,
             data_converter=self.feature.data_converter,
             tls=self.tls_config,
-            **self.feature.additional_client_config,
+            **self.feature.additional_client_config,  # type: ignore
         )
 
         # Run worker

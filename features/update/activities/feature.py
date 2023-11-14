@@ -27,7 +27,6 @@ class Workflow:
             )
         results = await asyncio.gather(*act_futures)
         self.am_done = True
-        return len(results)
 
 
 @activity.defn

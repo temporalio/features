@@ -11,6 +11,7 @@ from harness.python.feature import Runner, register_feature
 @workflow.defn
 class Workflow:
     am_done = False
+    proceed_signal = False
 
     @workflow.run
     async def run(self) -> str:
@@ -18,9 +19,10 @@ class Workflow:
         return "Hello, World!"
 
     @workflow.update
-    async def do_maybe_sleepy_update(self, sleep: bool) -> int:
+    async def do_maybe_wait_update(self, sleep: bool) -> int:
         if sleep:
-            await asyncio.sleep(2)
+            await workflow.wait_condition(lambda: self.proceed_signal)
+            self.proceed_signal = False
         else:
             raise ApplicationError("Dying on purpose")
         return 123
@@ -28,6 +30,10 @@ class Workflow:
     @workflow.signal
     def finish(self):
         self.am_done = True
+
+    @workflow.signal
+    def unblock(self):
+        self.proceed_signal = True
 
 
 @activity.defn
@@ -45,8 +51,9 @@ async def check_result(runner: Runner, handle: WorkflowHandle) -> None:
     # Issue async update
     update_id = "sleepy_update"
     update_handle = await handle.start_update(
-        Workflow.do_maybe_sleepy_update, True, id=update_id
+        Workflow.do_maybe_wait_update, True, id=update_id
     )
+    await handle.signal(Workflow.unblock)
     # There's no API at the moment for directly creating a handle w/o calling start update since
     # async is still immature, also use that path if/when it exists.
     assert 123 == await update_handle.result()
@@ -54,7 +61,7 @@ async def check_result(runner: Runner, handle: WorkflowHandle) -> None:
     # Async update which throws
     fail_update_id = "failing_update"
     update_handle = await handle.start_update(
-        Workflow.do_maybe_sleepy_update, False, id=fail_update_id
+        Workflow.do_maybe_wait_update, False, id=fail_update_id
     )
     try:
         await update_handle.result()
@@ -67,7 +74,7 @@ async def check_result(runner: Runner, handle: WorkflowHandle) -> None:
     # Verify timeouts work, but we can only use RPC timeout for now, because of ☝️
     timeout_update_id = "timeout_update"
     update_handle = await handle.start_update(
-        Workflow.do_maybe_sleepy_update, True, id=timeout_update_id
+        Workflow.do_maybe_wait_update, True, id=timeout_update_id
     )
     try:
         await update_handle.result(rpc_timeout=timedelta(seconds=1))

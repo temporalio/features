@@ -6,7 +6,6 @@ from temporalio.client import WorkflowHandle
 
 from harness.python.feature import Runner, register_feature
 
-# Really these are barriers but that's 3.11+ only
 activity_started = asyncio.Semaphore(value=0)
 finish_activity = asyncio.Semaphore(value=0)
 

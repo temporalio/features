@@ -78,7 +78,7 @@ func BuildPythonProgram(ctx context.Context, options BuildPythonProgramOptions) 
 		if err != nil {
 			return nil, fmt.Errorf("failed glob wheel lookup: %w", err)
 		} else if len(wheels) != 1 {
-			return nil, fmt.Errorf("expected single dist wheel, found %v", len(wheels))
+			return nil, fmt.Errorf("expected single dist wheel, found %v", wheels)
 		}
 		absWheel, err := filepath.Abs(wheels[0])
 		if err != nil {

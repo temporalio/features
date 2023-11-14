@@ -12,7 +12,14 @@ from typing import Any, Awaitable, Callable, Dict, List, Mapping, Optional, Type
 from temporalio import workflow
 from temporalio.api.common.v1 import Payload
 from temporalio.api.enums.v1 import EventType
-from temporalio.client import Client, WorkflowFailureError, WorkflowHandle
+from temporalio.client import (
+    Client,
+    ClientConfig,
+    RPCError,
+    RPCStatusCode,
+    WorkflowFailureError,
+    WorkflowHandle,
+)
 from temporalio.converter import DataConverter
 from temporalio.exceptions import ActivityError, ApplicationError
 from temporalio.service import TLSConfig
@@ -35,6 +42,7 @@ def register_feature(
     check_result: Optional[Callable[[Runner, WorkflowHandle], Awaitable[None]]] = None,
     worker_config: WorkerConfig = WorkerConfig(),
     data_converter: DataConverter = DataConverter.default,
+    additional_client_config: ClientConfig = ClientConfig(),
 ) -> None:
     # No need to register in a sandbox
     if workflow.unsafe.in_sandbox():
@@ -59,6 +67,7 @@ def register_feature(
         check_result=check_result,
         worker_config=worker_config,
         data_converter=data_converter,
+        additional_client_config=additional_client_config,
     )
 
 
@@ -93,6 +102,7 @@ class Feature:
     check_result: Optional[Callable[[Runner, WorkflowHandle], Awaitable[None]]]
     worker_config: Optional[WorkerConfig]
     data_converter: DataConverter
+    additional_client_config: Optional[ClientConfig]
 
 
 class Runner:
@@ -124,6 +134,7 @@ class Runner:
             namespace=self.namespace,
             data_converter=self.feature.data_converter,
             tls=self.tls_config,
+            **self.feature.additional_client_config,  # type: ignore
         )
 
         # Run worker
@@ -144,6 +155,8 @@ class Runner:
                 await self.check_result(handle)
 
             # TODO(cretz): History check
+        except SkipFeatureException as e:
+            logger.info("Skipping feature %s because %s", self.feature.rel_dir, e)
         finally:
             await self.stop_worker()
 
@@ -204,3 +217,22 @@ class Runner:
             finally:
                 self.worker = None
                 self._worker_task = None
+
+    async def skip_if_update_unsupported(self):
+        """Skip the test if the server does not support update."""
+        try:
+            await self.client.get_workflow_handle("fake").execute_update("fake")
+        except RPCError as e:
+            if e.status == RPCStatusCode.NOT_FOUND:
+                return
+            if e.status == RPCStatusCode.PERMISSION_DENIED:
+                raise SkipFeatureException(
+                    "server support for update is disabled; set frontend.enableUpdateWorkflowExecution=true in dynamic config to enable"
+                ) from e
+            if e.status == RPCStatusCode.UNIMPLEMENTED:
+                raise SkipFeatureException("Server too old to support update") from e
+            raise
+
+
+class SkipFeatureException(Exception):
+    pass

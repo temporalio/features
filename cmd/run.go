@@ -373,7 +373,7 @@ func (r *Runner) handleSingleHistory(ctx context.Context, client client.Client, 
 	if err != nil {
 		return err
 	}
-	if !r.config.GenerateHistory && len(existingSet.ByVersion) == 0 {
+	if !r.config.GenerateHistory && (r.config.DisableHistoryCheck || len(existingSet.ByVersion) == 0) {
 		r.log.Info("Skipping history check since nothing to check against and not generating",
 			"Feature", feature.Dir)
 		return nil

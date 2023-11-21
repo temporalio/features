@@ -40,6 +40,9 @@ jobs:
       TEMPORAL_CLOUD_NAMESPACE: sdk-ci.a2dd6
       REPO_URL: ${{ github.event.pull_request.head.repo.html_url }}
     steps:
+      - name: Fail if both sdk-version and sdk-repo-ref are present
+        if: inputs.sdk-version && inputs.sdk-repo-ref
+        run: exit 1
       - name: Print build information
         run: 'echo head_ref: "$GITHUB_HEAD_REF", ref: "$GITHUB_REF"'
       - uses: actions/checkout@v2

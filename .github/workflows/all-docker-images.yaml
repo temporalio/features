@@ -34,6 +34,9 @@ on:
       go-ver:
         description: Go SDK ver to build. Skipped if not specified. Must start with v.
         type: string
+      go-repo-ref:
+        description: Go SDK repo ref to build. Mutually exclusive with go-ver.
+        type: string
       py-ver:
         description: Python SDK ver to build. Skipped if not specified. Must start with v.
         type: string
@@ -57,19 +60,16 @@ on:
 
 jobs:
   build-go-docker-images:
-    if: inputs.go-ver
+    if: inputs.go-ver || inputs.go-repo-ref
     uses: ./.github/workflows/docker-images.yaml
     secrets: inherit
     with:
       lang: go
-      # TODO: set this to a useable version once merged
-      #sdk-version: ${{ inputs.go-ver }}
+      sdk-version: ${{ inputs.go-ver }}
+      sdk-repo-ref: ${{ inputs.go-repo-ref }}
       semver-latest: major
       do-push: ${{ inputs.do-push }}
       skip-cloud: ${{ inputs.skip-cloud }}
-      # TODO: remove these after they've hit the main branch
-      sdk-repo-url: http://github.com/tdeebswihart/temporal-sdk-go
-      sdk-repo-ref: replace-gogo-protobuf
 
   build-ts-docker-images:
     if: inputs.ts-ver

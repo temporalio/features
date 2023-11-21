@@ -105,13 +105,11 @@ jobs:
   feature-tests-go:
     uses: ./.github/workflows/go.yaml
     with:
-      # TODO: set this to a useable version once merged
-      #sdk-version: ${{ inputs.go-ver }}
+      # First commit that supports google/protobuf
+      version: f9d73bfdf7c8d3ec0311306140fbfafa7fb6f9cf
       version-is-repo-ref: false
       features-repo-ref: ${{ github.head_ref }}
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
-      sdk-repo-url: http://github.com/tdeebswihart/temporal-sdk-go
-      sdk-repo-ref: replace-gogo-protobuf
 
   feature-tests-python:
     uses: ./.github/workflows/python.yaml

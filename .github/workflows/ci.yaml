@@ -141,7 +141,7 @@ jobs:
     # TODO: Find some way to automatically upgrade to "latest"
     with:
       do-push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-      go-ver: 'v1.25.0'
+      go-ver: 'f9d73bfdf7c8d3ec0311306140fbfafa7fb6f9cf'
       ts-ver: 'v1.5.2'
       java-ver: 'v1.22.0'
       py-ver: 'v1.4.0'

@@ -26,7 +26,6 @@ require github.com/temporalio/features/harness/go v1.0.0
 
 replace github.com/temporalio/features/features => ../features
 replace github.com/temporalio/features/harness/go => ../harness/go
-replace go.temporal.io/api => github.com/tdeebswihart/temporal-api-go nomo-gogo
 
 replace github.com/cactus/go-statsd-client => github.com/cactus/go-statsd-client v3.2.1+incompatible`,
 		GoMainContents: `package main

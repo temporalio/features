@@ -7,6 +7,9 @@ on:
       go-ver:
         description: Go SDK ver to build. Skipped if not specified. Must start with v.
         type: string
+      go-repo-ref:
+        description: Go SDK repo ref to build. Mutually exclusive with go-ver.
+        type: string
       py-ver:
         description: Python SDK ver to build. Skipped if not specified. Must start with v.
         type: string

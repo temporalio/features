@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"go.temporal.io/api/common/v1"
 	"go.temporal.io/api/history/v1"
 	"go.temporal.io/api/taskqueue/v1"
@@ -18,7 +20,7 @@ func TestScrub(t *testing.T) {
 			Events: []*history.HistoryEvent{
 				{
 					EventId:   1,
-					EventTime: &now,
+					EventTime: timestamppb.New(now),
 					TaskId:    2,
 					Attributes: &history.HistoryEvent_WorkflowExecutionStartedEventAttributes{
 						WorkflowExecutionStartedEventAttributes: &history.WorkflowExecutionStartedEventAttributes{

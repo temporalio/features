@@ -2,6 +2,7 @@ package sdkbuild
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -9,6 +10,8 @@ import (
 	"runtime"
 	"strings"
 )
+
+const sdkImport = "go.temporal.io/sdk"
 
 // BuildGoProgramOptions are options for BuildGoProgram.
 type BuildGoProgramOptions struct {
@@ -18,6 +21,9 @@ type BuildGoProgramOptions struct {
 	// use latest. If set and does not start with a "v", it is assumed to be a
 	// path, otherwise it is a specific version.
 	Version string
+	// The SDK Repository import to use. If unspecified we default to go.temporal.io/sdk
+	// If specified version must also be provided
+	SDKRepository string
 	// Required go.mod contents
 	GoModContents string
 	// Required main.go contents
@@ -72,10 +78,15 @@ func BuildGoProgram(ctx context.Context, options BuildGoProgramOptions) (*GoProg
 	// Create go.mod
 	goMod := options.GoModContents
 	// If a version is specified, overwrite the SDK to use that
-	if options.Version != "" {
-		// If version does not start with a "v" we assume path
-		if strings.HasPrefix(options.Version, "v") {
-			goMod += "\nreplace go.temporal.io/sdk => go.temporal.io/sdk " + options.Version
+	if options.Version != "" || options.SDKRepository != "" {
+		// If version does not start with a "v" we assume path unless the SDK repository is provided
+		if options.SDKRepository != "" {
+			if options.Version == "" {
+				return nil, errors.New("Version must be provided alongside SDKRepository")
+			}
+			goMod += fmt.Sprintf("\nreplace %s => %s %s", sdkImport, options.SDKRepository, options.Version)
+		} else if strings.HasPrefix(options.Version, "v") {
+			goMod += fmt.Sprintf("\nreplace %s => %s %s", sdkImport, sdkImport, options.Version)
 		} else {
 			absVersion, err := filepath.Abs(options.Version)
 			if err != nil {
@@ -85,7 +96,7 @@ func BuildGoProgram(ctx context.Context, options BuildGoProgramOptions) (*GoProg
 			if err != nil {
 				return nil, fmt.Errorf("version does not start with 'v' and unable to relativize: %w", err)
 			}
-			goMod += "\nreplace go.temporal.io/sdk => " + filepath.ToSlash(relVersion)
+			goMod += fmt.Sprintf("\nreplace %s => %s", sdkImport, filepath.ToSlash(relVersion))
 		}
 	}
 	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte(goMod), 0644); err != nil {

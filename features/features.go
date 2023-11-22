@@ -22,6 +22,7 @@ import (
 	data_converter_json "github.com/temporalio/features/features/data_converter/json"
 	data_converter_json_protobuf "github.com/temporalio/features/features/data_converter/json_protobuf"
 	eager_activity_non_remote_activities_worker "github.com/temporalio/features/features/eager_activity/non_remote_activities_worker"
+	eager_workflow_successful_start "github.com/temporalio/features/features/eager_workflow/successful_start"
 	query_successful_query "github.com/temporalio/features/features/query/successful_query"
 	query_timeout_due_to_no_active_workers "github.com/temporalio/features/features/query/timeout_due_to_no_active_workers"
 	query_unexpected_arguments "github.com/temporalio/features/features/query/unexpected_arguments"
@@ -72,6 +73,7 @@ func init() {
 		data_converter_json_protobuf.Feature,
 		data_converter_json.Feature,
 		eager_activity_non_remote_activities_worker.Feature,
+		eager_workflow_successful_start.Feature,
 		query_successful_query.Feature,
 		query_timeout_due_to_no_active_workers.Feature,
 		query_unexpected_arguments.Feature,

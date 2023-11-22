@@ -202,6 +202,7 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 			ExtraArgs: []string{
 				"--dynamic-config-value", "system.forceSearchAttributesCacheRefreshOnRead=true",
 				"--dynamic-config-value", "system.enableActivityEagerExecution=true",
+				"--dynamic-config-value", "system.enableEagerWorkflowStart=true",
 				"--dynamic-config-value", "frontend.enableUpdateWorkflowExecution=true",
 				"--dynamic-config-value", "frontend.enableUpdateWorkflowExecutionAsyncAccepted=true",
 			},

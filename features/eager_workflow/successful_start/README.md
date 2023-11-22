@@ -6,5 +6,5 @@ In each scenario, the starter program and the worker should share a client. The 
 # Detailed spec
 * The `EnableEagerStart` start workflow option should be `true`.
 * The server response to start workflow should include a non-nil `eager_workflow_task` field.
-* The task timeout for the workflow should be large enough to hang the program on a task retry.
+* The task timeout for the workflow should be large enough to hang the program on a task retry. A server response with an `eager_workflow_task` alone does not guarantee eager execution because the worker could still refuse to process it. In that exceptional case the task would be retried through the non-eager path, and may succeed. A large timeout effectively disables retries, ensuring success always comes from the eager path.
 * The simple workflow should return `"Hello World"` and exit without errors.

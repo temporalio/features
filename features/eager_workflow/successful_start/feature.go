@@ -53,6 +53,12 @@ func CheckResult(ctx context.Context, runner *harness.Runner, run client.Workflo
 
 func EagerDetector(cntEager *atomic.Uint64) grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, response interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+		request_eager := false
+		switch o := req.(type) {
+		case *workflowservice.StartWorkflowExecutionRequest:
+			request_eager = o.RequestEagerExecution
+		}
+
 		err := invoker(ctx, method, req, response, cc, opts...)
 		if err != nil {
 			return err
@@ -60,7 +66,7 @@ func EagerDetector(cntEager *atomic.Uint64) grpc.UnaryClientInterceptor {
 
 		switch o := response.(type) {
 		case *workflowservice.StartWorkflowExecutionResponse:
-			if o.GetEagerWorkflowTask() != nil {
+			if request_eager && o.GetEagerWorkflowTask() != nil {
 				cntEager.Add(1)
 			}
 		}

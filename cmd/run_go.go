@@ -19,7 +19,7 @@ func (p *Preparer) BuildGoProgram(ctx context.Context) (sdkbuild.Program, error)
 		Version: p.config.Version,
 		GoModContents: `module go.temporal.io/features-test
 
-go 1.17
+go 1.20
 
 require github.com/temporalio/features/features v1.0.0
 require github.com/temporalio/features/harness/go v1.0.0

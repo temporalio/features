@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"go.temporal.io/api/enums/v1"
 	"go.temporal.io/api/filter/v1"
 	"go.temporal.io/api/history/v1"
@@ -98,7 +100,7 @@ func (f *Fetcher) GetExecutions(ctx context.Context) ([]*workflow.WorkflowExecut
 			Namespace:       f.Namespace,
 			MaximumPageSize: 1000,
 			NextPageToken:   nextPageToken,
-			StartTimeFilter: &filter.StartTimeFilter{EarliestTime: &earliest},
+			StartTimeFilter: &filter.StartTimeFilter{EarliestTime: timestamppb.New(earliest)},
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed listing workflows: %w", err)
@@ -119,7 +121,7 @@ func (f *Fetcher) GetExecutions(ctx context.Context) ([]*workflow.WorkflowExecut
 			Namespace:       f.Namespace,
 			MaximumPageSize: 1000,
 			NextPageToken:   nextPageToken,
-			StartTimeFilter: &filter.StartTimeFilter{EarliestTime: &earliest},
+			StartTimeFilter: &filter.StartTimeFilter{EarliestTime: timestamppb.New(earliest)},
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed listing workflows: %w", err)

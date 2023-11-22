@@ -1,18 +1,19 @@
 package history
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"reflect"
 	"sort"
 
-	"github.com/gogo/protobuf/jsonpb"
-	"github.com/gogo/protobuf/proto"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
+
 	"go.temporal.io/api/common/v1"
 	"go.temporal.io/api/failure/v1"
 	"go.temporal.io/api/history/v1"
 	"go.temporal.io/api/taskqueue/v1"
+	"go.temporal.io/api/temporalproto"
 )
 
 // Histories is a collection of histories.
@@ -51,9 +52,12 @@ func (h *Histories) UnmarshalJSON(b []byte) error {
 		return err
 	}
 	hists := make([]*history.History, len(halfUnmarshaled))
+	opts := temporalproto.JSONUnmarshaller{
+		DiscardUnknown: true,
+	}
 	for i, histJSON := range halfUnmarshaled {
 		var hist history.History
-		if err := jsonpb.Unmarshal(bytes.NewReader(histJSON), &hist); err != nil {
+		if err := opts.Unmarshal(histJSON, &hist); err != nil {
 			return err
 		}
 		hists[i] = &hist
@@ -61,8 +65,6 @@ func (h *Histories) UnmarshalJSON(b []byte) error {
 	*h = hists
 	return nil
 }
-
-var historyMarshaler jsonpb.Marshaler
 
 // MarshalJSON converts the histories to JSON.
 func (h Histories) MarshalJSON() ([]byte, error) {
@@ -84,7 +86,7 @@ func (h Histories) MarshalJSON() ([]byte, error) {
 	// Marshal each history, then marshal the whole thing
 	halfMarshaled := make([]json.RawMessage, len(sorted))
 	for i, history := range sorted {
-		s, err := historyMarshaler.MarshalToString(history)
+		s, err := protojson.Marshal(history)
 		if err != nil {
 			return nil, fmt.Errorf("failed marshaling history: %w", err)
 		}

@@ -7,13 +7,14 @@ import (
 	"path"
 	"time"
 
-	"github.com/gogo/protobuf/jsonpb"
 	"github.com/temporalio/features/harness/go/harness"
 	"go.temporal.io/api/common/v1"
 	historyProto "go.temporal.io/api/history/v1"
+	"go.temporal.io/api/temporalproto"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
+	"google.golang.org/protobuf/proto"
 )
 
 var Feature = harness.Feature{
@@ -71,11 +72,10 @@ func CheckResult(ctx context.Context, runner *harness.Runner, run client.Workflo
 	}
 
 	expectedPayload := &common.Payload{}
-	unmarshaler := jsonpb.Unmarshaler{}
-	err = unmarshaler.Unmarshal(file, expectedPayload)
-	if err != nil {
+	decoder := temporalproto.NewJSONDecoder(file, false)
+	if err := decoder.Decode(expectedPayload); err != nil {
 		return err
 	}
-	runner.Require.Equal(expectedPayload, payload)
+	runner.Require.True(proto.Equal(expectedPayload, payload))
 	return nil
 }

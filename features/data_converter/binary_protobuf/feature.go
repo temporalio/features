@@ -3,7 +3,8 @@ package binary_protobuf
 import (
 	"context"
 
-	"github.com/gogo/protobuf/proto"
+	"google.golang.org/protobuf/proto"
+
 	"github.com/temporalio/features/harness/go/harness"
 	commonpb "go.temporal.io/api/common/v1"
 	"go.temporal.io/sdk/client"
@@ -24,22 +25,22 @@ var Feature = harness.Feature{
 		),
 	},
 	// ExecuteDefault does not support workflow arguments
-	Execute: harness.ExecuteWithArgs(Workflow, expectedResult),
+	Execute: harness.ExecuteWithArgs(Workflow, &expectedResult),
 }
 
 // An "echo" workflow
-func Workflow(ctx workflow.Context, res commonpb.DataBlob) (commonpb.DataBlob, error) {
+func Workflow(ctx workflow.Context, res *commonpb.DataBlob) (*commonpb.DataBlob, error) {
 	return res, nil
 }
 
 func CheckResult(ctx context.Context, runner *harness.Runner, run client.WorkflowRun) error {
 	// verify client result is DataBlob `0xdeadbeef`
-	result := commonpb.DataBlob{}
-	if err := run.Get(ctx, &result); err != nil {
+	result := &commonpb.DataBlob{}
+	if err := run.Get(ctx, result); err != nil {
 		return err
 	}
 
-	runner.Require.True(proto.Equal(&expectedResult, &result))
+	runner.Require.True(proto.Equal(&expectedResult, result))
 
 	payload, err := harness.GetWorkflowResultPayload(ctx, runner.Client, run.GetID())
 	if err != nil {
@@ -57,7 +58,7 @@ func CheckResult(ctx context.Context, runner *harness.Runner, run client.Workflo
 		return err
 	}
 
-	runner.Require.True(proto.Equal(&result, &resultInHistory))
+	runner.Require.True(proto.Equal(result, &resultInHistory))
 
 	payloadArg, err := harness.GetWorkflowArgumentPayload(ctx, runner.Client, run.GetID())
 	if err != nil {

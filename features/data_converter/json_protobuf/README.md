@@ -10,7 +10,7 @@ with binary value `0xdeadbeef`
 - verify client result is [`DataBlob`] with value `0xdeadbeef`
 - get result payload of WorkflowExecutionCompleted event from workflow history
 - verify payload encoding is `json/protobuf`, unmarshall its data into a
-`DataBlob` using `jsonpb` library, and compare it to the client
+`DataBlob` using `protojson` library, and compare it to the client
 result
 - get argument payload of WorkflowExecutionStarted event from workflow history
 - verify that argument and result payloads are the same

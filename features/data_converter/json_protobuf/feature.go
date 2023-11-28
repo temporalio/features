@@ -47,7 +47,8 @@ func CheckResult(ctx context.Context, runner *harness.Runner, run client.Workflo
 	runner.Require.Equal("temporal.api.common.v1.DataBlob", messageType)
 
 	resultInHistory := commonpb.DataBlob{}
-	if err := temporalproto.UnmarshalJSON(payload.GetData(), &resultInHistory); err != nil {
+	var opts temporalproto.CustomJSONUnmarshalOptions
+	if err := opts.Unmarshal(payload.GetData(), &resultInHistory); err != nil {
 		return err
 	}
 

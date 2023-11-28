@@ -6,9 +6,9 @@ require (
 	github.com/google/uuid v1.3.1
 	github.com/temporalio/features/harness/go v1.0.0
 	github.com/uber-go/tally/v4 v4.1.1
-	go.temporal.io/api v1.26.1-0.20231121220434-5a4d95cc60c0
-	go.temporal.io/sdk v1.25.2-0.20231121222453-f9d73bfdf7c8
-	go.temporal.io/sdk/contrib/tally v0.1.0
+	go.temporal.io/api v1.26.1-0.20231128184747-3be2272d0651
+	go.temporal.io/sdk v1.25.2-0.20231128192636-8f2a3c8f967a
+	go.temporal.io/sdk/contrib/tally v0.2.1-0.20231128192636-8f2a3c8f967a
 	golang.org/x/mod v0.11.0
 	google.golang.org/grpc v1.59.0
 	google.golang.org/protobuf v1.31.0
@@ -31,13 +31,13 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
 	go.uber.org/zap v1.19.1 // indirect
-	golang.org/x/net v0.18.0 // indirect
-	golang.org/x/sys v0.14.0 // indirect
+	golang.org/x/net v0.19.0 // indirect
+	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
-	google.golang.org/genproto v0.0.0-20231120223509-83a465c0220f // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20231120223509-83a465c0220f // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20231120223509-83a465c0220f // indirect
+	google.golang.org/genproto v0.0.0-20231127180814-3a041ad873d4 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20231127180814-3a041ad873d4 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20231127180814-3a041ad873d4 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 

@@ -52,7 +52,7 @@ func (h *Histories) UnmarshalJSON(b []byte) error {
 		return err
 	}
 	hists := make([]*history.History, len(halfUnmarshaled))
-	opts := temporalproto.JSONUnmarshaller{
+	opts := temporalproto.CustomJSONUnmarshalOptions{
 		DiscardUnknown: true,
 	}
 	for i, histJSON := range halfUnmarshaled {

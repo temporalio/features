@@ -3,6 +3,7 @@ module github.com/temporalio/features/features
 go 1.20
 
 require (
+	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.3.1
 	github.com/temporalio/features/harness/go v1.0.0
 	github.com/uber-go/tally/v4 v4.1.1

@@ -7,9 +7,6 @@ import (
 	"path"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
-	"google.golang.org/protobuf/testing/protocmp"
-
 	"github.com/temporalio/features/harness/go/harness"
 	"go.temporal.io/api/common/v1"
 	historyProto "go.temporal.io/api/history/v1"
@@ -17,6 +14,7 @@ import (
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
+	"google.golang.org/protobuf/proto"
 )
 
 var Feature = harness.Feature{
@@ -78,8 +76,6 @@ func CheckResult(ctx context.Context, runner *harness.Runner, run client.Workflo
 	if err := opts.Unmarshal(contents, expectedPayload); err != nil {
 		return err
 	}
-	if diff := cmp.Diff(expectedPayload, payload, protocmp.Transform()); diff != "" {
-		runner.Require.FailNow("Payload mismatch (-want, +got)\n%s", diff)
-	}
+	runner.Require.True(proto.Equal(expectedPayload, payload))
 	return nil
 }

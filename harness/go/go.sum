@@ -85,10 +85,10 @@ github.com/urfave/cli/v2 v2.3.0/go.mod h1:LJmUH05zAU44vOAcrfzZQKsZbVcdbOG8rtL3/X
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.3.5/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=
-go.temporal.io/api v1.26.1-0.20231128184747-3be2272d0651 h1:GvU6ytQ5a9gw/LIWU7VteIRSINhUP7yT/MiyQrrH0Ec=
-go.temporal.io/api v1.26.1-0.20231128184747-3be2272d0651/go.mod h1:Y/rALXTprFO+bvAlAfLFoJj7KpQIcL4GDQVN6fhYIa4=
-go.temporal.io/sdk v1.25.2-0.20231128192636-8f2a3c8f967a h1:pT/fpQh2jPE3z8zF/6dN++w4lO+6cYqWN6NpNPYHOio=
-go.temporal.io/sdk v1.25.2-0.20231128192636-8f2a3c8f967a/go.mod h1:8LAiNJ6VVqiqA1YNdCBZa8mfB6MFYZVzt6+q88HF4P4=
+go.temporal.io/api v1.26.1-0.20231128211006-50b83903b168 h1:zASoEq0WZsCBOzQcuYU60vYvlpMtZh9uTBFB3eJikoU=
+go.temporal.io/api v1.26.1-0.20231128211006-50b83903b168/go.mod h1:Y/rALXTprFO+bvAlAfLFoJj7KpQIcL4GDQVN6fhYIa4=
+go.temporal.io/sdk v1.25.2-0.20231128211157-4afa566c1bc4 h1:RVZD73YuvMqnOBr9wzfvwRBu+Eff2zFrtcgvjJzmnoc=
+go.temporal.io/sdk v1.25.2-0.20231128211157-4afa566c1bc4/go.mod h1:w2IVdcUpFhlZr3UuQxU2C2fYE4owAWDEYAfyVMKDfPY=
 go.uber.org/atomic v1.4.0/go.mod h1:gD2HeocX3+yG+ygLZcrzQJaqmWj9AIm7n08wl/qW/PE=
 go.uber.org/atomic v1.7.0/go.mod h1:fEN4uk6kAWBTFdckzkM89CLk9XfWZrxpCo0nPH17wJc=
 go.uber.org/atomic v1.9.0 h1:ECmE8Bn/WFTYwEW/bpKD3M8VtR/zQVbavAoalC1PYyE=

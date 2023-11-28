@@ -106,7 +106,7 @@ jobs:
     uses: ./.github/workflows/go.yaml
     with:
       # First commit that supports the new temporalproto APIs
-      version: 8f2a3c8f967a5898f45df92f6bc42196e4702a2d
+      version: 4afa566c1bc4af1e4d781d193a86ff6546bff397
       version-is-repo-ref: true
       features-repo-ref: ${{ github.head_ref }}
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
@@ -141,7 +141,7 @@ jobs:
     # TODO: Find some way to automatically upgrade to "latest"
     with:
       do-push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-      go-repo-ref: '8f2a3c8f967a5898f45df92f6bc42196e4702a2d'
+      go-repo-ref: '4afa566c1bc4af1e4d781d193a86ff6546bff397'
       ts-ver: 'v1.5.2'
       java-ver: 'v1.22.0'
       py-ver: 'v1.4.0'

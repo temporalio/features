@@ -105,8 +105,8 @@ jobs:
   feature-tests-go:
     uses: ./.github/workflows/go.yaml
     with:
-      # First commit that supports google/protobuf
-      version: f9d73bfdf7c8d3ec0311306140fbfafa7fb6f9cf
+      # First commit that supports the new temporalproto APIs
+      version: 77626eee301574bc4cfd756dbf0641c61e9e6907
       version-is-repo-ref: true
       features-repo-ref: ${{ github.head_ref }}
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
@@ -141,7 +141,7 @@ jobs:
     # TODO: Find some way to automatically upgrade to "latest"
     with:
       do-push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-      go-repo-ref: 'f9d73bfdf7c8d3ec0311306140fbfafa7fb6f9cf'
+      go-repo-ref: '77626eee301574bc4cfd756dbf0641c61e9e6907'
       ts-ver: 'v1.5.2'
       java-ver: 'v1.22.0'
       py-ver: 'v1.4.0'

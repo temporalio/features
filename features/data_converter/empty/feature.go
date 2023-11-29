@@ -66,14 +66,14 @@ func CheckResult(ctx context.Context, runner *harness.Runner, run client.Workflo
 	payload := attrs.GetInput().GetPayloads()[0]
 
 	// load JSON payload from `./payload.json` and compare it to result payload
-	file, err := os.Open(path.Join(runner.Feature.AbsDir, "payload.json"))
+	contents, err := os.ReadFile(path.Join(runner.Feature.AbsDir, "payload.json"))
 	if err != nil {
 		return err
 	}
 
 	expectedPayload := &common.Payload{}
-	decoder := temporalproto.NewJSONDecoder(file, false)
-	if err := decoder.Decode(expectedPayload); err != nil {
+	var opts temporalproto.CustomJSONUnmarshalOptions
+	if err := opts.Unmarshal(contents, expectedPayload); err != nil {
 		return err
 	}
 	runner.Require.True(proto.Equal(expectedPayload, payload))

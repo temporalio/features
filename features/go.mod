@@ -6,9 +6,9 @@ require (
 	github.com/google/uuid v1.3.1
 	github.com/temporalio/features/harness/go v1.0.0
 	github.com/uber-go/tally/v4 v4.1.1
-	go.temporal.io/api v1.26.1-0.20231128211006-50b83903b168
-	go.temporal.io/sdk v1.25.2-0.20231128211157-4afa566c1bc4
-	go.temporal.io/sdk/contrib/tally v0.2.1-0.20231128211157-4afa566c1bc4
+	go.temporal.io/api v1.26.1
+	go.temporal.io/sdk v1.25.2-0.20231129163633-77626eee3015
+	go.temporal.io/sdk/contrib/tally v0.2.1-0.20231129163633-77626eee3015
 	golang.org/x/mod v0.11.0
 	google.golang.org/grpc v1.59.0
 	google.golang.org/protobuf v1.31.0

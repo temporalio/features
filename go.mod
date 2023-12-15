@@ -4,12 +4,12 @@ go 1.20
 
 require (
 	github.com/google/uuid v1.3.1
-	github.com/otiai10/copy v1.12.0
+	github.com/otiai10/copy v1.14.0
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/temporalio/features/features v1.0.0
 	github.com/temporalio/features/harness/go v1.0.0
 	github.com/urfave/cli/v2 v2.25.7
-	go.temporal.io/sdk v1.25.2-0.20231129163633-77626eee3015
+	go.temporal.io/sdk v1.25.2-0.20231129171107-288a04f72145
 	golang.org/x/mod v0.12.0
 )
 
@@ -31,11 +31,12 @@ require (
 	github.com/uber-go/tally/v4 v4.1.7 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	go.temporal.io/api v1.26.1 // indirect
-	go.temporal.io/sdk/contrib/tally v0.2.1-0.20231129163633-77626eee3015 // indirect
+	go.temporal.io/sdk/contrib/tally v0.2.1-0.20231129171107-288a04f72145 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.25.0 // indirect
 	golang.org/x/net v0.19.0 // indirect
+	golang.org/x/sync v0.3.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.3.0 // indirect

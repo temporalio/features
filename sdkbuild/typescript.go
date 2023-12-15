@@ -27,6 +27,10 @@ type BuildTypeScriptProgramOptions struct {
 	// If present, applied to build commands before run. May be called multiple
 	// times for a single build.
 	ApplyToCommand func(context.Context, *exec.Cmd) error
+	// If present, overrides the default "include" array in tsconfig.json.
+	Includes []string
+	// If present, overrides the default "exclude" array in tsconfig.json.
+	Excludes []string
 }
 
 // TypeScriptProgram is a TypeScript-specific implementation of Program.
@@ -148,6 +152,22 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 		}
 		tsConfigPathStr += "],\n      "
 	}
+	includes := []string{"../features/**/*.ts", "../harness/ts/**/*.ts"}
+	if len(options.Includes) > 0 {
+		includes = options.Includes
+	}
+	excludes := []string{"../node_modules", "../harness/go", "../harness/java"}
+	if len(options.Excludes) > 0 {
+		excludes = options.Excludes
+	}
+	quotedIncludes := make([]string, len(includes))
+	for i, include := range includes {
+		quotedIncludes[i] = strconv.Quote(include)
+	}
+	quotedExcludes := make([]string, len(excludes))
+	for i, exclude := range excludes {
+		quotedExcludes[i] = strconv.Quote(exclude)
+	}
 	tsConfig := `{
   "extends": "@tsconfig/node16/tsconfig.json",
   "version": "4.4.2",
@@ -163,10 +183,13 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
     "module": "commonjs",
     "moduleResolution": "node",
     "sourceMap": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "allowJs": true
   },
-  "include": ["../features/**/*.ts", "../harness/ts/**/*.ts"],
-  "exclude": ["../node_modules", "../harness/go", "../harness/java"],
+  "include": [` + strings.Join(quotedIncludes, ", ") + `],
+  "exclude": [` + strings.Join(quotedExcludes, ", ") + `]
 }`
 	if err := os.WriteFile(filepath.Join(dir, "tsconfig.json"), []byte(tsConfig), 0644); err != nil {
 		return nil, fmt.Errorf("failed writing tsconfig.json: %w", err)

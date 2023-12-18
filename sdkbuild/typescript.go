@@ -31,6 +31,8 @@ type BuildTypeScriptProgramOptions struct {
 	Includes []string
 	// If present, overrides the default "exclude" array in tsconfig.json.
 	Excludes []string
+	// If present, add additional dependencies -> version string to package.json.
+	MoreDependencies map[string]string
 }
 
 // TypeScriptProgram is a TypeScript-specific implementation of Program.
@@ -113,6 +115,11 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 	} else {
 		packageJSONDepStr = `"temporalio": "` + strings.TrimPrefix(options.Version, "v") + "\",\n    "
 	}
+	moreDeps := ""
+	for dep, version := range options.MoreDependencies {
+		moreDeps += fmt.Sprintf(`    "%v": "%v",`, dep, version) + "\n"
+	}
+
 	packageJSON := `{
   "name": "program",
   "private": true,
@@ -121,6 +128,7 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
   },
   "dependencies": {
     ` + packageJSONDepStr + `
+	` + moreDeps + `
     "commander": "^8.3.0",
 	"proto3-json-serializer": "^1.1.1",
     "uuid": "^8.3.2"

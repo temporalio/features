@@ -105,7 +105,7 @@ jobs:
   feature-tests-ts:
     uses: ./.github/workflows/typescript.yaml
     with:
-      version: ${{ github.env.TYPESCRIPT_LATEST }}
+      version: ${{ env.TYPESCRIPT_LATEST }}
       version-is-repo-ref: false
       features-repo-ref: ${{ github.head_ref }}
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
@@ -114,7 +114,7 @@ jobs:
     uses: ./.github/workflows/go.yaml
     with:
       # First commit that supports the new temporalproto APIs
-      version: ${{ github.env.GO_LATEST }}
+      version: ${{ env.GO_LATEST }}
       version-is-repo-ref: true
       features-repo-ref: ${{ github.head_ref }}
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
@@ -122,7 +122,7 @@ jobs:
   feature-tests-python:
     uses: ./.github/workflows/python.yaml
     with:
-      version: ${{ github.env.PYTHON_LATEST }}
+      version: ${{ env.PYTHON_LATEST }}
       version-is-repo-ref: false
       features-repo-ref: ${{ github.head_ref }}
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
@@ -130,7 +130,7 @@ jobs:
   feature-tests-java:
     uses: ./.github/workflows/java.yaml
     with:
-      version: 'v${{ github.env.JAVA_LATEST }}'
+      version: 'v${{ env.JAVA_LATEST }}'
       version-is-repo-ref: false
       features-repo-ref: ${{ github.head_ref }}
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
@@ -138,7 +138,7 @@ jobs:
   feature-tests-dotnet:
     uses: ./.github/workflows/dotnet.yaml
     with:
-      version: ${{ github.env.CSHARP_LATEST }}
+      version: ${{ env.CSHARP_LATEST }}
       version-is-repo-ref: false
       features-repo-ref: ${{ github.head_ref }}
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
@@ -149,8 +149,8 @@ jobs:
     # TODO: Find some way to automatically upgrade to "latest"
     with:
       do-push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-      go-repo-ref: ${{ github.env.GO_LATEST }}
-      ts-ver: 'v${{ github.env.TYPESCRIPT_LATEST }}'
-      java-ver: 'v${{ github.env.JAVA_LATEST }}'
-      py-ver: 'v${{ github.env.PYTHON_LATEST }}'
-      cs-ver: 'v${{ github.env.CSHARP_LATEST }}'
+      go-repo-ref: ${{ env.GO_LATEST }}
+      ts-ver: 'v${{ env.TYPESCRIPT_LATEST }}'
+      java-ver: 'v${{ env.JAVA_LATEST }}'
+      py-ver: 'v${{ env.PYTHON_LATEST }}'
+      cs-ver: 'v${{ env.CSHARP_LATEST }}'

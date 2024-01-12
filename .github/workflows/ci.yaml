@@ -102,6 +102,8 @@ jobs:
       java_latest: '1.22.0'
       python_latest: '1.4.0'
       csharp_latest: '0.1.0-beta2'
+    steps:
+      - run: 'echo noop'
 
   feature-tests-ts:
     needs: latest-sdk-versions

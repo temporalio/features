@@ -26,7 +26,7 @@ export const feature = new Feature({
     await runner.workerRunPromise;
     // Make a query, it will time out
     try {
-      await wfHandle.query(query);
+      await runner.client.withDeadline(new Date(Date.now() + 1000), () => wfHandle.query(query));
     } catch (e) {
       assert.ok(e instanceof ServiceError);
       const reAnyd = e as any;

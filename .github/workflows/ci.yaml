@@ -6,14 +6,6 @@ on: # rebuild any PRs and main branch changes
     branches:
       - main
 
-# Don't add 'v' in front of version numbers
-env:
-  GO_LATEST: '77626eee301574bc4cfd756dbf0641c61e9e6907'
-  TYPESCRIPT_LATEST: '1.9.0'
-  JAVA_LATEST: '1.22.0'
-  PYTHON_LATEST: '1.4.0'
-  CSHARP_LATEST: '0.1.0-beta2'
-
 concurrency:
   group: ${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
@@ -102,55 +94,69 @@ jobs:
       - run: dotnet build
       - run: dotnet test
 
+  latest-sdk-versions:
+    runs-on: 'ubuntu-latest'
+    outputs:
+      go_latest: '77626eee301574bc4cfd756dbf0641c61e9e6907'
+      typescript_latest: '1.9.0'
+      java_latest: '1.22.0'
+      python_latest: '1.4.0'
+      csharp_latest: '0.1.0-beta2'
+
   feature-tests-ts:
+    needs: latest-sdk-versions
     uses: ./.github/workflows/typescript.yaml
     with:
-      version: ${{ env.TYPESCRIPT_LATEST }}
+      version: ${{ needs.latest-sdk-versions.outputs.typescript_latest }}
       version-is-repo-ref: false
       features-repo-ref: ${{ github.head_ref }}
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
 
   feature-tests-go:
+    needs: latest-sdk-versions
     uses: ./.github/workflows/go.yaml
     with:
-      # First commit that supports the new temporalproto APIs
-      version: ${{ env.GO_LATEST }}
+      version: ${{ needs.latest-sdk-versions.outputs.go_latest }}
       version-is-repo-ref: true
       features-repo-ref: ${{ github.head_ref }}
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
 
   feature-tests-python:
+    needs: latest-sdk-versions
     uses: ./.github/workflows/python.yaml
     with:
-      version: ${{ env.PYTHON_LATEST }}
+      version: ${{ needs.latest-sdk-versions.outputs.python_latest }}
       version-is-repo-ref: false
       features-repo-ref: ${{ github.head_ref }}
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
 
   feature-tests-java:
+    needs: latest-sdk-versions
     uses: ./.github/workflows/java.yaml
     with:
-      version: 'v${{ env.JAVA_LATEST }}'
+      version: 'v${{ needs.latest-sdk-versions.outputs.java_latest }}'
       version-is-repo-ref: false
       features-repo-ref: ${{ github.head_ref }}
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
 
   feature-tests-dotnet:
+    needs: latest-sdk-versions
     uses: ./.github/workflows/dotnet.yaml
     with:
-      version: ${{ env.CSHARP_LATEST }}
+      version: ${{ needs.latest-sdk-versions.outputs.csharp_latest }}
       version-is-repo-ref: false
       features-repo-ref: ${{ github.head_ref }}
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
 
   build-docker-images:
+    needs: latest-sdk-versions
     uses: ./.github/workflows/all-docker-images.yaml
     secrets: inherit
     # TODO: Find some way to automatically upgrade to "latest"
     with:
       do-push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-      go-repo-ref: ${{ env.GO_LATEST }}
-      ts-ver: 'v${{ env.TYPESCRIPT_LATEST }}'
-      java-ver: 'v${{ env.JAVA_LATEST }}'
-      py-ver: 'v${{ env.PYTHON_LATEST }}'
-      cs-ver: 'v${{ env.CSHARP_LATEST }}'
+      go-repo-ref: ${{ needs.latest-sdk-versions.outputs.go_latest }}
+      ts-ver: 'v${{ needs.latest-sdk-versions.outputs.typescript_latest }}'
+      java-ver: 'v${{ needs.latest-sdk-versions.outputs.java_latest }}'
+      py-ver: 'v${{ needs.latest-sdk-versions.outputs.python_latest }}'
+      cs-ver: 'v${{ needs.latest-sdk-versions.outputs.csharp_latest }}'

@@ -97,7 +97,7 @@ jobs:
   feature-tests-ts:
     uses: ./.github/workflows/typescript.yaml
     with:
-      version: 1.5.2
+      version: 1.9.0
       version-is-repo-ref: false
       features-repo-ref: ${{ github.head_ref }}
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
@@ -142,7 +142,7 @@ jobs:
     with:
       do-push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
       go-repo-ref: '77626eee301574bc4cfd756dbf0641c61e9e6907'
-      ts-ver: 'v1.5.2'
+      ts-ver: 'v1.9.0'
       java-ver: 'v1.22.0'
       py-ver: 'v1.4.0'
       cs-ver: 'v0.1.0-beta2'

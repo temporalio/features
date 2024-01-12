@@ -113,7 +113,11 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 			packageJSONDepStr += "\n    "
 		}
 	} else {
-		packageJSONDepStr = `"temporalio": "` + strings.TrimPrefix(options.Version, "v") + "\",\n    "
+		version := strings.TrimPrefix(options.Version, "v")
+		pkgs := []string{"activity", "client", "common", "worker", "workflow"}
+		for _, pkg := range pkgs {
+			packageJSONDepStr += fmt.Sprintf(`    "@temporalio/%v": %q,`, pkg, version) + "\n"
+		}
 	}
 	moreDeps := ""
 	for dep, version := range options.MoreDependencies {
@@ -130,7 +134,7 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
     ` + packageJSONDepStr + `
 	` + moreDeps + `
     "commander": "^8.3.0",
-	"proto3-json-serializer": "^1.1.1",
+    "proto3-json-serializer": "^1.1.1",
     "uuid": "^8.3.2"
   },
   "devDependencies": {

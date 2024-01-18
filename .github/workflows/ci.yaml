@@ -11,6 +11,17 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  latest-sdk-versions:
+    runs-on: 'ubuntu-latest'
+    outputs:
+      go_latest: '77626eee301574bc4cfd756dbf0641c61e9e6907'
+      typescript_latest: '1.9.0'
+      java_latest: '1.22.0'
+      python_latest: '1.4.0'
+      csharp_latest: '0.1.0-beta2'
+    steps:
+      - run: 'echo noop'
+
   # Build cli and harnesses
   build-go:
     strategy:
@@ -95,54 +106,59 @@ jobs:
       - run: dotnet test
 
   feature-tests-ts:
+    needs: latest-sdk-versions
     uses: ./.github/workflows/typescript.yaml
     with:
-      version: 1.9.0
+      version: ${{ needs.latest-sdk-versions.outputs.typescript_latest }}
       version-is-repo-ref: false
       features-repo-ref: ${{ github.head_ref }}
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
 
   feature-tests-go:
+    needs: latest-sdk-versions
     uses: ./.github/workflows/go.yaml
     with:
-      # First commit that supports the new temporalproto APIs
-      version: 77626eee301574bc4cfd756dbf0641c61e9e6907
+      version: ${{ needs.latest-sdk-versions.outputs.go_latest }}
       version-is-repo-ref: true
       features-repo-ref: ${{ github.head_ref }}
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
 
   feature-tests-python:
+    needs: latest-sdk-versions
     uses: ./.github/workflows/python.yaml
     with:
-      version: 1.4.0
+      version: ${{ needs.latest-sdk-versions.outputs.python_latest }}
       version-is-repo-ref: false
       features-repo-ref: ${{ github.head_ref }}
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
 
   feature-tests-java:
+    needs: latest-sdk-versions
     uses: ./.github/workflows/java.yaml
     with:
-      version: v1.21.1
+      version: 'v${{ needs.latest-sdk-versions.outputs.java_latest }}'
       version-is-repo-ref: false
       features-repo-ref: ${{ github.head_ref }}
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
 
   feature-tests-dotnet:
+    needs: latest-sdk-versions
     uses: ./.github/workflows/dotnet.yaml
     with:
-      version: 0.1.0-beta2
+      version: ${{ needs.latest-sdk-versions.outputs.csharp_latest }}
       version-is-repo-ref: false
       features-repo-ref: ${{ github.head_ref }}
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
 
   build-docker-images:
+    needs: latest-sdk-versions
     uses: ./.github/workflows/all-docker-images.yaml
     secrets: inherit
     # TODO: Find some way to automatically upgrade to "latest"
     with:
       do-push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-      go-repo-ref: '77626eee301574bc4cfd756dbf0641c61e9e6907'
-      ts-ver: 'v1.9.0'
-      java-ver: 'v1.22.0'
-      py-ver: 'v1.4.0'
-      cs-ver: 'v0.1.0-beta2'
+      go-repo-ref: ${{ needs.latest-sdk-versions.outputs.go_latest }}
+      ts-ver: 'v${{ needs.latest-sdk-versions.outputs.typescript_latest }}'
+      java-ver: 'v${{ needs.latest-sdk-versions.outputs.java_latest }}'
+      py-ver: 'v${{ needs.latest-sdk-versions.outputs.python_latest }}'
+      cs-ver: 'v${{ needs.latest-sdk-versions.outputs.csharp_latest }}'

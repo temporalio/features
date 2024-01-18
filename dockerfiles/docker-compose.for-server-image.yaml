@@ -10,6 +10,8 @@ services:
       - ENABLE_ES=true
       - ES_SEEDS=elasticsearch
       - ES_VERSION=v7
+    volumes:
+      - ./dynamicconfig:/etc/temporal/config/dynamicconfig
     ports:
       - '7233:7233'
     depends_on:

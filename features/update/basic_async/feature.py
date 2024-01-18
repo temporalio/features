@@ -33,8 +33,7 @@ class Workflow:
             raise ValueError("Invalid Update argument")
 
 
-async def checker(runner: Runner, handle: WorkflowHandle):
-    await runner.skip_if_update_unsupported()
+async def checker(_: Runner, handle: WorkflowHandle):
     bad_update_handle = await handle.start_update(Workflow.my_update, "bad-update-arg")
     try:
         await bad_update_handle.result()

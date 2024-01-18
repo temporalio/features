@@ -13,7 +13,7 @@ const myUpdate = wf.defineUpdate<string, [string]>('myUpdate');
 export async function workflow(): Promise<string> {
   let state = '';
   const validator = (arg: string) => {
-    if (arg == 'invalid-arg') {
+    if (arg === 'invalid-arg') {
       throw new Error('Invalid Update argument');
     }
   };

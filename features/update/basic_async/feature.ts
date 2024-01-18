@@ -17,7 +17,7 @@ export async function workflow(): Promise<string> {
     return 'update-result';
   };
   const validator = (arg: string) => {
-    if (arg == 'invalid-arg') {
+    if (arg === 'invalid-arg') {
       throw new Error('Invalid Update argument');
     }
   };

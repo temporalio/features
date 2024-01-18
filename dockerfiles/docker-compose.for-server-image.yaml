@@ -15,8 +15,6 @@ services:
     depends_on:
       - cassandra
       - elasticsearch
-    volumes:
-      - ./dynamicconfig:/etc/temporal/config/dynamicconfig
     networks:
       - temporal-dev-network
 

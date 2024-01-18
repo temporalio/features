@@ -3,51 +3,44 @@ import { Feature } from '@temporalio/harness';
 import * as wf from '@temporalio/workflow';
 import * as assert from 'assert';
 
-const WORKFLOW_INITIAL_STATE = '';
-const UPDATE_ARG = 'update-arg';
-const BAD_UPDATE_ARG = 'reject-me';
-const UPDATE_RESULT = 'update-result';
-const UPDATE_RESULT_NOT_YET_RECEIVED = 'update-result-not-yet-received';
-
 const myUpdate = wf.defineUpdate<string, [string]>('myUpdate');
 
 /**
- * A workflow with a signal and signal validator. If accepted, the signal makes
- * a change to workflow state. The workflow does not terminate until such a
- * change occurs.
+ * A workflow with an update and an update validator. If accepted, the update
+ * makes a change to workflow state. The workflow does not terminate until such
+ * a change occurs.
  */
 export async function workflow(): Promise<string> {
-  let state = WORKFLOW_INITIAL_STATE;
-  const handler = async (arg: string) => {
-    state = arg;
-    return UPDATE_RESULT;
-  };
+  let state = '';
   const validator = (arg: string) => {
-    if (arg == BAD_UPDATE_ARG) {
+    if (arg == 'invalid-arg') {
       throw new Error('Invalid Update argument');
     }
   };
+  const handler = async (arg: string) => {
+    state = arg;
+    return 'update-result';
+  };
   wf.setHandler(myUpdate, handler, { validator });
-  await wf.condition(() => state != WORKFLOW_INITIAL_STATE);
+  await wf.condition(() => state != '');
   return state;
 }
 
 export const feature = new Feature({
   workflow,
   checkResult: async (runner, handle) => {
-    let badUpdateResult = UPDATE_RESULT_NOT_YET_RECEIVED;
     try {
-      badUpdateResult = await handle.executeUpdate(myUpdate, { args: [BAD_UPDATE_ARG] });
+      await handle.executeUpdate(myUpdate, { args: ['invalid-arg'] });
+      throw 'Expected update to fail';
     } catch (err) {
       if (!(err instanceof WorkflowUpdateFailedError)) {
         throw err;
       }
     }
-    assert.equal(badUpdateResult, UPDATE_RESULT_NOT_YET_RECEIVED);
 
-    const updateResult = await handle.executeUpdate(myUpdate, { args: [UPDATE_ARG] });
-    assert.equal(updateResult, UPDATE_RESULT);
+    const updateResult = await handle.executeUpdate(myUpdate, { args: ['update-arg'] });
+    assert.equal(updateResult, 'update-result');
     const workflowResult = await runner.waitForRunResult(handle);
-    assert.equal(workflowResult, UPDATE_ARG);
+    assert.equal(workflowResult, 'update-arg');
   },
 });

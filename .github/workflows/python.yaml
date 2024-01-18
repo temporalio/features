@@ -95,8 +95,8 @@ jobs:
         if: inputs.docker-image-artifact-name
         run: |
           docker-compose \
-            -f /tmp/server-docker/docker-compose.yml \
             -f ./dockerfiles/docker-compose.for-server-image.yaml \
+            -f /tmp/server-docker/docker-compose.yml \
             up -d temporal-server cassandra elasticsearch
 
       - name: Run SDK-features tests directly
@@ -108,10 +108,10 @@ jobs:
         if: inputs.docker-image-artifact-name
         run: |
           docker-compose \
-            -f /tmp/server-docker/docker-compose.yml \
             -f ./dockerfiles/docker-compose.for-server-image.yaml \
+            -f /tmp/server-docker/docker-compose.yml \
             up --no-log-prefix --exit-code-from features-tests-py features-tests-py
 
       - name: Tear down docker compose
         if: inputs.docker-image-artifact-name && (success() || failure())
-        run: docker-compose -f /tmp/server-docker/docker-compose.yml -f ./dockerfiles/docker-compose.for-server-image.yaml down -v
+        run: docker-compose -f ./dockerfiles/docker-compose.for-server-image.yaml -f /tmp/server-docker/docker-compose.yml down -v

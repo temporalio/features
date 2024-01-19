@@ -11,7 +11,6 @@ import io.temporal.workflow.SignalMethod;
 import io.temporal.workflow.UpdateMethod;
 import io.temporal.workflow.UpdateValidatorMethod;
 import io.temporal.workflow.Workflow;
-
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Assertions;
@@ -81,7 +80,8 @@ public interface feature extends Feature, SimpleWorkflow {
         Assertions.assertEquals(
             "message='simulated 3', type='Failure', nonRetryable=false", e.getCause().getMessage());
       } catch (RuntimeException e) {
-        // TODO(https://github.com/temporalio/sdk-java/issues/1973) The SDK should be unwrapping the ExecutionException.
+        // TODO(https://github.com/temporalio/sdk-java/issues/1973) The SDK should be unwrapping the
+        // ExecutionException.
         Assertions.assertTrue(e.getCause() instanceof ExecutionException);
         ExecutionException ee = (ExecutionException) e.getCause();
         Assertions.assertTrue(ee.getCause() instanceof WorkflowUpdateException);
@@ -89,7 +89,8 @@ public interface feature extends Feature, SimpleWorkflow {
         Assertions.assertTrue(wue.getCause() instanceof ApplicationFailure);
         Assertions.assertEquals("Failure", ((ApplicationFailure) wue.getCause()).getType());
         Assertions.assertEquals(
-            "message='simulated 3', type='Failure', nonRetryable=false", wue.getCause().getMessage());
+            "message='simulated 3', type='Failure', nonRetryable=false",
+            wue.getCause().getMessage());
       }
 
       // Check an update handle validator will fail on any exception

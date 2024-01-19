@@ -1,7 +1,6 @@
-import asyncio
 from datetime import timedelta
 
-from temporalio import activity, workflow
+from temporalio import workflow
 from temporalio.client import WorkflowHandle, WorkflowUpdateFailedError
 from temporalio.exceptions import ApplicationError
 from temporalio.worker import UnsandboxedWorkflowRunner, WorkerConfig
@@ -50,13 +49,13 @@ async def check_result(runner: Runner, handle: WorkflowHandle) -> None:
     try:
         await handle.execute_update(Workflow.do_update)
         raise RuntimeError("Should throw")
-    except WorkflowUpdateFailedError as err:
+    except WorkflowUpdateFailedError:
         pass
 
     try:
         await handle.execute_update(Workflow.throw_or_done, True)
         raise RuntimeError("Should throw")
-    except WorkflowUpdateFailedError as err:
+    except WorkflowUpdateFailedError:
         pass
 
     await handle.execute_update(Workflow.throw_or_done, False)

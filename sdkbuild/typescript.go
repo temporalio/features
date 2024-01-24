@@ -134,6 +134,7 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
     ` + packageJSONDepStr + `
 	` + moreDeps + `
     "commander": "^8.3.0",
+    "ms": "^3.0.0-canary.1",
     "proto3-json-serializer": "^1.1.1",
     "uuid": "^8.3.2"
   },

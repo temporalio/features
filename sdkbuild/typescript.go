@@ -134,11 +134,13 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
     ` + packageJSONDepStr + `
 	` + moreDeps + `
     "commander": "^8.3.0",
+    "ms": "^2.1.3",
     "proto3-json-serializer": "^1.1.1",
     "uuid": "^8.3.2"
   },
   "devDependencies": {
     "@tsconfig/node16": "^1.0.0",
+    "@types/ms": "^0.7.34",
     "@types/node": "^16.11.59",
     "@types/uuid": "^8.3.4",
     "tsconfig-paths": "^3.12.0",

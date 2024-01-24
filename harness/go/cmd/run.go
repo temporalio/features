@@ -169,6 +169,7 @@ func (r *Runner) Run(ctx context.Context, run *Run) error {
 	}
 	defer summary.Close()
 	var failureCount int
+	failureSummary := ""
 	allFeatures := harness.RegisteredFeatures()
 	for _, runFeature := range run.Features {
 		// Find the feature
@@ -224,6 +225,7 @@ func (r *Runner) Run(ctx context.Context, run *Run) error {
 				sumEntry.Message = err.Error()
 				failureCount++
 				r.log.Error("Feature failed", "Feature", feature.Dir, "error", err)
+				failureSummary += fmt.Sprintf("Feature %v failed: %v\n", feature.Dir, err)
 			}
 			return nil
 		}()
@@ -232,7 +234,7 @@ func (r *Runner) Run(ctx context.Context, run *Run) error {
 		}
 	}
 	if failureCount > 0 {
-		return fmt.Errorf("%v failure(s) reported", failureCount)
+		return fmt.Errorf("%v failure(s) reported:\n%s", failureCount, failureSummary)
 	}
 	r.log.Info("All features passed")
 	return nil

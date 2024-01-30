@@ -11,28 +11,33 @@ using Temporalio.Workflows;
 public class Runner
 {
     private bool? maybeUpdateSupported;
+    private ITemporalClient? client;
 
     internal Runner(
-        ITemporalClient client,
+        TemporalClientConnectOptions clientConnectOptions,
         string taskQueue,
         PreparedFeature feature,
         ILoggerFactory loggerFactory)
     {
-        Client = client;
         PreparedFeature = feature;
-        Feature = (IFeature)Activator.CreateInstance(PreparedFeature.FeatureType, true)!;
         Logger = loggerFactory.CreateLogger(PreparedFeature.FeatureType);
+        Feature = (IFeature)Activator.CreateInstance(PreparedFeature.FeatureType, true)!;
+
+        ClientOptions = clientConnectOptions;
+        Feature.ConfigureClient(this, clientConnectOptions);
         WorkerOptions = new(taskQueue) { LoggerFactory = loggerFactory };
         Feature.ConfigureWorker(this, WorkerOptions);
     }
 
-    public ITemporalClient Client { get; private init; }
+    public ITemporalClient Client => client!;
 
     public IFeature Feature { get; private init; }
 
     public ILogger Logger { get; private init; }
 
     public PreparedFeature PreparedFeature { get; private init; }
+
+    public TemporalClientConnectOptions ClientOptions { get; private init; }
 
     public TemporalWorkerOptions WorkerOptions { get; private init; }
 
@@ -45,6 +50,7 @@ public class Runner
     {
         // Run inside worker
         Logger.LogInformation("Executing feature {Feature}", PreparedFeature.Dir);
+        client = await TemporalClient.ConnectAsync(ClientOptions);
         using var worker = new TemporalWorker(Client, WorkerOptions);
         await worker.ExecuteAsync(async () =>
         {

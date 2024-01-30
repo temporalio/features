@@ -11,11 +11,13 @@ public static class App
 {
     private static readonly Option<string> serverOption = new(
         name: "--server",
-        description: "The host:port of the server") { IsRequired = true };
+        description: "The host:port of the server")
+    { IsRequired = true };
 
     private static readonly Option<string> namespaceOption = new(
         name: "--namespace",
-        description: "The namespace to use") { IsRequired = true };
+        description: "The namespace to use")
+    { IsRequired = true };
 
     private static readonly Option<FileInfo?> clientCertPathOption = new(
         name: "--client-cert-path",
@@ -34,9 +36,11 @@ public static class App
             {
                 throw new ArgumentException("Feature must be dir + ':' + task queue");
             }
+
             return (pieces[0], pieces[1]);
         }).ToList(),
-        description: "Features as dir + ':' + task queue") { Arity = ArgumentArity.OneOrMore };
+        description: "Features as dir + ':' + task queue")
+    { Arity = ArgumentArity.OneOrMore };
 
     /// <summary>
     /// Run this harness with the given args.
@@ -60,50 +64,60 @@ public static class App
     private static async Task RunCommandAsync(InvocationContext ctx)
     {
         // Create logger factory
-        using var loggerFactory = LoggerFactory.Create(builder => builder.AddSimpleConsole(options =>
-        {
-            options.IncludeScopes = true;
-            options.SingleLine = true;
-            options.TimestampFormat = "HH:mm:ss ";
-        }));
+        using var loggerFactory = LoggerFactory.Create(builder => builder.AddSimpleConsole(
+            options =>
+            {
+                options.IncludeScopes = true;
+                options.SingleLine = true;
+                options.TimestampFormat = "HH:mm:ss ";
+            }));
         var logger = loggerFactory.CreateLogger(typeof(App));
 
         // Connect a client
-        var client = await TemporalClient.ConnectAsync(new(ctx.ParseResult.GetValueForOption(serverOption)!)
-        {
-            Namespace = ctx.ParseResult.GetValueForOption(namespaceOption)!,
-            Tls = ctx.ParseResult.GetValueForOption(clientCertPathOption) is not {} certPath ? null : new()
+        var clientOptions =
+            new TemporalClientConnectOptions(ctx.ParseResult.GetValueForOption(serverOption)!)
             {
-                ClientCert = File.ReadAllBytes(certPath.FullName),
-                ClientPrivateKey = File.ReadAllBytes(ctx.ParseResult.GetValueForOption(clientKeyPathOption)?.FullName ??
-                    throw new ArgumentException("Missing key with cert")),
-            },
-        });
+                Namespace = ctx.ParseResult.GetValueForOption(namespaceOption)!,
+                Tls = ctx.ParseResult.GetValueForOption(clientCertPathOption) is not { } certPath
+                    ? null
+                    : new()
+                    {
+                        ClientCert = File.ReadAllBytes(certPath.FullName),
+                        ClientPrivateKey = File.ReadAllBytes(
+                            ctx.ParseResult.GetValueForOption(clientKeyPathOption)?.FullName ??
+                            throw new ArgumentException("Missing key with cert"))
+                    }
+            };
 
         // Go over each feature, calling the runner for it
         var failureCount = 0;
         foreach (var (dir, taskQueue) in ctx.ParseResult.GetValueForArgument(featuresArgument))
         {
-            var feature = PreparedFeature.AllFeatures.SingleOrDefault(feature => feature.Dir == dir) ??
+            var feature =
+                PreparedFeature.AllFeatures.SingleOrDefault(feature => feature.Dir == dir) ??
                 throw new InvalidOperationException($"Unable to find feature for dir {dir}");
             try
             {
-                await new Runner(client, taskQueue, feature, loggerFactory).RunAsync(ctx.GetCancellationToken());
+                await new Runner(clientOptions, taskQueue, feature, loggerFactory).RunAsync(
+                    ctx.GetCancellationToken());
             }
             catch (TestSkippedException e)
             {
-                logger.LogInformation("Feature {Feature} skipped: {Reason}", feature.Dir, e.Message);
+                logger.LogInformation("Feature {Feature} skipped: {Reason}", feature.Dir,
+                    e.Message);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 logger.LogError(e, "Feature {Feature} failed", feature.Dir);
                 failureCount++;
             }
         }
+
         if (failureCount > 0)
         {
             throw new InvalidOperationException($"{failureCount} feature(s) failed");
         }
+
         logger.LogInformation("All features passed");
     }
 }

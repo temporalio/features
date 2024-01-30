@@ -27,7 +27,7 @@ class Feature : IFeature
                 Enumerable.Range(0, 5).Select(_ =>
                     Workflow.ExecuteActivityAsync(
                         () => MyActivities.MyActivity(),
-                        new() { StartToCloseTimeout = TimeSpan.FromSeconds(5) } ))).
+                        new() { StartToCloseTimeout = TimeSpan.FromSeconds(5) }))).
                 ContinueWith(vals => Enumerable.Sum(vals.Result));
     }
 

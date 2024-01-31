@@ -1,4 +1,4 @@
-namespace update.task_failure;
+namespace update.validation_replay;
 
 using Temporalio.Client;
 using Temporalio.Features.Harness;
@@ -25,27 +25,25 @@ class Feature : IFeature
         [WorkflowUpdate]
         public async Task UpdateMe()
         {
-            if (failCounter < 2)
+            if (failCounter == 0)
             {
                 failCounter++;
                 throw new Exception("I'll fail the task");
             }
 
-            throw new ApplicationFailureException("I'll fail the update");
-        }
-
-        [WorkflowUpdate]
-        public async Task ThrowOrEnd(bool _)
-        {
             shutdown = true;
         }
 
-        [WorkflowUpdateValidator(nameof(ThrowOrEnd))]
-        public void ValidateUpdate(bool doShutdown)
+        [WorkflowUpdateValidator(nameof(UpdateMe))]
+        public void ValidateUpdate()
         {
-            if (!doShutdown)
+            // We will start rejecting things once we've failed the task, and hence are now
+            // replaying. The fact that the workflow completes demonstrates that even though the
+            // validator would "reject" on replay, it doesn't even run, since the update has already
+            // been accepted.
+            if (failCounter > 1)
             {
-                throw new Exception("this will fail validation, not task");
+                throw new Exception("I would reject if I ever ran");
             }
         }
     }
@@ -59,28 +57,11 @@ class Feature : IFeature
         var handle = await runner.Client.StartWorkflowAsync(
             (MyWorkflow wf) => wf.RunAsync(),
             runner.NewWorkflowOptions());
-        try
-        {
-            await handle.ExecuteUpdateAsync(wf => wf.UpdateMe());
-        }
-        catch (WorkflowUpdateFailedException)
-        {
-            // Expected
-        }
 
-        try
-        {
-            await handle.ExecuteUpdateAsync(wf => wf.ThrowOrEnd(false));
-        }
-        catch (WorkflowUpdateFailedException)
-        {
-            // Expected
-        }
-
-        await handle.ExecuteUpdateAsync(wf => wf.ThrowOrEnd(true));
+        await handle.ExecuteUpdateAsync(wf => wf.UpdateMe());
         await handle.GetResultAsync();
 
-        Assert.Equal(2, failCounter);
+        Assert.Equal(1, failCounter);
 
         return handle;
     }

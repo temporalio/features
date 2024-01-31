@@ -11,6 +11,30 @@ public class Runner
 {
     private bool? maybeUpdateSupported;
     private ITemporalClient? client;
+    private WorkerState? workerState;
+    private CancellationToken? runCancelToken;
+
+    class WorkerState
+    {
+        private readonly CancellationTokenSource workerStopper;
+        private readonly Task workerTask;
+
+        public WorkerState(
+            CancellationTokenSource workerStopper,
+            TemporalWorker worker
+        )
+        {
+            this.workerStopper = workerStopper;
+            workerTask = worker.ExecuteAsync(workerStopper.Token);
+        }
+
+        public async Task StopAndWait()
+        {
+            workerStopper.Cancel();
+            await workerTask;
+        }
+    }
+
 
     internal Runner(
         TemporalClientConnectOptions clientConnectOptions,
@@ -46,24 +70,35 @@ public class Runner
     /// <returns></returns>
     public async Task RunAsync(CancellationToken cancellationToken)
     {
-        // Run inside worker
         Logger.LogInformation("Executing feature {Feature}", PreparedFeature.Dir);
+        runCancelToken = cancellationToken;
         client = await TemporalClient.ConnectAsync(ClientOptions);
         Feature.ConfigureWorker(this, WorkerOptions);
-        using var worker = new TemporalWorker(Client, WorkerOptions);
-        await worker.ExecuteAsync(async () =>
-        {
-            var run = await Feature.ExecuteAsync(this);
-            if (run == null)
-            {
-                Logger.LogInformation("Feature {Feature} returned null", PreparedFeature.Dir);
-                return;
-            }
+        StartWorker();
 
-            Logger.LogInformation("Checking result of feature {Feature}", PreparedFeature.Dir);
-            await Feature.CheckResultAsync(this, run);
-            await Feature.CheckHistoryAsync(this, run);
-        }, cancellationToken);
+        var run = await Feature.ExecuteAsync(this);
+        if (run == null)
+        {
+            Logger.LogInformation("Feature {Feature} returned null", PreparedFeature.Dir);
+            return;
+        }
+
+        Logger.LogInformation("Checking result of feature {Feature}", PreparedFeature.Dir);
+        await Feature.CheckResultAsync(this, run);
+        await Feature.CheckHistoryAsync(this, run);
+
+        if (workerState != null)
+        {
+            try
+            {
+                await workerState.StopAndWait();
+            }
+            catch (OperationCanceledException)
+            {
+                // No good option here to not get an exception thrown when waiting on potentially
+                // different worker instances.
+            }
+        }
     }
 
     /// <summary>
@@ -162,6 +197,43 @@ public class Runner
         CheckUpdateSupportCallAsync(() =>
             Client.GetWorkflowHandle("does-not-exist").StartUpdateAsync(
                 "does-not-exist", Array.Empty<object?>()));
+
+    /// <summary>
+    /// Stop the worker.
+    /// </summary>
+    public void StartWorker()
+    {
+        if (workerState != null)
+        {
+            throw new InvalidOperationException("Worker already started");
+        }
+
+        workerState = new(
+            CancellationTokenSource.CreateLinkedTokenSource(
+                runCancelToken ?? CancellationToken.None),
+            new TemporalWorker(Client, WorkerOptions)
+        );
+    }
+
+
+    /// <summary>
+    /// Stop the worker.
+    /// </summary>
+    public async Task StopWorker()
+    {
+        if (workerState != null)
+        {
+            try
+            {
+                await workerState.StopAndWait();
+            }
+            catch (OperationCanceledException)
+            {
+            }
+
+            workerState = null;
+        }
+    }
 
     private async Task<bool> CheckUpdateSupportCallAsync(Func<Task> failingFunc)
     {

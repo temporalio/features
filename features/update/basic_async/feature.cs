@@ -1,7 +1,6 @@
-using Temporalio.Exceptions;
-
 namespace update.basic_async;
 
+using Temporalio.Exceptions;
 using Temporalio.Client;
 using Temporalio.Features.Harness;
 using Temporalio.Worker;
@@ -50,6 +49,7 @@ class Feature : IFeature
         try
         {
             await badUpdateHandle.GetResultAsync();
+            throw new Exception("Expected to fail");
         }
         catch (WorkflowUpdateFailedException)
         {

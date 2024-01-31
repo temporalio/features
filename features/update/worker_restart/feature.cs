@@ -37,7 +37,6 @@ class Feature : IFeature
         [Activity]
         public async Task MyActivity()
         {
-            Console.WriteLine("Activity started");
             activityStarted.Release();
             await finishActivity.WaitAsync(ActivityExecutionContext.Current.CancellationToken);
         }
@@ -57,7 +56,6 @@ class Feature : IFeature
 
         await activityStarted.WaitAsync();
         await runner.StopWorker();
-        runner.Logger.LogWarning("Stopped worker");
         runner.StartWorker();
         finishActivity.Release();
 

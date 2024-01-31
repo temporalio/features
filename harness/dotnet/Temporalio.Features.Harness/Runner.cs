@@ -25,13 +25,21 @@ public class Runner
         )
         {
             this.workerStopper = workerStopper;
-            workerTask = worker.ExecuteAsync(workerStopper.Token);
+            workerTask = Task.Run(async () => await worker.ExecuteAsync(workerStopper.Token));
         }
 
         public async Task StopAndWait()
         {
             workerStopper.Cancel();
-            await workerTask;
+            try
+            {
+                await workerTask;
+            }
+            catch (OperationCanceledException)
+            {
+                // No good option here to not get an exception thrown when waiting on potentially
+                // different worker instances.
+            }
         }
     }
 
@@ -89,15 +97,7 @@ public class Runner
 
         if (workerState != null)
         {
-            try
-            {
-                await workerState.StopAndWait();
-            }
-            catch (OperationCanceledException)
-            {
-                // No good option here to not get an exception thrown when waiting on potentially
-                // different worker instances.
-            }
+            await workerState.StopAndWait();
         }
     }
 
@@ -199,7 +199,7 @@ public class Runner
                 "does-not-exist", Array.Empty<object?>()));
 
     /// <summary>
-    /// Stop the worker.
+    /// Start the worker.
     /// </summary>
     public void StartWorker()
     {
@@ -223,14 +223,7 @@ public class Runner
     {
         if (workerState != null)
         {
-            try
-            {
-                await workerState.StopAndWait();
-            }
-            catch (OperationCanceledException)
-            {
-            }
-
+            await workerState.StopAndWait();
             workerState = null;
         }
     }

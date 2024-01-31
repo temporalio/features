@@ -10,7 +10,6 @@ class Feature : IFeature
     [Workflow]
     class MyWorkflow
     {
-        private int count;
         private bool shutdown;
 
         [WorkflowRun]
@@ -20,12 +19,12 @@ class Feature : IFeature
         public async Task<int> MyUpdate(bool exit)
         {
             shutdown = exit;
-            count++;
-            return count;
+            Count++;
+            return Count;
         }
 
         [WorkflowQuery]
-        public int GetCount() => count;
+        public int Count { get; set; }
     }
 
     public void ConfigureWorker(Runner runner, TemporalWorkerOptions options)
@@ -43,9 +42,9 @@ class Feature : IFeature
 
         var updateId = "myid";
         await handle.ExecuteUpdateAsync(wf => wf.MyUpdate(false), new() {UpdateID = updateId});
-        Assert.Equal(1, await handle.QueryAsync(wf => wf.GetCount()));
+        Assert.Equal(1, await handle.QueryAsync(wf => wf.Count));
         await handle.ExecuteUpdateAsync(wf => wf.MyUpdate(false), new() {UpdateID = updateId});
-        Assert.Equal(1, await handle.QueryAsync(wf => wf.GetCount()));
+        Assert.Equal(1, await handle.QueryAsync(wf => wf.Count));
         await handle.ExecuteUpdateAsync(wf => wf.MyUpdate(true));
 
         return handle;

@@ -47,6 +47,7 @@ class Feature : IFeature
         try
         {
             await handle.ExecuteUpdateAsync(wf => wf.MyUpdate("invalid"));
+            throw new Exception("Expected to fail");
         }
         catch (WorkflowUpdateFailedException)
         {

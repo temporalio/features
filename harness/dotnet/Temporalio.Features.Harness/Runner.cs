@@ -3,7 +3,6 @@ namespace Temporalio.Features.Harness;
 using Temporalio.Client;
 using Temporalio.Exceptions;
 using Temporalio.Worker;
-using Temporalio.Workflows;
 
 /// <summary>
 /// Runner for running features.
@@ -11,28 +10,64 @@ using Temporalio.Workflows;
 public class Runner
 {
     private bool? maybeUpdateSupported;
+    private ITemporalClient? client;
+    private WorkerState? workerState;
+    private CancellationToken? runCancelToken;
+
+    class WorkerState
+    {
+        private readonly CancellationTokenSource workerStopper;
+        private readonly Task workerTask;
+
+        public WorkerState(
+            CancellationTokenSource workerStopper,
+            TemporalWorker worker
+        )
+        {
+            this.workerStopper = workerStopper;
+            workerTask = Task.Run(async () => await worker.ExecuteAsync(workerStopper.Token));
+        }
+
+        public async Task StopAndWait()
+        {
+            workerStopper.Cancel();
+            try
+            {
+                await workerTask;
+            }
+            catch (OperationCanceledException)
+            {
+                // No good option here to not get an exception thrown when waiting on potentially
+                // different worker instances.
+            }
+        }
+    }
+
 
     internal Runner(
-        ITemporalClient client,
+        TemporalClientConnectOptions clientConnectOptions,
         string taskQueue,
         PreparedFeature feature,
         ILoggerFactory loggerFactory)
     {
-        Client = client;
         PreparedFeature = feature;
-        Feature = (IFeature)Activator.CreateInstance(PreparedFeature.FeatureType, true)!;
         Logger = loggerFactory.CreateLogger(PreparedFeature.FeatureType);
+        Feature = (IFeature)Activator.CreateInstance(PreparedFeature.FeatureType, true)!;
+
+        ClientOptions = clientConnectOptions;
+        Feature.ConfigureClient(this, clientConnectOptions);
         WorkerOptions = new(taskQueue) { LoggerFactory = loggerFactory };
-        Feature.ConfigureWorker(this, WorkerOptions);
     }
 
-    public ITemporalClient Client { get; private init; }
+    public ITemporalClient Client => client!;
 
     public IFeature Feature { get; private init; }
 
     public ILogger Logger { get; private init; }
 
     public PreparedFeature PreparedFeature { get; private init; }
+
+    public TemporalClientConnectOptions ClientOptions { get; private init; }
 
     public TemporalWorkerOptions WorkerOptions { get; private init; }
 
@@ -43,21 +78,27 @@ public class Runner
     /// <returns></returns>
     public async Task RunAsync(CancellationToken cancellationToken)
     {
-        // Run inside worker
         Logger.LogInformation("Executing feature {Feature}", PreparedFeature.Dir);
-        using var worker = new TemporalWorker(Client, WorkerOptions);
-        await worker.ExecuteAsync(async () =>
+        runCancelToken = cancellationToken;
+        client = await TemporalClient.ConnectAsync(ClientOptions);
+        Feature.ConfigureWorker(this, WorkerOptions);
+        StartWorker();
+
+        var run = await Feature.ExecuteAsync(this);
+        if (run == null)
         {
-            var run = await Feature.ExecuteAsync(this);
-            if (run == null)
-            {
-                Logger.LogInformation("Feature {Feature} returned null", PreparedFeature.Dir);
-                return;
-            }
-            Logger.LogInformation("Checking result of feature {Feature}", PreparedFeature.Dir);
-            await Feature.CheckResultAsync(this, run);
-            await Feature.CheckHistoryAsync(this, run);
-        }, cancellationToken);
+            Logger.LogInformation("Feature {Feature} returned null", PreparedFeature.Dir);
+            return;
+        }
+
+        Logger.LogInformation("Checking result of feature {Feature}", PreparedFeature.Dir);
+        await Feature.CheckResultAsync(this, run);
+        await Feature.CheckHistoryAsync(this, run);
+
+        if (workerState != null)
+        {
+            await workerState.StopAndWait();
+        }
     }
 
     /// <summary>
@@ -67,8 +108,9 @@ public class Runner
     public Task<WorkflowHandle> StartSingleParameterlessWorkflowAsync()
     {
         var workflow = WorkerOptions.Workflows.SingleOrDefault() ??
-            throw new InvalidOperationException("Must have a single workflow");
-        return Client.StartWorkflowAsync(workflow.Name!, Array.Empty<object?>(), NewWorkflowOptions());
+                       throw new InvalidOperationException("Must have a single workflow");
+        return Client.StartWorkflowAsync(workflow.Name!, Array.Empty<object?>(),
+            NewWorkflowOptions());
     }
 
     public WorkflowOptions NewWorkflowOptions() =>
@@ -96,9 +138,11 @@ public class Runner
         {
             replayerOptions.AddWorkflow(workflow);
         }
+
         try
         {
-            await new WorkflowReplayer(replayerOptions).ReplayWorkflowAsync(await handle.FetchHistoryAsync());
+            await new WorkflowReplayer(replayerOptions).ReplayWorkflowAsync(
+                await handle.FetchHistoryAsync());
         }
         catch (Exception e)
         {
@@ -117,6 +161,7 @@ public class Runner
         {
             return;
         }
+
         throw new TestSkippedException("Update not supported");
     }
 
@@ -140,6 +185,7 @@ public class Runner
         {
             return;
         }
+
         throw new TestSkippedException("Async update not supported");
     }
 
@@ -151,6 +197,36 @@ public class Runner
         CheckUpdateSupportCallAsync(() =>
             Client.GetWorkflowHandle("does-not-exist").StartUpdateAsync(
                 "does-not-exist", Array.Empty<object?>()));
+
+    /// <summary>
+    /// Start the worker.
+    /// </summary>
+    public void StartWorker()
+    {
+        if (workerState != null)
+        {
+            throw new InvalidOperationException("Worker already started");
+        }
+
+        workerState = new(
+            CancellationTokenSource.CreateLinkedTokenSource(
+                runCancelToken ?? CancellationToken.None),
+            new TemporalWorker(Client, WorkerOptions)
+        );
+    }
+
+
+    /// <summary>
+    /// Stop the worker.
+    /// </summary>
+    public async Task StopWorker()
+    {
+        if (workerState != null)
+        {
+            await workerState.StopAndWait();
+            workerState = null;
+        }
+    }
 
     private async Task<bool> CheckUpdateSupportCallAsync(Func<Task> failingFunc)
     {
@@ -176,13 +252,15 @@ public class Runner
                 maybeUpdateSupported = true;
             }
             catch (RpcException e) when (
-                e.Code == RpcException.StatusCode.Unimplemented || e.Code == RpcException.StatusCode.PermissionDenied)
+                e.Code == RpcException.StatusCode.Unimplemented ||
+                e.Code == RpcException.StatusCode.PermissionDenied)
             {
                 // Not implemented or permission denied means not supported,
                 // everything else is an error
                 maybeUpdateSupported = false;
             }
         }
+
         return maybeUpdateSupported.Value;
     }
 }

@@ -9,6 +9,13 @@ using Temporalio.Worker;
 public interface IFeature
 {
     /// <summary>
+    /// Configure any extra client options.
+    /// </summary>
+    /// <param name="runner">Current runner.</param>
+    /// <param name="options">Options to mutate.</param>
+    void ConfigureClient(Runner runner, TemporalClientConnectOptions options) { }
+
+    /// <summary>
     /// Configure the worker options. This is where workflows and activities
     /// should be added.
     /// </summary>

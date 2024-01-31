@@ -1,4 +1,6 @@
-namespace update.basic;
+using Temporalio.Api.Enums.V1;
+
+namespace update.non_durable_reject;
 
 using Temporalio.Exceptions;
 using Temporalio.Client;
@@ -44,16 +46,26 @@ class Feature : IFeature
             (MyWorkflow wf) => wf.RunAsync(),
             runner.NewWorkflowOptions());
 
-        try
+        for (var i = 0; i < 5; i++)
         {
-            await handle.ExecuteUpdateAsync(wf => wf.MyUpdate("invalid"));
-        }
-        catch (WorkflowUpdateFailedException)
-        {
-            // Expected
+            try
+            {
+                await handle.ExecuteUpdateAsync(wf => wf.MyUpdate("invalid"));
+            }
+            catch (WorkflowUpdateFailedException)
+            {
+                // Expected
+            }
         }
 
-        Assert.Equal("hi", await handle.ExecuteUpdateAsync(wf => wf.MyUpdate("valid")));
+        await handle.ExecuteUpdateAsync(wf => wf.MyUpdate("valid"));
+        await handle.GetResultAsync();
+
+        // Verify there are no rejections written to history
+        var history = await handle.FetchHistoryAsync();
+        Assert.DoesNotContain(history.Events,
+            e => e.EventType == EventType.WorkflowExecutionUpdateRejected);
+
         return handle;
     }
 }

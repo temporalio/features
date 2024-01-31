@@ -3,7 +3,6 @@ namespace Temporalio.Features.Harness;
 using Temporalio.Client;
 using Temporalio.Exceptions;
 using Temporalio.Worker;
-using Temporalio.Workflows;
 
 /// <summary>
 /// Runner for running features.
@@ -26,7 +25,6 @@ public class Runner
         ClientOptions = clientConnectOptions;
         Feature.ConfigureClient(this, clientConnectOptions);
         WorkerOptions = new(taskQueue) { LoggerFactory = loggerFactory };
-        Feature.ConfigureWorker(this, WorkerOptions);
     }
 
     public ITemporalClient Client => client!;
@@ -51,6 +49,7 @@ public class Runner
         // Run inside worker
         Logger.LogInformation("Executing feature {Feature}", PreparedFeature.Dir);
         client = await TemporalClient.ConnectAsync(ClientOptions);
+        Feature.ConfigureWorker(this, WorkerOptions);
         using var worker = new TemporalWorker(Client, WorkerOptions);
         await worker.ExecuteAsync(async () =>
         {
@@ -60,6 +59,7 @@ public class Runner
                 Logger.LogInformation("Feature {Feature} returned null", PreparedFeature.Dir);
                 return;
             }
+
             Logger.LogInformation("Checking result of feature {Feature}", PreparedFeature.Dir);
             await Feature.CheckResultAsync(this, run);
             await Feature.CheckHistoryAsync(this, run);
@@ -73,8 +73,9 @@ public class Runner
     public Task<WorkflowHandle> StartSingleParameterlessWorkflowAsync()
     {
         var workflow = WorkerOptions.Workflows.SingleOrDefault() ??
-            throw new InvalidOperationException("Must have a single workflow");
-        return Client.StartWorkflowAsync(workflow.Name!, Array.Empty<object?>(), NewWorkflowOptions());
+                       throw new InvalidOperationException("Must have a single workflow");
+        return Client.StartWorkflowAsync(workflow.Name!, Array.Empty<object?>(),
+            NewWorkflowOptions());
     }
 
     public WorkflowOptions NewWorkflowOptions() =>
@@ -102,9 +103,11 @@ public class Runner
         {
             replayerOptions.AddWorkflow(workflow);
         }
+
         try
         {
-            await new WorkflowReplayer(replayerOptions).ReplayWorkflowAsync(await handle.FetchHistoryAsync());
+            await new WorkflowReplayer(replayerOptions).ReplayWorkflowAsync(
+                await handle.FetchHistoryAsync());
         }
         catch (Exception e)
         {
@@ -123,6 +126,7 @@ public class Runner
         {
             return;
         }
+
         throw new TestSkippedException("Update not supported");
     }
 
@@ -146,6 +150,7 @@ public class Runner
         {
             return;
         }
+
         throw new TestSkippedException("Async update not supported");
     }
 
@@ -182,13 +187,15 @@ public class Runner
                 maybeUpdateSupported = true;
             }
             catch (RpcException e) when (
-                e.Code == RpcException.StatusCode.Unimplemented || e.Code == RpcException.StatusCode.PermissionDenied)
+                e.Code == RpcException.StatusCode.Unimplemented ||
+                e.Code == RpcException.StatusCode.PermissionDenied)
             {
                 // Not implemented or permission denied means not supported,
                 // everything else is an error
                 maybeUpdateSupported = false;
             }
         }
+
         return maybeUpdateSupported.Value;
     }
 }

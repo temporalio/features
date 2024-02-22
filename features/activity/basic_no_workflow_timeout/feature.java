@@ -15,13 +15,17 @@ public interface feature extends Feature, SimpleWorkflow {
   class Impl implements feature {
     @Override
     public void workflow() {
-      // Allow 4 retries with no backoff
       var activities =
           activities(
               feature.class, builder -> builder.setStartToCloseTimeout(Duration.ofMinutes(1)));
 
-      // Execute activity
       activities.echo();
+
+      var activitiesSched2Close =
+          activities(
+              feature.class, builder -> builder.setScheduleToCloseTimeout(Duration.ofMinutes(1)));
+
+      activitiesSched2Close.echo();
     }
 
     @Override

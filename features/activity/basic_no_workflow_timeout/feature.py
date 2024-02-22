@@ -9,6 +9,10 @@ from harness.python.feature import register_feature
 class Workflow:
     @workflow.run
     async def run(self) -> str:
+        await workflow.execute_activity(
+            echo,
+            schedule_to_close_timeout=timedelta(minutes=1),
+        )
         return await workflow.execute_activity(
             echo,
             start_to_close_timeout=timedelta(minutes=1),

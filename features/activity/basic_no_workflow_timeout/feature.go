@@ -18,14 +18,20 @@ var Feature = harness.Feature{
 }
 
 func Workflow(ctx workflow.Context) (string, error) {
-	// Allow 4 retries with no backoff
 	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
 		StartToCloseTimeout: 1 * time.Minute,
 	})
 
-	// Execute activity and return error
 	var result string
 	err := workflow.ExecuteActivity(ctx, Echo).Get(ctx, &result)
+	if err != nil {
+		return "", err
+	}
+
+	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
+		ScheduleToCloseTimeout: 1 * time.Minute,
+	})
+	err = workflow.ExecuteActivity(ctx, Echo).Get(ctx, &result)
 	return result, err
 }
 

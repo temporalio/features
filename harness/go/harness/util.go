@@ -45,13 +45,11 @@ func FindEvent(history client.HistoryEventIterator, cond func(*historypb.History
 // ExecuteWithArgs runs a workflow with default arguments
 func ExecuteWithArgs(workflow interface{}, args ...interface{}) func(ctx context.Context, r *Runner) (client.WorkflowRun, error) {
 	return func(ctx context.Context, r *Runner) (client.WorkflowRun, error) {
-		opts := r.Feature.StartWorkflowOptions
-		if opts.TaskQueue == "" {
-			opts.TaskQueue = r.TaskQueue
+		opts := client.StartWorkflowOptions{
+			TaskQueue:                r.TaskQueue,
+			WorkflowExecutionTimeout: 1 * time.Minute,
 		}
-		if opts.WorkflowExecutionTimeout == 0 {
-			opts.WorkflowExecutionTimeout = 1 * time.Minute
-		}
+		r.Feature.StartWorkflowOptionsMutator(&opts)
 		return r.Client.ExecuteWorkflow(ctx, opts, workflow, args...)
 	}
 }

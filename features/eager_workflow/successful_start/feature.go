@@ -18,9 +18,12 @@ const expectedResult = "Hello World"
 var numEagerlyStarted atomic.Uint64
 
 var Feature = harness.Feature{
-	Workflows:            Workflow,
-	StartWorkflowOptions: client.StartWorkflowOptions{EnableEagerStart: true, WorkflowTaskTimeout: 1 * time.Hour},
-	CheckResult:          CheckResult,
+	Workflows: Workflow,
+	StartWorkflowOptionsMutator: func(o *client.StartWorkflowOptions) {
+		o.EnableEagerStart = true
+		o.WorkflowTaskTimeout = 1 * time.Hour
+	},
+	CheckResult: CheckResult,
 	ClientOptions: client.Options{
 		ConnectionOptions: client.ConnectionOptions{
 			DialOptions: []grpc.DialOption{grpc.WithUnaryInterceptor(EagerDetector(&numEagerlyStarted))},

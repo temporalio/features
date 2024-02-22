@@ -13,9 +13,11 @@ import (
 )
 
 var Feature = harness.Feature{
-	Workflows:            Workflow,
-	StartWorkflowOptions: client.StartWorkflowOptions{CronSchedule: "@every 2s"},
-	CheckResult:          CheckResult,
+	Workflows: Workflow,
+	StartWorkflowOptionsMutator: func(o *client.StartWorkflowOptions) {
+		o.CronSchedule = "@every 2s"
+	},
+	CheckResult: CheckResult,
 	// Disable history check because we can't guarantee cron execution times
 	CheckHistory: harness.NoHistoryCheck,
 }

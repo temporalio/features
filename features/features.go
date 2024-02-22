@@ -1,6 +1,7 @@
 package features
 
 import (
+	activity_basic_no_workflow_timeout "github.com/temporalio/features/features/activity/basic_no_workflow_timeout"
 	activity_cancel_try_cancel "github.com/temporalio/features/features/activity/cancel_try_cancel"
 	activity_retry_on_error "github.com/temporalio/features/features/activity/retry_on_error"
 	bugs_go_activity_start_race "github.com/temporalio/features/features/bugs/go/activity_start_race"
@@ -52,6 +53,7 @@ import (
 func init() {
 	// Please keep list in alphabetical order
 	harness.MustRegisterFeatures(
+		activity_basic_no_workflow_timeout.Feature,
 		activity_cancel_try_cancel.Feature,
 		activity_retry_on_error.Feature,
 		bugs_go_activity_start_race.Feature,

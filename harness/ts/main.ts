@@ -1,5 +1,5 @@
 import { FeatureSource, Runner } from './harness';
-import { Runtime, DefaultLogger, makeTelemetryFilterString } from '@temporalio/worker';
+import { Runtime, DefaultLogger } from '@temporalio/worker';
 import pkg from '@temporalio/worker/lib/pkg';
 import { Command } from 'commander';
 import * as path from 'path';

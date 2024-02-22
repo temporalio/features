@@ -5,7 +5,7 @@ const activities = wf.proxyActivities<typeof activitiesImpl>({
   startToCloseTimeout: '1 minute',
 });
 const activitiesSched2Close = wf.proxyActivities<typeof activitiesImpl>({
-   scheduleToCloseTimeout: '1 minute',
+  scheduleToCloseTimeout: '1 minute',
 });
 
 export async function workflow(): Promise<string> {

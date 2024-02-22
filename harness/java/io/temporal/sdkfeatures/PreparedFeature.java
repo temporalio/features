@@ -6,6 +6,7 @@ public class PreparedFeature {
 
   static PreparedFeature[] ALL =
       PreparedFeature.prepareFeatures(
+          activity.basic_no_workflow_timeout.feature.Impl.class,
           activity.retry_on_error.feature.Impl.class,
           activity.cancel_try_cancel.feature.Impl.class,
           child_workflow.result.feature.Impl.class,

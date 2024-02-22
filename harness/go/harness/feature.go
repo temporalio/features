@@ -41,16 +41,16 @@ type Feature struct {
 	// overridden internally.
 	ClientOptions client.Options
 
-	// Worker options for worker creation. Some values like WorkflowPanicPolicy
-	// are always overridden internally.
+	// Worker options for worker creation. Some values like WorkflowPanicPolicy are always
+	// overridden internally. By default, the harness sets the WorkflowPanicPolicy to FailWorkflow -
+	// in order to set that one option here you must *also* set the
+	// DisableWorkflowPanicPolicyOverride field to true.
 	WorkerOptions worker.Options
 
-	// Start workflow options that are used by the default executor. Some values
-	// such as task queue and workflow execution timeout, are set by default if
-	// not already set. By default the harness sets the WorkflowPanicPolicy to
-	// FailWorkflow - in order to set that one option here you must *also* set the
-	// DisableWorkflowPanicPolicyOverride field to true.
-	StartWorkflowOptions client.StartWorkflowOptions
+	// Can modify the workflow options that are used by the default executor. Some values such as
+	// task queue and workflow execution timeout, are set by default (but may be overridden by this
+	// mutator).
+	StartWorkflowOptionsMutator func(*client.StartWorkflowOptions)
 
 	// The harness will override the WorkflowPanicPolicy to be FailWorkflow
 	// unless this field is set to true, in which case the WorkflowPanicPolicy

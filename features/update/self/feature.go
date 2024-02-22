@@ -33,13 +33,11 @@ var Feature = harness.Feature{
 		if reason := updateutil.CheckServerSupportsUpdate(ctx, runner.Client); reason != "" {
 			return nil, runner.Skip(reason)
 		}
-		opts := runner.Feature.StartWorkflowOptions
-		if opts.TaskQueue == "" {
-			opts.TaskQueue = runner.TaskQueue
+		opts := client.StartWorkflowOptions{
+			TaskQueue:                runner.TaskQueue,
+			WorkflowExecutionTimeout: 1 * time.Minute,
 		}
-		if opts.WorkflowExecutionTimeout == 0 {
-			opts.WorkflowExecutionTimeout = 1 * time.Minute
-		}
+		runner.Feature.StartWorkflowOptionsMutator(&opts)
 		return runner.Client.ExecuteWorkflow(ctx, opts, SelfUpdateWorkflow, ConnMaterial{
 			HostPort:       runner.Feature.ClientOptions.HostPort,
 			Namespace:      runner.Feature.ClientOptions.Namespace,

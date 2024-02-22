@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"go.temporal.io/sdk/client"
 	"io"
 	"net"
 	"net/url"
@@ -202,6 +203,10 @@ func (r *Runner) Run(ctx context.Context, run *Run) error {
 				sumEntry.Message = feature.SkipReason
 				r.log.Warn("Skipping feature", "Feature", feature.Dir, "Reason", feature.SkipReason)
 				return nil
+			}
+
+			if feature.StartWorkflowOptionsMutator == nil {
+				feature.StartWorkflowOptionsMutator = func(opts *client.StartWorkflowOptions) {}
 			}
 
 			runnerConfig := harness.RunnerConfig{

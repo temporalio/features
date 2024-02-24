@@ -9,11 +9,11 @@
   },
   "dependencies": {
     "@protobuf-ts/protoc": "^2.8.1",
-    "@temporalio/activity": "^1.9.0",
-    "@temporalio/client": "^1.9.0",
-    "@temporalio/common": "^1.9.0",
-    "@temporalio/worker": "^1.9.0",
-    "@temporalio/workflow": "^1.9.0",
+    "@temporalio/activity": "^1.9.3",
+    "@temporalio/client": "^1.9.3",
+    "@temporalio/common": "^1.9.3",
+    "@temporalio/worker": "^1.9.3",
+    "@temporalio/workflow": "^1.9.3",
     "commander": "^8.3.0",
     "ms": "^3.0.0-canary.1",
     "proto3-json-serializer": "^1.1.1"

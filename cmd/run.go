@@ -30,8 +30,8 @@ import (
 )
 
 const (
-	summaryListenAddr = "127.0.0.1:0"
-	FeaturePassed     = "PASSED"
+	freePortListenAddr = "127.0.0.1:0"
+	FeaturePassed      = "PASSED"
 )
 
 func runCmd() *cli.Command {
@@ -154,6 +154,22 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 		return err
 	}
 
+	var fn func(context.Context, *cmd.Run) error
+	switch r.config.Lang {
+	case "go":
+		fn = r.runGo
+	case "java":
+		fn = r.runJava
+	case "ts":
+		fn = r.runTypeScript
+	case "py":
+		fn = r.runPython
+	case "cs":
+		fn = r.runDotNet
+	default:
+		return fmt.Errorf("unrecognized language")
+	}
+
 	// Cannot generate history if a version isn't provided explicitly
 	if r.config.GenerateHistory && r.config.Version == "" {
 		return fmt.Errorf("must have explicit version to generate history")
@@ -234,70 +250,20 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 		defer r.destroyTempDir()
 	}
 
-	l, err := net.Listen("tcp", summaryListenAddr)
+	summaryListener, err := net.Listen("tcp", freePortListenAddr)
 	if err != nil {
 		return err
 	}
-	defer l.Close()
+	defer summaryListener.Close()
 	summaryChan := make(chan Summary)
-	go r.summaryServer(l, summaryChan)
-	r.config.SummaryURI = "tcp://" + l.Addr().String()
+	go r.summaryServer(summaryListener, summaryChan)
+	r.config.SummaryURI = "tcp://" + summaryListener.Addr().String()
 
-	err = nil
-	switch r.config.Lang {
-	case "go":
-		// If there's a version or prepared dir we run external, otherwise we run local
-		if r.config.Version != "" || r.config.DirName != "" {
-			if r.config.DirName != "" {
-				r.program, err = sdkbuild.GoProgramFromDir(filepath.Join(r.rootDir, r.config.DirName))
-			}
-			if err == nil {
-				err = r.RunGoExternal(ctx, run)
-			}
-		} else {
-			err = cmd.NewRunner(cmd.RunConfig{
-				Server:         r.config.Server,
-				Namespace:      r.config.Namespace,
-				ClientCertPath: r.config.ClientCertPath,
-				ClientKeyPath:  r.config.ClientKeyPath,
-				SummaryURI:     r.config.SummaryURI,
-			}).Run(ctx, run)
-		}
-	case "java":
-		if r.config.DirName != "" {
-			r.program, err = sdkbuild.JavaProgramFromDir(filepath.Join(r.rootDir, r.config.DirName))
-		}
-		if err == nil {
-			err = r.RunJavaExternal(ctx, run)
-		}
-	case "ts":
-		if r.config.DirName != "" {
-			r.program, err = sdkbuild.TypeScriptProgramFromDir(filepath.Join(r.rootDir, r.config.DirName))
-		}
-		if err == nil {
-			err = r.RunTypeScriptExternal(ctx, run)
-		}
-	case "py":
-		if r.config.DirName != "" {
-			r.program, err = sdkbuild.PythonProgramFromDir(filepath.Join(r.rootDir, r.config.DirName))
-		}
-		if err == nil {
-			err = r.RunPythonExternal(ctx, run)
-		}
-	case "cs":
-		if r.config.DirName != "" {
-			r.program, err = sdkbuild.DotNetProgramFromDir(filepath.Join(r.rootDir, r.config.DirName))
-		}
-		if err == nil {
-			err = r.RunDotNetExternal(ctx, run)
-		}
-	default:
-		err = fmt.Errorf("unrecognized language")
-	}
+	err = fn(ctx, run)
 	if err != nil {
 		return err
 	}
-	l.Close()
+	summaryListener.Close()
 	summary, ok := <-summaryChan
 	if !ok {
 		r.log.Debug("did not receive a test run summary - adopting legacy behavior of assuming no tests were skipped")
@@ -306,6 +272,72 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 		}
 	}
 	return r.handleHistory(ctx, run, summary)
+}
+
+func (r *Runner) runGo(ctx context.Context, run *cmd.Run) error {
+	// If there's a version or prepared dir we run external, otherwise we run local
+	if r.config.Version == "" && r.config.DirName == "" {
+		return cmd.NewRunner(cmd.RunConfig{
+			Server:         r.config.Server,
+			Namespace:      r.config.Namespace,
+			ClientCertPath: r.config.ClientCertPath,
+			ClientKeyPath:  r.config.ClientKeyPath,
+			SummaryURI:     r.config.SummaryURI,
+		}).Run(ctx, run)
+	}
+
+	if r.config.DirName != "" {
+		var err error
+		r.program, err = sdkbuild.GoProgramFromDir(filepath.Join(r.rootDir, r.config.DirName))
+		if err != nil {
+			return err
+		}
+	}
+	return r.RunGoExternal(ctx, run)
+}
+
+func (r *Runner) runJava(ctx context.Context, run *cmd.Run) error {
+	if r.config.DirName != "" {
+		var err error
+		r.program, err = sdkbuild.JavaProgramFromDir(filepath.Join(r.rootDir, r.config.DirName))
+		if err != nil {
+			return err
+		}
+	}
+	return r.RunJavaExternal(ctx, run)
+}
+
+func (r *Runner) runTypeScript(ctx context.Context, run *cmd.Run) error {
+	if r.config.DirName != "" {
+		var err error
+		r.program, err = sdkbuild.TypeScriptProgramFromDir(filepath.Join(r.rootDir, r.config.DirName))
+		if err != nil {
+			return err
+		}
+	}
+	return r.RunTypeScriptExternal(ctx, run)
+}
+
+func (r *Runner) runPython(ctx context.Context, run *cmd.Run) error {
+	if r.config.DirName != "" {
+		var err error
+		r.program, err = sdkbuild.PythonProgramFromDir(filepath.Join(r.rootDir, r.config.DirName))
+		if err != nil {
+			return err
+		}
+	}
+	return r.RunPythonExternal(ctx, run)
+}
+
+func (r *Runner) runDotNet(ctx context.Context, run *cmd.Run) error {
+	if r.config.DirName != "" {
+		var err error
+		r.program, err = sdkbuild.DotNetProgramFromDir(filepath.Join(r.rootDir, r.config.DirName))
+		if err != nil {
+			return err
+		}
+	}
+	return r.RunDotNetExternal(ctx, run)
 }
 
 func (r *Runner) handleHistory(ctx context.Context, run *cmd.Run, summary Summary) error {

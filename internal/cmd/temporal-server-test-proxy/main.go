@@ -1,18 +1,42 @@
 package main
 
 import (
-	"bufio"
+	"context"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"io/fs"
 	"net"
+	"net/http"
 	"os"
+	"path"
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 )
+
+const HelpText = `The test proxy exposes the following control endpoints:
+
+- POST /start
+  Listen for new connections; this is the default
+
+- POST /stop
+  Do not listen for new connections
+
+- POST /kill-all
+  Close all existing connections
+
+- POST /freeze
+  Do not accept new connections or copy bytes on existing connections
+
+- POST /thaw
+  Accept new connections and copy bytes on existing connections; this is the default
+
+- POST /quit
+  Shut down the proxy and exit
+`
 
 var (
 	ErrUnknownCommand = errors.New("unknown command")
@@ -23,9 +47,12 @@ var (
 )
 
 var (
-	flagTrace  bool
-	flagListen string
-	flagDial   string
+	flagTrace   bool
+	flagControl string
+	flagListen  string
+	flagDial    string
+
+	gAliveChan chan struct{}
 
 	gLastID uint32
 
@@ -43,7 +70,8 @@ var (
 
 func init() {
 	flag.BoolVar(&flagTrace, "trace", false, "enable tracing logs")
-	flag.StringVar(&flagListen, "listen", "", "TCP host:port to listen on")
+	flag.StringVar(&flagControl, "control", "", "TCP host:port to listen on for HTTP control commands")
+	flag.StringVar(&flagListen, "listen", "", "TCP host:port to listen on for proxying to -dial")
 	flag.StringVar(&flagDial, "dial", "", "TCP host:port to connect to")
 }
 
@@ -54,6 +82,10 @@ func init() {
 func main() {
 	flag.Parse()
 
+	if flagControl == "" {
+		Fatal(1, "must specify -control")
+		panic(nil)
+	}
 	if flagListen == "" {
 		Fatal(1, "must specify -listen")
 		panic(nil)
@@ -63,67 +95,97 @@ func main() {
 		panic(nil)
 	}
 
+	l, err := net.Listen("tcp", flagControl)
+	if err != nil {
+		Fatal(2, "failed to listen on %q: %v", flagControl, err)
+		panic(nil)
+	}
+
 	if err := ActionStart(); err != nil {
 		Fatal(2, "failed to listen on %q: %v", flagListen, err)
 		panic(nil)
 	}
-	defer IgnoreResult(ActionStop)
+	defer func() { _ = ActionStop() }()
 
-	fmt.Println("ready")
-	scanner := bufio.NewScanner(os.Stdin)
-	looping := true
-	for looping && scanner.Scan() {
-		line := strings.TrimRight(scanner.Text(), "\r\n")
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", HandleHelp)
+	mux.HandleFunc("/quit", HandleExit)
+	mux.HandleFunc("/start", HandleAction(ActionStart))
+	mux.HandleFunc("/stop", HandleAction(ActionStop))
+	mux.HandleFunc("/kill-all", HandleAction(ActionKillAll))
+	mux.HandleFunc("/freeze", HandleAction(ActionFreeze))
+	mux.HandleFunc("/thaw", HandleAction(ActionThaw))
 
-		var err error
-		switch line {
-		case "":
-			fallthrough
-		case "noop":
-			err = nil
-
-		case "exit":
-			fallthrough
-		case "quit":
-			err = io.EOF
-
-		case "start":
-			err = ActionStart()
-
-		case "stop":
-			err = ActionStop()
-
-		case "kill-all":
-			err = ActionKillAll()
-
-		case "freeze":
-			err = ActionFreeze()
-
-		case "thaw":
-			err = ActionThaw()
-
-		default:
-			err = ErrUnknownCommand
-		}
-
-		switch {
-		case err == nil:
-			fmt.Println("ok")
-		case err == io.EOF:
-			fmt.Println("bye")
-			looping = false
-		default:
-			fmt.Printf("err %q\n", err.Error())
-		}
+	s := &http.Server{
+		Handler:      mux,
+		ReadTimeout:  1 * time.Second,
+		WriteTimeout: 1 * time.Second,
+		IdleTimeout:  60 * time.Second,
 	}
-	err := scanner.Err()
-	if IsErrClosed(err) {
+
+	gAliveChan = make(chan struct{})
+	go func() {
+		<-gAliveChan
+		_ = s.Shutdown(context.Background())
+	}()
+
+	err = s.Serve(l)
+	if err != nil && errors.Is(err, http.ErrServerClosed) {
 		err = nil
 	}
 	if err != nil {
-		Fatal(2, "I/O error reading from stdin: %v", err)
+		Fatal(2, "failed to serve HTTP on %q: %v", flagControl, err)
 		panic(nil)
 	}
+}
+
+func HandleHelp(w http.ResponseWriter, r *http.Request) {
+	if path.Clean(r.URL.Path) != "/" {
+		http.NotFound(w, r)
+		return
+	}
+	if !CheckMethod(w, r, http.MethodGet, http.MethodHead) {
+		return
+	}
+	body := []byte(strings.ReplaceAll(HelpText, "\n", "\r\n"))
+	h := w.Header()
+	h.Set("Content-Type", "text/plain; charset=utf-8")
+	h.Set("Content-Length", fmt.Sprint(len(body)))
+	w.WriteHeader(http.StatusOK)
+	w.Write(body)
+}
+
+func HandleExit(w http.ResponseWriter, r *http.Request) {
+	if !CheckMethod(w, r, http.MethodPost) {
+		return
+	}
+	close(gAliveChan)
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func HandleAction(action func() error) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !CheckMethod(w, r, http.MethodPost) {
+			return
+		}
+		if err := action(); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+func CheckMethod(w http.ResponseWriter, r *http.Request, allowed ...string) bool {
+	for _, item := range allowed {
+		if r.Method == item {
+			return true
+		}
+	}
+	h := w.Header()
+	h.Set("Allow", strings.Join(allowed, ", "))
+	http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	return false
 }
 
 func ActionStart() error {
@@ -269,7 +331,7 @@ func (pair *Pair) Thread(in net.Conn) {
 	Trace("dial complete [%s]", badge)
 
 	if !pair.Activate(out) {
-		IgnoreResult(out.Close)
+		_ = out.Close()
 		return
 	}
 
@@ -374,10 +436,6 @@ func (pair *Pair) Close() {
 		Warn("error while closing outgoing connection: %v [%s]", outErr, badge)
 	}
 	Trace("connection closed [%s]", badge)
-}
-
-func IgnoreResult(fn func() error) {
-	_ = fn()
 }
 
 func IsErrClosed(err error) bool {

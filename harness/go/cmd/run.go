@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"go.temporal.io/sdk/client"
 	"io"
 	"net"
 	"net/url"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/temporalio/features/harness/go/harness"
 	"github.com/urfave/cli/v2"
+	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/log"
 	"go.uber.org/zap"
 )
@@ -86,11 +86,12 @@ type RunFeatureConfigGo struct {
 
 // RunConfig is configuration for NewRunner.
 type RunConfig struct {
-	Server         string
-	Namespace      string
-	ClientCertPath string
-	ClientKeyPath  string
-	SummaryURI     string
+	Server          string
+	Namespace       string
+	ClientCertPath  string
+	ClientKeyPath   string
+	SummaryURI      string
+	ProxyControlURI string
 }
 
 func (r *RunConfig) flags() []cli.Flag {
@@ -119,6 +120,11 @@ func (r *RunConfig) flags() []cli.Flag {
 			Name:        "summary-uri",
 			Usage:       "where to stream the test summary JSONL",
 			Destination: &r.SummaryURI,
+		},
+		&cli.StringFlag{
+			Name:        "proxy-control-uri",
+			Usage:       "how to simulate network outages via temporal-features-test-proxy (optional)",
+			Destination: &r.ProxyControlURI,
 		},
 	}
 }
@@ -164,11 +170,21 @@ func (r *Runner) Run(ctx context.Context, run *Run) error {
 	if len(run.Features) == 0 {
 		return fmt.Errorf("no features to run")
 	}
+
 	summary, err := openSummary(r.config.SummaryURI)
 	if err != nil {
 		return err
 	}
 	defer summary.Close()
+
+	var proxyControlURL *url.URL
+	if r.config.ProxyControlURI != "" {
+		proxyControlURL, err = url.Parse(r.config.ProxyControlURI)
+		if err != nil {
+			return err
+		}
+	}
+
 	var failureCount int
 	failureSummary := ""
 	allFeatures := harness.RegisteredFeatures()
@@ -210,12 +226,13 @@ func (r *Runner) Run(ctx context.Context, run *Run) error {
 			}
 
 			runnerConfig := harness.RunnerConfig{
-				ServerHostPort: r.config.Server,
-				Namespace:      r.config.Namespace,
-				ClientCertPath: r.config.ClientCertPath,
-				ClientKeyPath:  r.config.ClientKeyPath,
-				TaskQueue:      runFeature.TaskQueue,
-				Log:            r.log,
+				ServerHostPort:  r.config.Server,
+				Namespace:       r.config.Namespace,
+				ClientCertPath:  r.config.ClientCertPath,
+				ClientKeyPath:   r.config.ClientKeyPath,
+				ProxyControlURL: proxyControlURL,
+				TaskQueue:       runFeature.TaskQueue,
+				Log:             r.log,
 			}
 			err := r.runFeature(ctx, runnerConfig, feature)
 

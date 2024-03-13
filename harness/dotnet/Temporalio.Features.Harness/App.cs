@@ -27,6 +27,10 @@ public static class App
         name: "--client-key-path",
         description: "Path to a client key for TLS");
 
+    private static readonly Option<string> proxyControlUriOption = new(
+        name: "--proxy-control-uri",
+        description: "URI for simulating network outages with temporal-features-test-proxy");
+
     private static readonly Argument<List<(string, string)>> featuresArgument = new(
         name: "features",
         parse: result => result.Tokens.Select(token =>
@@ -56,6 +60,7 @@ public static class App
         cmd.AddOption(namespaceOption);
         cmd.AddOption(clientCertPathOption);
         cmd.AddOption(clientKeyPathOption);
+        cmd.AddOption(proxyControlUriOption);
         cmd.AddArgument(featuresArgument);
         cmd.SetHandler(RunCommandAsync);
         return cmd;

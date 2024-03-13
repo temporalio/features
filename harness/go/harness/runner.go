@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -43,12 +44,13 @@ type Runner struct {
 
 // RunnerConfig is configuration for NewRunner.
 type RunnerConfig struct {
-	ServerHostPort string
-	Namespace      string
-	TaskQueue      string
-	ClientCertPath string
-	ClientKeyPath  string
-	Log            log.Logger
+	ServerHostPort  string
+	Namespace       string
+	TaskQueue       string
+	ClientCertPath  string
+	ClientKeyPath   string
+	ProxyControlURL *url.URL
+	Log             log.Logger
 }
 
 // NewRunner creates a new runner for the given config and feature.

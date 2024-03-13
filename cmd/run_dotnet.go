@@ -68,6 +68,9 @@ func (r *Runner) RunDotNetExternal(ctx context.Context, run *cmd.Run) error {
 	if r.config.ClientCertPath != "" {
 		args = append(args, "--client-cert-path", r.config.ClientCertPath, "--client-key-path", r.config.ClientKeyPath)
 	}
+	if proxyControlURI := r.config.ProxyControlURI(); proxyControlURI != "" {
+		args = append(args, "--proxy-control-uri", proxyControlURI)
+	}
 	args = append(args, run.ToArgs()...)
 	cmd, err := r.program.NewCommand(ctx, args...)
 	if err == nil {

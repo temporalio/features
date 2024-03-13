@@ -64,6 +64,7 @@ func (r *Runner) RunGoExternal(ctx context.Context, run *cmd.Run) error {
 		"--client-cert-path", r.config.ClientCertPath,
 		"--client-key-path", r.config.ClientKeyPath,
 		"--summary-uri", r.config.SummaryURI,
+		"--proxy-control-uri", r.config.ProxyControlURI(),
 	}, run.ToArgs()...)
 	cmd, err := r.program.NewCommand(ctx, args...)
 	if err == nil {

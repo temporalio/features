@@ -32,8 +32,9 @@ import (
 )
 
 const (
-	freePortListenAddr = "127.0.0.1:0"
-	FeaturePassed      = "PASSED"
+	proxyExecutableAuto = "auto"
+	freePortListenAddr  = "127.0.0.1:0"
+	FeaturePassed       = "PASSED"
 )
 
 func runCmd() *cli.Command {
@@ -70,6 +71,13 @@ type RunConfig struct {
 	ProxyExecutablePath  string
 	ProxyControlHostPort string
 	ProxyListenHostPort  string
+}
+
+func (config RunConfig) ProxyControlURI() string {
+	if config.ProxyControlHostPort == "" {
+		return ""
+	}
+	return "http://" + config.ProxyControlHostPort + "/"
 }
 
 // dockerRunFlags are a subset of flags that apply when running in a docker container
@@ -129,17 +137,18 @@ func (r *RunConfig) flags() []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:        "proxy-executable-path",
-			Usage:       "Path of the temporal-server-test-proxy executable for connectivity/retry tests (optional)",
+			Usage:       "Path of the temporal-features-test-proxy executable for connectivity/retry tests (optional)",
+			Value:       proxyExecutableAuto,
 			Destination: &r.ProxyExecutablePath,
 		},
 		&cli.StringFlag{
 			Name:        "proxy-control-hostport",
-			Usage:       "explicit host:port for controlling the temporal-server-test-proxy (optional)",
+			Usage:       "explicit host:port for controlling the temporal-features-test-proxy (optional)",
 			Destination: &r.ProxyControlHostPort,
 		},
 		&cli.StringFlag{
 			Name:        "proxy-listen-hostport",
-			Usage:       "explicit host:port for using the temporal-server-test-proxy (optional)",
+			Usage:       "explicit host:port for using the temporal-features-test-proxy (optional)",
 			Destination: &r.ProxyListenHostPort,
 		},
 	}, r.dockerRunFlags()...)
@@ -259,6 +268,23 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 		}
 	}
 
+	if r.config.ProxyExecutablePath == proxyExecutableAuto {
+		const suggestedPath = "./temporal-features-test-proxy"
+		fi, err := os.Stat(suggestedPath)
+		if err == nil && fi.Mode().IsRegular() && (fi.Mode()&0o111) != 0 {
+			r.config.ProxyExecutablePath = suggestedPath
+		}
+	}
+	if r.config.ProxyExecutablePath == proxyExecutableAuto {
+		const suggestedPath = "./temporal-features-test-proxy.exe"
+		fi, err := os.Stat(suggestedPath)
+		if err == nil && fi.Mode().IsRegular() {
+			r.config.ProxyExecutablePath = suggestedPath
+		}
+	}
+	if r.config.ProxyExecutablePath == proxyExecutableAuto {
+		r.config.ProxyExecutablePath = ""
+	}
 	if r.config.ProxyExecutablePath != "" {
 		if r.config.ProxyControlHostPort == "" {
 			r.config.ProxyControlHostPort, err = pickFreePort()

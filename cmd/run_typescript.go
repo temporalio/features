@@ -79,6 +79,9 @@ func (r *Runner) RunTypeScriptExternal(ctx context.Context, run *cmd.Run) error 
 		}
 		args = append(args, "--client-key-path", clientKeyPath)
 	}
+	if proxyControlURI := r.config.ProxyControlURI(); proxyControlURI != "" {
+		args = append(args, "--proxy-control-uri", proxyControlURI)
+	}
 	args = append(args, run.ToArgs()...)
 
 	// Run

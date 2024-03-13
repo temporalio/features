@@ -24,6 +24,7 @@ import io.temporal.worker.WorkerFactory;
 import io.temporal.worker.WorkerFactoryOptions;
 import io.temporal.worker.WorkerOptions;
 import java.io.Closeable;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.*;
@@ -42,6 +43,7 @@ public class Runner implements Closeable {
     public String taskQueue;
     public Scope metricsScope = new NoopScope();
     public SslContext sslContext;
+    public URI proxyControl;
   }
 
   public final Config config;

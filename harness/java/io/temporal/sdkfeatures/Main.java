@@ -59,7 +59,8 @@ public class Main implements Runnable {
       switch (uri.getScheme()) {
         case "tcp":
           Socket socket = new Socket(uri.getHost(), uri.getPort());
-          return new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8));
+          return new BufferedWriter(
+              new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8));
         case "file":
           FileWriter fileWriter = new FileWriter(uri.getPath(), true);
           return new BufferedWriter(fileWriter);
@@ -76,7 +77,9 @@ public class Main implements Runnable {
   @Option(names = "--summary-uri", description = "The URL of the summary server", required = true)
   private String summaryUri;
 
-  @Option(names = "--proxy-control-uri", description = "The URL of temporal-features-test-proxy (optional)")
+  @Option(
+      names = "--proxy-control-uri",
+      description = "The URL of temporal-features-test-proxy (optional)")
   private String proxyControlUri;
 
   @Option(names = "--server", description = "The host:port of the server", required = true)
@@ -118,11 +121,11 @@ public class Main implements Runnable {
     // Parse proxyControlUri if present
     URI proxyControl = null;
     if (proxyControlUri != null && !proxyControlUri.isEmpty()) {
-        try {
-            proxyControl = new URI(proxyControlUri);
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
+      try {
+        proxyControl = new URI(proxyControlUri);
+      } catch (URISyntaxException e) {
+        throw new RuntimeException(e);
+      }
     }
 
     try (BufferedWriter writer = createSummaryServerWriter()) {

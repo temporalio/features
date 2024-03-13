@@ -21,6 +21,7 @@ EXPECTED_RESULT: Result = {"spec": True}
 
 CODEC_ENCODING = "my_encoding"
 
+
 # An echo workflow
 @workflow.defn
 class Workflow:

@@ -47,6 +47,12 @@ type Feature struct {
 	// DisableWorkflowPanicPolicyOverride field to true.
 	WorkerOptions worker.Options
 
+	// BeforeDial provides a hook that will be called just before calling client.Dial.
+	BeforeDial func(runner *Runner) error
+
+	// BeforeWorkerStart provides a hook that will be called just before calling Worker.Start.
+	BeforeWorkerStart func(runner *Runner) error
+
 	// Can modify the workflow options that are used by the default executor. Some values such as
 	// task queue and workflow execution timeout, are set by default (but may be overridden by this
 	// mutator).

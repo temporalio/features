@@ -4,7 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
+	"path"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -90,6 +93,12 @@ func NewRunner(config RunnerConfig, feature *PreparedFeature) (*Runner, error) {
 		return nil, err
 	}
 	r.Feature.ClientOptions.ConnectionOptions.TLS = tlsCfg
+
+	if r.Feature.BeforeDial != nil {
+		if err = r.Feature.BeforeDial(r); err != nil {
+			return nil, err
+		}
+	}
 
 	if r.Client, err = client.Dial(r.Feature.ClientOptions); err != nil {
 		return nil, fmt.Errorf("failed creating client: %w", err)
@@ -352,6 +361,61 @@ func (r *Runner) DoUntilEventually(
 	}
 }
 
+func (r *Runner) ProxyStart(ctx context.Context) error {
+	return r.proxySendCommand(ctx, "start")
+}
+
+func (r *Runner) ProxyStop(ctx context.Context) error {
+	return r.proxySendCommand(ctx, "stop")
+}
+
+func (r *Runner) ProxyKillAll(ctx context.Context) error {
+	return r.proxySendCommand(ctx, "kill-all")
+}
+
+func (r *Runner) ProxyFreeze(ctx context.Context) error {
+	return r.proxySendCommand(ctx, "freeze")
+}
+
+func (r *Runner) ProxyThaw(ctx context.Context) error {
+	return r.proxySendCommand(ctx, "thaw")
+}
+
+func (r *Runner) proxySendCommand(ctx context.Context, command string) error {
+	if r.ProxyControlURL == nil {
+		return r.Skip("temporal-features-test-proxy is required for this test")
+	}
+
+	var u url.URL
+	u = *r.ProxyControlURL
+	u.Path = path.Join(u.Path, command)
+
+	reqMethod := http.MethodPost
+	reqURL := u.String()
+	reqName := fmt.Sprintf("%s %s", reqMethod, reqURL)
+	req, err := http.NewRequestWithContext(ctx, reqMethod, reqURL, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create net/http.Request %q: %w", reqName, err)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to perform HTTP request %q: %w", reqName, err)
+	}
+
+	_, err = io.ReadAll(resp.Body)
+	_ = resp.Body.Close()
+	if err != nil {
+		return fmt.Errorf("failed to read body for HTTP %03d response to request %q: %w", resp.StatusCode, reqName, err)
+	}
+
+	if resp.StatusCode >= 400 {
+		return fmt.Errorf("HTTP %03d response to request %q", resp.StatusCode, reqName)
+	}
+
+	return nil
+}
+
 // Close closes this runner.
 func (r *Runner) Close() {
 	if r.Worker != nil {
@@ -416,6 +480,12 @@ func (r *Runner) StartWorker() error {
 			r.Worker.RegisterActivityWithOptions(casted.Activity, casted.Options)
 		default:
 			r.Worker.RegisterActivity(activity)
+		}
+	}
+
+	if r.Feature.BeforeWorkerStart != nil {
+		if err := r.Feature.BeforeWorkerStart(r); err != nil {
+			return err
 		}
 	}
 

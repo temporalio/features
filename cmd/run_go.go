@@ -57,15 +57,16 @@ func (r *Runner) RunGoExternal(ctx context.Context, run *cmd.Run) error {
 		}
 	}
 
-	args := append([]string{
-		"run",
-		"--server", r.config.Server,
-		"--namespace", r.config.Namespace,
-		"--client-cert-path", r.config.ClientCertPath,
-		"--client-key-path", r.config.ClientKeyPath,
-		"--summary-uri", r.config.SummaryURI,
-		"--proxy-control-uri", r.config.ProxyControlURI(),
-	}, run.ToArgs()...)
+	// Build args
+	args := make([]string, 0, 64)
+	args = append(args, "run")
+	args, err := r.config.appendFlags(args)
+	if err != nil {
+		return err
+	}
+	args = append(args, run.ToArgs()...)
+
+	// Run
 	cmd, err := r.program.NewCommand(ctx, args...)
 	if err == nil {
 		r.log.Debug("Running Go separately", "Args", cmd.Args)

@@ -85,6 +85,11 @@ public class Main implements Runnable {
   @Option(names = "--server", description = "The host:port of the server", required = true)
   private String server;
 
+  @Option(
+      names = "--direct-server",
+      description = "The host:port of the server, bypassing the temporal-features-test-proxy")
+  private String directServer;
+
   @Option(names = "--namespace", description = "The namespace to use", required = true)
   private String namespace;
 
@@ -128,6 +133,9 @@ public class Main implements Runnable {
       }
     }
 
+    final String processedDirectServer =
+        (directServer != null && !directServer.isEmpty()) ? directServer : server;
+
     try (BufferedWriter writer = createSummaryServerWriter()) {
       ObjectMapper mapper = new ObjectMapper();
 
@@ -152,6 +160,7 @@ public class Main implements Runnable {
         log.info("Running feature {}", feature.dir);
         var config = new Runner.Config();
         config.serverHostPort = server;
+        config.directHostPort = processedDirectServer;
         config.namespace = namespace;
         config.sslContext = sslContext;
         config.proxyControl = proxyControl;

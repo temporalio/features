@@ -78,6 +78,11 @@ type Feature struct {
 	// If non-empty, this feature will be skipped without checking any other
 	// values.
 	SkipReason string
+
+	// WorkerUsesProxy indicates if the client used to run the worker
+	// should be one that goes through the temporal-features-test-proxy
+	// instead of talking directly to the server.
+	WorkerUsesProxy bool
 }
 
 type WorkflowWithOptions struct {

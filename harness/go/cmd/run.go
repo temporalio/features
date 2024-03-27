@@ -87,6 +87,7 @@ type RunFeatureConfigGo struct {
 // RunConfig is configuration for NewRunner.
 type RunConfig struct {
 	Server          string
+	DirectServer    string
 	Namespace       string
 	ClientCertPath  string
 	ClientKeyPath   string
@@ -100,6 +101,11 @@ func (r *RunConfig) flags() []cli.Flag {
 			Name:        "server",
 			Usage:       "The host:port of the server (default is to create ephemeral in-memory server)",
 			Destination: &r.Server,
+		},
+		&cli.StringFlag{
+			Name:        "direct-server",
+			Usage:       "The host:port of the server, bypassing the temporal-features-test-proxy",
+			Destination: &r.DirectServer,
 		},
 		&cli.StringFlag{
 			Name:        "namespace",
@@ -227,6 +233,7 @@ func (r *Runner) Run(ctx context.Context, run *Run) error {
 
 			runnerConfig := harness.RunnerConfig{
 				ServerHostPort:  r.config.Server,
+				DirectHostPort:  r.config.DirectServer,
 				Namespace:       r.config.Namespace,
 				ClientCertPath:  r.config.ClientCertPath,
 				ClientKeyPath:   r.config.ClientKeyPath,

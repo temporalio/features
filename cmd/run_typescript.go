@@ -58,29 +58,11 @@ func (r *Runner) RunTypeScriptExternal(ctx context.Context, run *cmd.Run) error 
 	}
 
 	// Build args
-	args := []string{
-		"./tslib/harness/ts/main.js",
-		"--server",
-		r.config.Server,
-		"--namespace",
-		r.config.Namespace,
-	}
-	if r.config.ClientCertPath != "" {
-		clientCertPath, err := filepath.Abs(r.config.ClientCertPath)
-		if err != nil {
-			return err
-		}
-		args = append(args, "--client-cert-path", clientCertPath)
-	}
-	if r.config.ClientKeyPath != "" {
-		clientKeyPath, err := filepath.Abs(r.config.ClientKeyPath)
-		if err != nil {
-			return err
-		}
-		args = append(args, "--client-key-path", clientKeyPath)
-	}
-	if proxyControlURI := r.config.ProxyControlURI(); proxyControlURI != "" {
-		args = append(args, "--proxy-control-uri", proxyControlURI)
+	args := make([]string, 0, 64)
+	args = append(args, "./tslib/harness/ts/main.js")
+	args, err := r.config.appendFlags(args)
+	if err != nil {
+		return err
 	}
 	args = append(args, run.ToArgs()...)
 

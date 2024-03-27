@@ -1,43 +1,35 @@
-package server_down_between_dial_and_start_workflow
+package server_unavailable_for_initiator
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
 	"github.com/temporalio/features/harness/go/harness"
 	"go.temporal.io/sdk/client"
+	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
 )
 
 var Feature = harness.Feature{
 	Workflows: Workflow,
 	Execute: func(ctx context.Context, runner *harness.Runner) (client.WorkflowRun, error) {
-		c, err := client.Dial(runner.Feature.ClientOptions)
-		if err != nil {
-			return nil, fmt.Errorf("failed creating client: %w", err)
-		}
-		defer c.Close()
-
-		if err := runner.ProxyStop(ctx); err != nil {
+		var wg sync.WaitGroup
+		defer wg.Wait()
+		if err := runner.ProxyRejectAndAccept(ctx, &wg, 1*time.Second); err != nil {
 			return nil, err
 		}
-
-		var wg sync.WaitGroup
-		wg.Add(1)
-		defer wg.Wait()
-		go func() {
-			defer wg.Done()
-			time.Sleep(10 * time.Second)
-			_ = runner.ProxyStart(ctx)
-		}()
 
 		opts := client.StartWorkflowOptions{
 			TaskQueue:                runner.TaskQueue,
 			WorkflowExecutionTimeout: 1 * time.Minute,
+			RetryPolicy: &temporal.RetryPolicy{
+				InitialInterval:    1 * time.Millisecond,
+				MaximumInterval:    100 * time.Millisecond,
+				BackoffCoefficient: 2.0,
+			},
 		}
-		return c.ExecuteWorkflow(ctx, opts, Workflow)
+		return runner.Client.ExecuteWorkflow(ctx, opts, Workflow)
 	},
 }
 

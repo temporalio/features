@@ -9,42 +9,52 @@ import (
 	"io/fs"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
+	"os/signal"
 	"path"
+	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
+
+	"go.temporal.io/api/workflowservice/v1"
+	"go.temporal.io/sdk/client"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/health/grpc_health_v1"
+	"google.golang.org/grpc/status"
 )
 
 const HelpText = `The test proxy exposes the following control endpoints:
 
-- POST /start
-  Listen for new connections; this is the default
+- POST /quit
+  Shut down the proxy and exit.
 
-- POST /stop
-  Do not listen for new connections
+- POST /restart
+  Gracefully shut down the gRPC server, then start it again.
 
-- POST /kill-all
-  Close all existing connections
+  - Query param: sleep=<duration>
+    Forces the restart to block for the given duration; default: 0s.
+
+  - Query param: forceful=<bool>
+    If true, forces a non-graceful shutdown; default: false.
+
+- POST /reject
+  Immediately reject incoming gRPC requests with UNAVAILABLE.
+
+- POST /accept
+  Accept incoming gRPC requests; this is the default.
 
 - POST /freeze
-  Do not accept new connections or copy bytes on existing connections
+  Block on incoming accepted gRPC requests.
 
 - POST /thaw
-  Accept new connections and copy bytes on existing connections; this is the default
-
-- POST /quit
-  Shut down the proxy and exit
+  Process incoming accepted gRPC requests immediately; this is the default.
 `
 
-var (
-	ErrUnknownCommand = errors.New("unknown command")
-	ErrAlreadyStarted = errors.New("already started")
-	ErrAlreadyStopped = errors.New("already stopped")
-	ErrAlreadyFrozen  = errors.New("already frozen")
-	ErrAlreadyThawed  = errors.New("already thawed")
-)
+var ErrUnknownCommand = errors.New("unknown command")
 
 var (
 	flagTrace   bool
@@ -52,20 +62,17 @@ var (
 	flagListen  string
 	flagDial    string
 
-	gAliveChan chan struct{}
+	gListenConfig  net.ListenConfig
+	gExitCh        chan struct{}
+	gRootContext   context.Context
+	gServerMutex   sync.Mutex
+	gControlServer ControlServer
+	gProxyServer   ProxyServer
 
-	gLastID uint32
-
-	gFrozenMutex sync.Mutex
-	gFrozenCond  *sync.Cond
-	gFrozen      bool
-
-	gListenerWG sync.WaitGroup
-	gListener   net.Listener
-
-	gPairWG       sync.WaitGroup
-	gPairMapMutex sync.Mutex
-	gPairMap      map[uint32]*Pair
+	gStateMutex     sync.Mutex
+	gStateCond      *sync.Cond
+	gStateRejecting bool
+	gStateFrozen    bool
 )
 
 func init() {
@@ -73,10 +80,6 @@ func init() {
 	flag.StringVar(&flagControl, "control", "", "TCP host:port to listen on for HTTP control commands")
 	flag.StringVar(&flagListen, "listen", "", "TCP host:port to listen on for proxying to -dial")
 	flag.StringVar(&flagDial, "dial", "", "TCP host:port to connect to")
-}
-
-func init() {
-	gFrozenCond = sync.NewCond(&gFrozenMutex)
 }
 
 func main() {
@@ -95,48 +98,205 @@ func main() {
 		panic(nil)
 	}
 
-	l, err := net.Listen("tcp", flagControl)
+	gExitCh = make(chan struct{})
+	gStateCond = sync.NewCond(&gStateMutex)
+
+	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+	ctx, stop := signal.NotifyContext(ctx, os.Interrupt)
+	defer stop()
+	gRootContext = ctx
+
+	gControlServer.Init(flagControl)
+	err := gControlServer.Run(ctx)
 	if err != nil {
-		Fatal(2, "failed to listen on %q: %v", flagControl, err)
+		Fatal(2, "%v", err)
 		panic(nil)
 	}
 
-	if err := ActionStart(); err != nil {
-		Fatal(2, "failed to listen on %q: %v", flagListen, err)
-		panic(nil)
-	}
-	defer func() { _ = ActionStop() }()
-
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", HandleHelp)
-	mux.HandleFunc("/quit", HandleExit)
-	mux.HandleFunc("/start", HandleAction(ActionStart))
-	mux.HandleFunc("/stop", HandleAction(ActionStop))
-	mux.HandleFunc("/kill-all", HandleAction(ActionKillAll))
-	mux.HandleFunc("/freeze", HandleAction(ActionFreeze))
-	mux.HandleFunc("/thaw", HandleAction(ActionThaw))
-
-	s := &http.Server{
-		Handler:      mux,
-		ReadTimeout:  1 * time.Second,
-		WriteTimeout: 1 * time.Second,
-		IdleTimeout:  60 * time.Second,
-	}
-
-	gAliveChan = make(chan struct{})
-	go func() {
-		<-gAliveChan
-		_ = s.Shutdown(context.Background())
+	needControlClose := true
+	defer func() {
+		if needControlClose {
+			gControlServer.ForceClose()
+		}
 	}()
 
-	err = s.Serve(l)
-	if err != nil && errors.Is(err, http.ErrServerClosed) {
+	gProxyServer.Init(flagListen, flagDial)
+	err = gProxyServer.Run(ctx)
+	if err != nil {
+		Fatal(2, "%v", err)
+		panic(nil)
+	}
+
+	needProxyClose := true
+	defer func() {
+		if needProxyClose {
+			gProxyServer.ForceClose()
+		}
+	}()
+
+	Info("HTTP control server is running on: %s", flagControl)
+	Info("gRPC proxy server is running on: %s", flagListen)
+	Info("gRPC proxy server is connected to: %s", flagDial)
+
+	select {
+	case <-gExitCh:
+	case <-ctx.Done():
+	}
+
+	Info("terminating")
+
+	err = gControlServer.Shutdown(ctx)
+	if IsErrClosed(err) {
 		err = nil
 	}
 	if err != nil {
-		Fatal(2, "failed to serve HTTP on %q: %v", flagControl, err)
-		panic(nil)
+		Warn("failed to gracefully shut down HTTP control server: %v", err)
 	}
+
+	needControlClose = false
+	gControlServer.ForceClose()
+
+	gServerMutex.Lock()
+	defer gServerMutex.Unlock()
+
+	err = gProxyServer.Shutdown(ctx)
+	if IsErrClosed(err) {
+		err = nil
+	}
+	if err != nil {
+		Warn("failed to gracefully shut down gRPC proxy server: %v", err)
+	}
+
+	needProxyClose = false
+	gProxyServer.ForceClose()
+
+	Info("done")
+}
+
+type queryKeyType struct{}
+
+var queryKey queryKeyType
+
+type ActionFunc = func(context.Context) error
+
+func ActionQuit(ctx context.Context) error {
+	close(gExitCh)
+	Info("/quit: proxy is shutting down")
+	return nil
+}
+
+func ActionRestart(ctx context.Context) error {
+	q, _ := ctx.Value(queryKey).(url.Values)
+
+	var sleep time.Duration
+	if q.Has("sleep") {
+		d, err := time.ParseDuration(q.Get("sleep"))
+		if err != nil {
+			return err
+		}
+		if d < 0 {
+			d = 0
+		}
+		sleep = d
+	}
+
+	var forceful bool
+	if q.Has("forceful") {
+		b, err := strconv.ParseBool(q.Get("forceful"))
+		if err != nil {
+			return err
+		}
+		forceful = b
+	}
+
+	gServerMutex.Lock()
+	defer gServerMutex.Unlock()
+
+	Info("/restart: restarting proxy, forceful=%t", forceful)
+
+	mode := "gracefully"
+	fn := gProxyServer.Shutdown
+	if forceful {
+		mode = "forcefully"
+		fn = func(context.Context) error {
+			return gProxyServer.Close()
+		}
+	}
+
+	err := fn(ctx)
+	if IsErrClosed(err) {
+		err = nil
+	}
+	if err != nil {
+		Warn("failed to %s shut down gRPC proxy server: %v", mode, err)
+	}
+
+	gProxyServer.ForceClose()
+
+	if sleep > 0 {
+		Info("/restart: sleeping for %v", sleep)
+		time.Sleep(sleep)
+	}
+
+	err = gProxyServer.Run(gRootContext)
+	if err != nil {
+		close(gExitCh)
+		return err
+	}
+
+	Info("/restart: proxy has been restarted")
+	return nil
+}
+
+func ActionReject(ctx context.Context) error {
+	gStateMutex.Lock()
+	defer gStateMutex.Unlock()
+
+	if gStateRejecting {
+		return nil
+	}
+	gStateRejecting = true
+	Info("/reject: proxy is rejecting requests")
+	return nil
+}
+
+func ActionAccept(ctx context.Context) error {
+	gStateMutex.Lock()
+	defer gStateMutex.Unlock()
+
+	if !gStateRejecting {
+		return nil
+	}
+	gStateRejecting = false
+	Info("/accept: proxy is NOT rejecting requests")
+	return nil
+}
+
+func ActionFreeze(ctx context.Context) error {
+	gStateMutex.Lock()
+	defer gStateMutex.Unlock()
+
+	if gStateFrozen {
+		return nil
+	}
+	gStateFrozen = true
+	Info("/freeze: proxy is stalling requests")
+	return nil
+}
+
+func ActionThaw(ctx context.Context) error {
+	gStateMutex.Lock()
+	defer gStateMutex.Unlock()
+
+	if !gStateFrozen {
+		return nil
+	}
+	gStateFrozen = false
+	gStateCond.Broadcast()
+	Info("/thaw: proxy is NOT stalling requests")
+	return nil
 }
 
 func HandleHelp(w http.ResponseWriter, r *http.Request) {
@@ -155,20 +315,21 @@ func HandleHelp(w http.ResponseWriter, r *http.Request) {
 	w.Write(body)
 }
 
-func HandleExit(w http.ResponseWriter, r *http.Request) {
-	if !CheckMethod(w, r, http.MethodPost) {
-		return
-	}
-	close(gAliveChan)
-	w.WriteHeader(http.StatusNoContent)
-}
-
-func HandleAction(action func() error) http.HandlerFunc {
+func HandleAction(action ActionFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !CheckMethod(w, r, http.MethodPost) {
 			return
 		}
-		if err := action(); err != nil {
+
+		q, err := url.ParseQuery(r.URL.RawQuery)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		ctx := r.Context()
+		ctx = context.WithValue(ctx, queryKey, q)
+		if err := action(ctx); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -188,254 +349,365 @@ func CheckMethod(w http.ResponseWriter, r *http.Request, allowed ...string) bool
 	return false
 }
 
-func ActionStart() error {
-	if gListener != nil {
-		return ErrAlreadyStarted
+type ControlServer struct {
+	listen string
+	mu     sync.Mutex
+	cv     *sync.Cond
+	l      net.Listener
+	quitCh chan struct{}
+	server http.Server
+	mux    http.ServeMux
+}
+
+func (s *ControlServer) Init(listen string) {
+	s.listen = listen
+	s.cv = sync.NewCond(&s.mu)
+	s.l = nil
+	s.quitCh = nil
+	s.server.Handler = &s.mux
+	s.server.ReadTimeout = 30 * time.Second
+	s.server.WriteTimeout = 30 * time.Second
+	s.server.IdleTimeout = 60 * time.Second
+	s.mux.HandleFunc("/", HandleHelp)
+	s.mux.HandleFunc("/quit", HandleAction(ActionQuit))
+	s.mux.HandleFunc("/restart", HandleAction(ActionRestart))
+	s.mux.HandleFunc("/reject", HandleAction(ActionReject))
+	s.mux.HandleFunc("/accept", HandleAction(ActionAccept))
+	s.mux.HandleFunc("/freeze", HandleAction(ActionFreeze))
+	s.mux.HandleFunc("/thaw", HandleAction(ActionThaw))
+}
+
+func (s *ControlServer) Run(ctx context.Context) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.quitCh != nil {
+		panic("BUG! ControlServer is already running")
 	}
 
-	l, err := net.Listen("tcp", flagListen)
+	l, err := gListenConfig.Listen(ctx, "tcp", s.listen)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to listen on %q: %w", s.listen, err)
 	}
 
-	gListener = l
-	gListenerWG.Add(1)
-	go AcceptLoop(l)
+	s.l = l
+	s.quitCh = make(chan struct{})
+
+	s.server.BaseContext = func(l net.Listener) context.Context {
+		return gRootContext
+	}
+
+	go s.serveThread()
+	go s.closeThread(ctx, s.quitCh, &s.server)
 	return nil
 }
 
-func ActionStop() error {
-	if gListener == nil {
-		return ErrAlreadyStopped
+func (s *ControlServer) Shutdown(ctx context.Context) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.quitCh == nil {
+		return nil
 	}
 
-	err := gListener.Close()
-	gListener = nil
-	gListenerWG.Wait()
-	if IsErrClosed(err) {
-		err = nil
+	close(s.quitCh)
+	err := s.server.Shutdown(ctx)
+	for s.quitCh != nil {
+		s.cv.Wait()
 	}
 	return err
 }
 
-func ActionKillAll() error {
-	var pairMap map[uint32]*Pair
-	gPairMapMutex.Lock()
-	pairMap, gPairMap = gPairMap, nil
-	gPairMapMutex.Unlock()
+func (s *ControlServer) Close() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-	for _, pair := range pairMap {
-		pair.Close()
+	if s.quitCh == nil {
+		return nil
 	}
-	gPairWG.Wait()
-	return nil
+
+	close(s.quitCh)
+	err := s.server.Close()
+	for s.quitCh != nil {
+		s.cv.Wait()
+	}
+	return err
 }
 
-func ActionFreeze() error {
-	gFrozenMutex.Lock()
-	defer gFrozenMutex.Unlock()
-
-	if gFrozen {
-		return ErrAlreadyFrozen
+func (s *ControlServer) ForceClose() {
+	err := s.Close()
+	if IsErrClosed(err) {
+		err = nil
 	}
-	gFrozen = true
-	return nil
+	if err != nil {
+		Warn("failed to stop HTTP control server: %v", err)
+	}
 }
 
-func ActionThaw() error {
-	gFrozenMutex.Lock()
-	defer gFrozenMutex.Unlock()
-
-	if !gFrozen {
-		return ErrAlreadyThawed
-	}
-	gFrozen = false
-	gFrozenCond.Broadcast()
-	return nil
-}
-
-func AcceptLoop(l net.Listener) {
-	defer gListenerWG.Done()
-	defer func() {
-		err := l.Close()
+func (s *ControlServer) closeThread(ctx context.Context, quitCh <-chan struct{}, closer io.Closer) {
+	select {
+	case <-ctx.Done():
+		err := closer.Close()
 		if IsErrClosed(err) {
 			err = nil
 		}
 		if err != nil {
-			Warn("error while closing listener: %v", err)
+			Error("failed to stop HTTP control server: %v", err)
+		}
+	case <-quitCh:
+	}
+}
+
+func (s *ControlServer) serveThread() {
+	defer s.finish()
+
+	err := s.server.Serve(s.l)
+	if IsErrClosed(err) {
+		err = nil
+	}
+	if err != nil {
+		Error("failed to serve HTTP control server: %v", err)
+	}
+
+	err = s.l.Close()
+	if IsErrClosed(err) {
+		err = nil
+	}
+	if err != nil {
+		Error("failed to close listener for HTTP control server: %v", err)
+	}
+}
+
+func (s *ControlServer) finish() {
+	s.mu.Lock()
+	s.l = nil
+	s.quitCh = nil
+	s.cv.Broadcast()
+	s.mu.Unlock()
+}
+
+type ProxyServer struct {
+	listen string
+	dial   string
+	mu     sync.Mutex
+	cv     *sync.Cond
+	gc     *grpc.ClientConn
+	gs     *grpc.Server
+	l      net.Listener
+	wc     workflowservice.WorkflowServiceClient
+	ws     workflowservice.WorkflowServiceServer
+	quitCh chan struct{}
+}
+
+func (s *ProxyServer) Init(listen, dial string) {
+	s.listen = listen
+	s.dial = dial
+	s.cv = sync.NewCond(&s.mu)
+}
+
+func (s *ProxyServer) Run(ctx context.Context) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.quitCh != nil {
+		panic("BUG! gRPC proxy server is already running")
+	}
+
+	l, err := gListenConfig.Listen(ctx, "tcp", s.listen)
+	if err != nil {
+		return fmt.Errorf("failed to listen on %q: %w", s.listen, err)
+	}
+
+	needListenerClose := true
+	defer func() {
+		if needListenerClose {
+			err := l.Close()
+			if IsErrClosed(err) {
+				err = nil
+			}
+			if err != nil {
+				Warn("failed to close listener for gRPC proxy server: %v", err)
+			}
 		}
 	}()
 
-	for {
-		AwaitThaw()
-
-		Trace("accepting")
-		c, err := l.Accept()
-		if IsErrClosed(err) {
-			return
-		}
-		if err != nil {
-			Error("accept failed")
-			return
-		}
-
-		id := atomic.AddUint32(&gLastID, 1)
-		Trace("accept complete [#%d]", id)
-
-		pair := &Pair{ID: id, In: c}
-		gPairMapMutex.Lock()
-		if gPairMap == nil {
-			gPairMap = make(map[uint32]*Pair, 4)
-		}
-		gPairMap[id] = pair
-		gPairMapMutex.Unlock()
-
-		gPairWG.Add(1)
-		go pair.Thread(c)
-	}
-}
-
-func AwaitThaw() {
-	gFrozenMutex.Lock()
-	for gFrozen {
-		gFrozenCond.Wait()
-	}
-	gFrozenMutex.Unlock()
-}
-
-type Pair struct {
-	ID    uint32
-	Mutex sync.Mutex
-	In    net.Conn
-	Out   net.Conn
-}
-
-func (pair *Pair) Thread(in net.Conn) {
-	defer gPairWG.Done()
-	defer pair.Close()
-
-	inLA := in.LocalAddr().String()
-	inRA := in.RemoteAddr().String()
-	badge := fmt.Sprintf("#%d; %s->%s", pair.ID, inRA, inLA)
-
-	Trace("dialing [%s]", badge)
-	out, err := net.Dial("tcp", flagDial)
-	if err != nil {
-		Error("failed to dial %q: %v [%s]", flagDial, err, badge)
-		return
-	}
-
-	outLA := out.LocalAddr().String()
-	outRA := out.RemoteAddr().String()
-	badge = badge + "; " + outLA + "->" + outRA
-	Trace("dial complete [%s]", badge)
-
-	if !pair.Activate(out) {
-		_ = out.Close()
-		return
-	}
-
-	ch1 := make(chan struct{})
-	ch2 := make(chan struct{})
-	gPairWG.Add(2)
-	go pair.CopyLoop(ch1, in, out, badge+"; server->client")
-	go pair.CopyLoop(ch2, out, in, badge+"; client->server")
-	select {
-	case <-ch1:
-	case <-ch2:
-	}
-}
-
-func (pair *Pair) Activate(out net.Conn) bool {
-	pair.Mutex.Lock()
-	defer pair.Mutex.Unlock()
-
-	if pair.In == nil {
-		return false
-	}
-	pair.Out = out
-	return true
-}
-
-func (pair *Pair) CopyLoop(ch chan struct{}, dst net.Conn, src net.Conn, badge string) {
-	defer gPairWG.Done()
-	defer close(ch)
-	for {
-		const BufferSize = 1 << 12 // 4 KiB
-		var buffer [BufferSize]byte
-
-		AwaitThaw()
-
-		n, err := src.Read(buffer[:])
-		if IsErrClosed(err) {
-			return
-		}
-		if err != nil {
-			Error("read I/O error: %v [%s]", err, badge)
-			return
-		}
-
-		if n <= 0 {
-			continue
-		}
-
-		AwaitThaw()
-
-		_, err = dst.Write(buffer[:n])
-		if IsErrClosed(err) {
-			return
-		}
-		if err != nil {
-			Error("write I/O error: %v [%s]", err, badge)
-			return
-		}
-	}
-}
-
-func (pair *Pair) Close() {
-	gPairMapMutex.Lock()
-	delete(gPairMap, pair.ID)
-	gPairMapMutex.Unlock()
-
-	var (
-		in  net.Conn
-		out net.Conn
+	gc, err := grpc.DialContext(
+		ctx,
+		s.dial,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithBlock(),
 	)
-	pair.Mutex.Lock()
-	in, pair.In = pair.In, nil
-	out, pair.Out = pair.Out, nil
-	pair.Mutex.Unlock()
-
-	if in == nil {
-		return
+	if err != nil {
+		return fmt.Errorf("failed to dial %q: %w", s.dial, err)
 	}
 
-	inLA := in.LocalAddr().String()
-	inRA := in.RemoteAddr().String()
-	badge := fmt.Sprintf("#%d; %s->%s", pair.ID, inRA, inLA)
-	inErr := in.Close()
+	needClientClose := true
+	defer func() {
+		if needClientClose {
+			err := gc.Close()
+			if IsErrClosed(err) {
+				err = nil
+			}
+			if err != nil {
+				Warn("failed to close gRPC client connection: %v", err)
+			}
+		}
+	}()
 
-	var outErr error
-	if out != nil {
-		outLA := out.LocalAddr().String()
-		outRA := out.RemoteAddr().String()
-		badge = badge + "; " + outLA + "->" + outRA
-		outErr = out.Close()
+	wc := workflowservice.NewWorkflowServiceClient(gc)
+	ws, err := client.NewWorkflowServiceProxyServer(client.WorkflowServiceProxyOptions{Client: wc})
+	if err != nil {
+		return fmt.Errorf("failed to create WorkflowService proxy server: %w", err)
 	}
 
-	if IsErrClosed(inErr) {
-		inErr = nil
+	gs := grpc.NewServer(
+		grpc.UnaryInterceptor(ProxyUnaryInterceptor),
+		grpc.StreamInterceptor(ProxyStreamInterceptor),
+	)
+	grpc_health_v1.RegisterHealthServer(gs, &TrivialHealthServer{})
+	workflowservice.RegisterWorkflowServiceServer(gs, ws)
+
+	needClientClose = false
+	needListenerClose = false
+	s.gc = gc
+	s.gs = gs
+	s.l = l
+	s.wc = wc
+	s.ws = ws
+	s.quitCh = make(chan struct{})
+
+	go s.serveThread()
+	go s.closeThread(ctx, s.quitCh, s.gs)
+	return nil
+}
+
+func (s *ProxyServer) Shutdown(ctx context.Context) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.quitCh == nil {
+		return nil
 	}
-	if IsErrClosed(outErr) {
-		outErr = nil
+
+	close(s.quitCh)
+	s.gs.GracefulStop()
+	for s.quitCh != nil {
+		s.cv.Wait()
 	}
-	if inErr != nil {
-		Warn("error while closing incoming connection: %v [%s]", inErr, badge)
+	return nil
+}
+
+func (s *ProxyServer) Close() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.quitCh == nil {
+		return nil
 	}
-	if outErr != nil {
-		Warn("error while closing outgoing connection: %v [%s]", outErr, badge)
+
+	close(s.quitCh)
+	s.gs.Stop()
+	for s.quitCh != nil {
+		s.cv.Wait()
 	}
-	Trace("connection closed [%s]", badge)
+	return nil
+}
+
+func (s *ProxyServer) ForceClose() {
+	err := s.Close()
+	if IsErrClosed(err) {
+		err = nil
+	}
+	if err != nil {
+		Warn("failed to stop gRPC proxy server: %v", err)
+	}
+}
+
+type Stopper interface {
+	Stop()
+}
+
+func (s *ProxyServer) closeThread(ctx context.Context, quitCh <-chan struct{}, stopper Stopper) {
+	select {
+	case <-ctx.Done():
+		stopper.Stop()
+	case <-quitCh:
+	}
+}
+
+func (s *ProxyServer) serveThread() {
+	defer s.finish()
+
+	err := s.gs.Serve(s.l)
+	if IsErrClosed(err) {
+		err = nil
+	}
+	if err != nil {
+		Error("failed to serve gRPC proxy server: %v", err)
+	}
+
+	err = s.l.Close()
+	if IsErrClosed(err) {
+		err = nil
+	}
+	if err != nil {
+		Warn("failed to close listener for gRPC proxy server: %v", err)
+	}
+
+	err = s.gc.Close()
+	if IsErrClosed(err) {
+		err = nil
+	}
+	if err != nil {
+		Warn("failed to close gRPC client connection: %v", err)
+	}
+}
+
+func (s *ProxyServer) finish() {
+	s.mu.Lock()
+	s.gc = nil
+	s.gs = nil
+	s.l = nil
+	s.wc = nil
+	s.ws = nil
+	s.quitCh = nil
+	s.cv.Broadcast()
+	s.mu.Unlock()
+}
+
+func AwaitPermitted() error {
+	gStateMutex.Lock()
+	defer gStateMutex.Unlock()
+
+	if gStateRejecting {
+		return status.Error(codes.Unavailable, "proxy unavailable")
+	}
+	for gStateFrozen {
+		gStateCond.Wait()
+	}
+	return nil
+}
+
+func ProxyUnaryInterceptor(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
+	if err := AwaitPermitted(); err != nil {
+		return nil, err
+	}
+	return handler(ctx, req)
+}
+
+func ProxyStreamInterceptor(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+	if err := AwaitPermitted(); err != nil {
+		return err
+	}
+	return handler(srv, ss)
+}
+
+type TrivialHealthServer struct {
+	grpc_health_v1.UnimplementedHealthServer
+}
+
+func (*TrivialHealthServer) Check(ctx context.Context, req *grpc_health_v1.HealthCheckRequest) (resp *grpc_health_v1.HealthCheckResponse, err error) {
+	return &grpc_health_v1.HealthCheckResponse{}, nil
 }
 
 func IsErrClosed(err error) bool {
@@ -448,6 +720,8 @@ func IsErrClosed(err error) bool {
 		return true
 	case errors.Is(err, net.ErrClosed):
 		return true
+	case errors.Is(err, http.ErrServerClosed):
+		return true
 	default:
 		return false
 	}
@@ -458,6 +732,10 @@ func Trace(format string, args ...any) {
 		return
 	}
 	fmt.Fprintf(os.Stderr, "trace: "+format+"\n", args...)
+}
+
+func Info(format string, args ...any) {
+	fmt.Fprintf(os.Stderr, "info: "+format+"\n", args...)
 }
 
 func Warn(format string, args ...any) {

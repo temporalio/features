@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -61,6 +60,7 @@ type Summary []SummaryEntry
 type RunConfig struct {
 	PrepareConfig
 	Server               string
+	DirectServer         string
 	Namespace            string
 	ClientCertPath       string
 	ClientKeyPath        string
@@ -73,11 +73,31 @@ type RunConfig struct {
 	ProxyListenHostPort  string
 }
 
-func (config RunConfig) ProxyControlURI() string {
-	if config.ProxyControlHostPort == "" {
-		return ""
+func (config RunConfig) appendFlags(out []string) ([]string, error) {
+	out = append(out, "--server", config.Server)
+	out = append(out, "--direct-server", config.DirectServer)
+	out = append(out, "--namespace", config.Namespace)
+	if config.ClientCertPath != "" {
+		clientCertPath, err := filepath.Abs(config.ClientCertPath)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, "--client-cert-path", clientCertPath)
 	}
-	return "http://" + config.ProxyControlHostPort + "/"
+	if config.ClientKeyPath != "" {
+		clientKeyPath, err := filepath.Abs(config.ClientKeyPath)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, "--client-key-path", clientKeyPath)
+	}
+	if config.SummaryURI != "" {
+		out = append(out, "--summary-uri", config.SummaryURI)
+	}
+	if config.ProxyControlHostPort != "" {
+		out = append(out, "--proxy-control-uri", "http://"+config.ProxyControlHostPort+"/")
+	}
+	return out, nil
 }
 
 // dockerRunFlags are a subset of flags that apply when running in a docker container
@@ -267,6 +287,7 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 			return err
 		}
 	}
+	r.config.DirectServer = r.config.Server
 
 	if r.config.ProxyExecutablePath == proxyExecutableAuto {
 		const suggestedPath = "./temporal-features-test-proxy"
@@ -308,6 +329,8 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 		r.config.Server = r.config.ProxyListenHostPort
 	}
 
+	defer func() { _ = r.stopProxy() }()
+
 	// Ensure any created temp dir is cleaned on ctrl-c or normal exit
 	if r.config.DirName == "" && !r.config.RetainTempDir {
 		c := make(chan os.Signal, 1)
@@ -348,7 +371,7 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 	}
 
 	if r.proxy != nil {
-		err = r.stopProxy(ctx)
+		err = r.stopProxy()
 		if err != nil {
 			return err
 		}
@@ -678,41 +701,12 @@ func (r *Runner) startProxy(ctx context.Context) error {
 	return nil
 }
 
-func (r *Runner) stopProxy(ctx context.Context) error {
-	needKill := true
-	defer func() {
-		if needKill {
-			_ = r.proxy.Process.Kill()
-		}
-	}()
-
-	quitMethod := http.MethodPost
-	quitURL := "http://" + r.config.ProxyControlHostPort + "/quit"
-	req, err := http.NewRequestWithContext(ctx, quitMethod, quitURL, nil)
-	if err != nil {
-		return fmt.Errorf("proxy subprocess: method %q, URL %q: failed to construct HTTP request: %w", quitMethod, quitURL, err)
+func (r *Runner) stopProxy() error {
+	if err := r.proxy.Process.Signal(os.Interrupt); err != nil {
+		return fmt.Errorf("failed to interrupt proxy subprocess: %w", err)
 	}
 
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("proxy subprocess: method %q, URL %q: failed to send HTTP request: %w", quitMethod, quitURL, err)
-	}
-
-	raw, err := io.ReadAll(resp.Body)
-	_ = resp.Body.Close()
-	if err != nil {
-		return fmt.Errorf("proxy subprocess: method %q, URL %q: failed to read HTTP response body: %w", quitMethod, quitURL, err)
-	}
-
-	if resp.StatusCode >= 400 {
-		contentType := resp.Header.Get("Content-Type")
-		body := string(raw)
-		return fmt.Errorf("proxy subprocess: method %q, URL %q: quit command responded with HTTP %03d\n\tcontentType = %q\n\tbody = %q", quitMethod, quitURL, resp.StatusCode, contentType, body)
-	}
-
-	needKill = false
-	err = r.proxy.Wait()
-	if err != nil {
+	if err := r.proxy.Wait(); err != nil {
 		return fmt.Errorf("proxy subprocess failed: %w", err)
 	}
 

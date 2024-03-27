@@ -14,6 +14,10 @@ public static class App
         description: "The host:port of the server")
     { IsRequired = true };
 
+    private static readonly Option<string> directServerOption = new(
+        name: "--direct-server",
+        description: "The host:port of the server, bypassing the temporal-features-test-proxy");
+
     private static readonly Option<string> namespaceOption = new(
         name: "--namespace",
         description: "The namespace to use")
@@ -57,6 +61,7 @@ public static class App
     {
         var cmd = new RootCommand(".NET features harness");
         cmd.AddOption(serverOption);
+        cmd.AddOption(directServerOption);
         cmd.AddOption(namespaceOption);
         cmd.AddOption(clientCertPathOption);
         cmd.AddOption(clientKeyPathOption);

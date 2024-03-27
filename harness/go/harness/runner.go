@@ -10,6 +10,7 @@ import (
 	"path"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -35,10 +36,11 @@ type skipFeatureError struct {
 // Runner represents a runner that can run a feature.
 type Runner struct {
 	RunnerConfig
-	Client     client.Client
-	Worker     worker.Worker
-	Feature    *PreparedFeature
-	CreateTime time.Time
+	Client       client.Client
+	DirectClient client.Client
+	Worker       worker.Worker
+	Feature      *PreparedFeature
+	CreateTime   time.Time
 
 	Assert        *assert.Assertions
 	LastAssertErr error
@@ -48,6 +50,7 @@ type Runner struct {
 // RunnerConfig is configuration for NewRunner.
 type RunnerConfig struct {
 	ServerHostPort  string
+	DirectHostPort  string
 	Namespace       string
 	TaskQueue       string
 	ClientCertPath  string
@@ -102,6 +105,17 @@ func NewRunner(config RunnerConfig, feature *PreparedFeature) (*Runner, error) {
 
 	if r.Client, err = client.Dial(r.Feature.ClientOptions); err != nil {
 		return nil, fmt.Errorf("failed creating client: %w", err)
+	}
+
+	if r.DirectHostPort == "" || r.DirectHostPort == r.ServerHostPort {
+		r.DirectClient = r.Client
+	} else {
+		savedValue := r.Feature.ClientOptions.HostPort
+		r.Feature.ClientOptions.HostPort = r.DirectHostPort
+		if r.DirectClient, err = client.Dial(r.Feature.ClientOptions); err != nil {
+			return nil, fmt.Errorf("failed creating client: %w", err)
+		}
+		r.Feature.ClientOptions.HostPort = savedValue
 	}
 
 	// Create worker
@@ -361,16 +375,18 @@ func (r *Runner) DoUntilEventually(
 	}
 }
 
-func (r *Runner) ProxyStart(ctx context.Context) error {
-	return r.proxySendCommand(ctx, "start")
+func (r *Runner) ProxyRestart(ctx context.Context, sleep time.Duration, forceful bool) error {
+	sleepStr := sleep.String()
+	forcefulStr := strconv.FormatBool(forceful)
+	return r.proxySendCommand(ctx, "restart", "sleep", sleepStr, "forceful", forcefulStr)
 }
 
-func (r *Runner) ProxyStop(ctx context.Context) error {
-	return r.proxySendCommand(ctx, "stop")
+func (r *Runner) ProxyReject(ctx context.Context) error {
+	return r.proxySendCommand(ctx, "reject")
 }
 
-func (r *Runner) ProxyKillAll(ctx context.Context) error {
-	return r.proxySendCommand(ctx, "kill-all")
+func (r *Runner) ProxyAccept(ctx context.Context) error {
+	return r.proxySendCommand(ctx, "accept")
 }
 
 func (r *Runner) ProxyFreeze(ctx context.Context) error {
@@ -381,7 +397,41 @@ func (r *Runner) ProxyThaw(ctx context.Context) error {
 	return r.proxySendCommand(ctx, "thaw")
 }
 
-func (r *Runner) proxySendCommand(ctx context.Context, command string) error {
+func (r *Runner) ProxyRejectAndAccept(ctx context.Context, wg *sync.WaitGroup, sleep time.Duration) error {
+	if err := r.ProxyReject(ctx); err != nil {
+		return err
+	}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		time.Sleep(sleep)
+		ctx := context.Background()
+		ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+		defer cancel()
+		_ = r.ProxyAccept(ctx)
+	}()
+	return nil
+}
+
+func (r *Runner) ProxyFreezeAndThaw(ctx context.Context, wg *sync.WaitGroup, sleep time.Duration) error {
+	if err := r.ProxyFreeze(ctx); err != nil {
+		return err
+	}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		time.Sleep(sleep)
+		ctx := context.Background()
+		ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+		defer cancel()
+		_ = r.ProxyThaw(ctx)
+	}()
+	return nil
+}
+
+func (r *Runner) proxySendCommand(ctx context.Context, command string, args ...string) error {
 	if r.ProxyControlURL == nil {
 		return r.Skip("temporal-features-test-proxy is required for this test")
 	}
@@ -389,6 +439,14 @@ func (r *Runner) proxySendCommand(ctx context.Context, command string) error {
 	var u url.URL
 	u = *r.ProxyControlURL
 	u.Path = path.Join(u.Path, command)
+	if numArgs := len(args); numArgs != 0 {
+		q := make(url.Values, numArgs/2)
+		for i := 0; i < numArgs; i += 2 {
+			key, value := args[i], args[i+1]
+			q.Add(key, value)
+		}
+		u.RawQuery = q.Encode()
+	}
 
 	reqMethod := http.MethodPost
 	reqURL := u.String()
@@ -461,7 +519,12 @@ func (r *Runner) StartWorker() error {
 	if r.Worker != nil {
 		return errors.New("worker is currently running, cannot start a new one")
 	}
-	r.Worker = worker.New(r.Client, r.RunnerConfig.TaskQueue, r.Feature.WorkerOptions)
+
+	c := r.DirectClient
+	if r.Feature.WorkerUsesProxy {
+		c = r.Client
+	}
+	r.Worker = worker.New(c, r.RunnerConfig.TaskQueue, r.Feature.WorkerOptions)
 
 	// Register the workflows and activities
 	for _, workflow := range r.Feature.Workflows {

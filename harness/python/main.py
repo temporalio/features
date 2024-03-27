@@ -16,6 +16,7 @@ async def run():
     # Parse args
     parser = argparse.ArgumentParser()
     parser.add_argument("--server", help="The host:port of the server", required=True)
+    parser.add_argument("--direct-server", help="The host:port of the server, bypassing the temporal-features-test-proxy")
     parser.add_argument("--namespace", help="The namespace to use", required=True)
     parser.add_argument(
         "--client-cert-path", help="Path to a client certificate for TLS"

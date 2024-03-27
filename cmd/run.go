@@ -702,6 +702,10 @@ func (r *Runner) startProxy(ctx context.Context) error {
 }
 
 func (r *Runner) stopProxy() error {
+	if r.proxy == nil {
+		return nil
+	}
+
 	if err := r.proxy.Process.Signal(os.Interrupt); err != nil {
 		return fmt.Errorf("failed to interrupt proxy subprocess: %w", err)
 	}

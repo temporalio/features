@@ -26,6 +26,10 @@ async def run():
     )
     parser.add_argument("--client-key-path", help="Path to a client key for TLS")
     parser.add_argument(
+        "--summary-uri",
+        help="where to stream the test summary JSONL (not implemented)",
+    )
+    parser.add_argument(
         "--proxy-control-uri",
         help="Base URI for simulating network outages via temporal-features-test-proxy",
     )

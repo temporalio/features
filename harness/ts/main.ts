@@ -14,6 +14,7 @@ async function run() {
     .requiredOption('--namespace <namespace>', 'The namespace to use')
     .option('--client-cert-path <clientCertPath>', 'Path to a client certificate for TLS')
     .option('--client-key-path <clientKeyPath>', 'Path to a client key for TLS')
+    .option('--summary-uri <uri>', 'where to stream the test summary JSONL (not implemented)')
     .option('--proxy-control-uri <uri>', 'Base URL for simulating network outages via temporal-features-test-proxy')
     .argument('<features...>', 'Features as dir + ":" + task queue');
 

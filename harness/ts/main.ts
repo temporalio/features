@@ -10,9 +10,12 @@ async function run() {
   const program = new Command();
   program
     .requiredOption('--server <address>', 'The host:port of the server')
+    .option('--direct-server <address>', 'The host:port of the server, bypassing the temporal-features-test-proxy')
     .requiredOption('--namespace <namespace>', 'The namespace to use')
     .option('--client-cert-path <clientCertPath>', 'Path to a client certificate for TLS')
     .option('--client-key-path <clientKeyPath>', 'Path to a client key for TLS')
+    .option('--summary-uri <uri>', 'where to stream the test summary JSONL (not implemented)')
+    .option('--proxy-control-uri <uri>', 'Base URL for simulating network outages via temporal-features-test-proxy')
     .argument('<features...>', 'Features as dir + ":" + task queue');
 
   const opts = program.parse(process.argv).opts<{
@@ -20,6 +23,7 @@ async function run() {
     namespace: string;
     clientCertPath: string;
     clientKeyPath: string;
+    proxyControlUri: string;
     featureAndTaskQueues: string[];
   }>();
   opts.featureAndTaskQueues = program.args;

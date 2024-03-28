@@ -12,11 +12,10 @@ import java.util.function.Consumer;
 
 public interface Feature {
 
-  @SuppressWarnings("unchecked")
   default <T> T activities(Class<T> activityIface, Consumer<ActivityOptions.Builder> builderFunc) {
     var builder = ActivityOptions.newBuilder();
     builderFunc.accept(builder);
-    return (T) Workflow.newActivityStub(activityIface, builder.build());
+    return Workflow.newActivityStub(activityIface, builder.build());
   }
 
   default void workflowServiceOptions(WorkflowServiceStubsOptions.Builder builder) {}
@@ -28,6 +27,14 @@ public interface Feature {
   default void workerOptions(WorkerOptions.Builder builder) {}
 
   default void workflowOptions(WorkflowOptions.Builder builder) {}
+
+  default boolean workerUsesProxy() {
+    return false;
+  }
+
+  default boolean initiatorUsesProxy() {
+    return true;
+  }
 
   default Run execute(Runner runner) throws Exception {
     return runner.executeSingleParameterlessWorkflow();

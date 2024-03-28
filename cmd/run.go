@@ -10,6 +10,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"runtime"
@@ -30,8 +31,9 @@ import (
 )
 
 const (
-	summaryListenAddr = "127.0.0.1:0"
-	FeaturePassed     = "PASSED"
+	proxyExecutableAuto = "auto"
+	freePortListenAddr  = "127.0.0.1:0"
+	FeaturePassed       = "PASSED"
 )
 
 func runCmd() *cli.Command {
@@ -57,14 +59,45 @@ type Summary []SummaryEntry
 // RunConfig is configuration for NewRunner.
 type RunConfig struct {
 	PrepareConfig
-	Server              string
-	Namespace           string
-	ClientCertPath      string
-	ClientKeyPath       string
-	GenerateHistory     bool
-	DisableHistoryCheck bool
-	RetainTempDir       bool
-	SummaryURI          string
+	Server               string
+	DirectServer         string
+	Namespace            string
+	ClientCertPath       string
+	ClientKeyPath        string
+	GenerateHistory      bool
+	DisableHistoryCheck  bool
+	RetainTempDir        bool
+	SummaryURI           string
+	ProxyExecutablePath  string
+	ProxyControlHostPort string
+	ProxyListenHostPort  string
+}
+
+func (config RunConfig) appendFlags(out []string) ([]string, error) {
+	out = append(out, "--server="+config.Server)
+	out = append(out, "--direct-server="+config.DirectServer)
+	out = append(out, "--namespace="+config.Namespace)
+	if config.ClientCertPath != "" {
+		clientCertPath, err := filepath.Abs(config.ClientCertPath)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, "--client-cert-path="+clientCertPath)
+	}
+	if config.ClientKeyPath != "" {
+		clientKeyPath, err := filepath.Abs(config.ClientKeyPath)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, "--client-key-path="+clientKeyPath)
+	}
+	if config.SummaryURI != "" {
+		out = append(out, "--summary-uri="+config.SummaryURI)
+	}
+	if config.ProxyControlHostPort != "" {
+		out = append(out, "--proxy-control-uri=http://"+config.ProxyControlHostPort+"/")
+	}
+	return out, nil
 }
 
 // dockerRunFlags are a subset of flags that apply when running in a docker container
@@ -122,6 +155,22 @@ func (r *RunConfig) flags() []cli.Flag {
 			Usage:       "Relative directory already prepared. Cannot include version with this.",
 			Destination: &r.DirName,
 		},
+		&cli.StringFlag{
+			Name:        "proxy-executable-path",
+			Usage:       "Path of the temporal-features-test-proxy executable for connectivity/retry tests (optional)",
+			Value:       proxyExecutableAuto,
+			Destination: &r.ProxyExecutablePath,
+		},
+		&cli.StringFlag{
+			Name:        "proxy-control-hostport",
+			Usage:       "explicit host:port for controlling the temporal-features-test-proxy (optional)",
+			Destination: &r.ProxyControlHostPort,
+		},
+		&cli.StringFlag{
+			Name:        "proxy-listen-hostport",
+			Usage:       "explicit host:port for using the temporal-features-test-proxy (optional)",
+			Destination: &r.ProxyListenHostPort,
+		},
 	}, r.dockerRunFlags()...)
 }
 
@@ -133,6 +182,7 @@ type Runner struct {
 	rootDir    string
 	createTime time.Time
 	program    sdkbuild.Program
+	proxy      *exec.Cmd
 }
 
 // NewRunner creates a new runner for the given config.
@@ -152,6 +202,22 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 	var err error
 	if r.config.Lang, err = normalizeLangName(r.config.Lang); err != nil {
 		return err
+	}
+
+	var fn func(context.Context, *cmd.Run) error
+	switch r.config.Lang {
+	case "go":
+		fn = r.runGo
+	case "java":
+		fn = r.runJava
+	case "ts":
+		fn = r.runTypeScript
+	case "py":
+		fn = r.runPython
+	case "cs":
+		fn = r.runDotNet
+	default:
+		return fmt.Errorf("unrecognized language")
 	}
 
 	// Cannot generate history if a version isn't provided explicitly
@@ -221,6 +287,49 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 			return err
 		}
 	}
+	r.config.DirectServer = r.config.Server
+
+	if r.config.ProxyExecutablePath == proxyExecutableAuto {
+		const suggestedPath = "./temporal-features-test-proxy"
+		fi, err := os.Stat(suggestedPath)
+		if err == nil && fi.Mode().IsRegular() && (fi.Mode()&0o111) != 0 {
+			r.config.ProxyExecutablePath = suggestedPath
+		}
+	}
+	if r.config.ProxyExecutablePath == proxyExecutableAuto {
+		const suggestedPath = "./temporal-features-test-proxy.exe"
+		fi, err := os.Stat(suggestedPath)
+		if err == nil && fi.Mode().IsRegular() {
+			r.config.ProxyExecutablePath = suggestedPath
+		}
+	}
+	if r.config.ProxyExecutablePath == proxyExecutableAuto {
+		r.config.ProxyExecutablePath = ""
+	}
+	if r.config.ProxyExecutablePath != "" {
+		if r.config.ProxyControlHostPort == "" {
+			r.config.ProxyControlHostPort, err = pickFreePort()
+			if err != nil {
+				return err
+			}
+		}
+
+		if r.config.ProxyListenHostPort == "" {
+			r.config.ProxyListenHostPort, err = pickFreePort()
+			if err != nil {
+				return err
+			}
+		}
+
+		err = r.startProxy(ctx)
+		if err != nil {
+			return err
+		}
+		r.log.Info("Started proxy", "Path", r.proxy.Path, "Args", r.proxy.Args)
+		r.config.Server = r.config.ProxyListenHostPort
+	}
+
+	defer func() { _ = r.stopProxy() }()
 
 	// Ensure any created temp dir is cleaned on ctrl-c or normal exit
 	if r.config.DirName == "" && !r.config.RetainTempDir {
@@ -234,70 +343,20 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 		defer r.destroyTempDir()
 	}
 
-	l, err := net.Listen("tcp", summaryListenAddr)
+	summaryListener, err := net.Listen("tcp", freePortListenAddr)
 	if err != nil {
 		return err
 	}
-	defer l.Close()
+	defer summaryListener.Close()
 	summaryChan := make(chan Summary)
-	go r.summaryServer(l, summaryChan)
-	r.config.SummaryURI = "tcp://" + l.Addr().String()
+	go r.summaryServer(summaryListener, summaryChan)
+	r.config.SummaryURI = "tcp://" + summaryListener.Addr().String()
 
-	err = nil
-	switch r.config.Lang {
-	case "go":
-		// If there's a version or prepared dir we run external, otherwise we run local
-		if r.config.Version != "" || r.config.DirName != "" {
-			if r.config.DirName != "" {
-				r.program, err = sdkbuild.GoProgramFromDir(filepath.Join(r.rootDir, r.config.DirName))
-			}
-			if err == nil {
-				err = r.RunGoExternal(ctx, run)
-			}
-		} else {
-			err = cmd.NewRunner(cmd.RunConfig{
-				Server:         r.config.Server,
-				Namespace:      r.config.Namespace,
-				ClientCertPath: r.config.ClientCertPath,
-				ClientKeyPath:  r.config.ClientKeyPath,
-				SummaryURI:     r.config.SummaryURI,
-			}).Run(ctx, run)
-		}
-	case "java":
-		if r.config.DirName != "" {
-			r.program, err = sdkbuild.JavaProgramFromDir(filepath.Join(r.rootDir, r.config.DirName))
-		}
-		if err == nil {
-			err = r.RunJavaExternal(ctx, run)
-		}
-	case "ts":
-		if r.config.DirName != "" {
-			r.program, err = sdkbuild.TypeScriptProgramFromDir(filepath.Join(r.rootDir, r.config.DirName))
-		}
-		if err == nil {
-			err = r.RunTypeScriptExternal(ctx, run)
-		}
-	case "py":
-		if r.config.DirName != "" {
-			r.program, err = sdkbuild.PythonProgramFromDir(filepath.Join(r.rootDir, r.config.DirName))
-		}
-		if err == nil {
-			err = r.RunPythonExternal(ctx, run)
-		}
-	case "cs":
-		if r.config.DirName != "" {
-			r.program, err = sdkbuild.DotNetProgramFromDir(filepath.Join(r.rootDir, r.config.DirName))
-		}
-		if err == nil {
-			err = r.RunDotNetExternal(ctx, run)
-		}
-	default:
-		err = fmt.Errorf("unrecognized language")
-	}
+	err = fn(ctx, run)
 	if err != nil {
 		return err
 	}
-	l.Close()
+	summaryListener.Close()
 	summary, ok := <-summaryChan
 	if !ok {
 		r.log.Debug("did not receive a test run summary - adopting legacy behavior of assuming no tests were skipped")
@@ -305,7 +364,86 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 			summary = append(summary, SummaryEntry{Name: feature.Dir, Outcome: FeaturePassed})
 		}
 	}
-	return r.handleHistory(ctx, run, summary)
+
+	err = r.handleHistory(ctx, run, summary)
+	if err != nil {
+		return err
+	}
+
+	if r.proxy != nil {
+		err = r.stopProxy()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (r *Runner) runGo(ctx context.Context, run *cmd.Run) error {
+	// If there's a version or prepared dir we run external, otherwise we run local
+	if r.config.Version == "" && r.config.DirName == "" {
+		return cmd.NewRunner(cmd.RunConfig{
+			Server:         r.config.Server,
+			Namespace:      r.config.Namespace,
+			ClientCertPath: r.config.ClientCertPath,
+			ClientKeyPath:  r.config.ClientKeyPath,
+			SummaryURI:     r.config.SummaryURI,
+		}).Run(ctx, run)
+	}
+
+	if r.config.DirName != "" {
+		var err error
+		r.program, err = sdkbuild.GoProgramFromDir(filepath.Join(r.rootDir, r.config.DirName))
+		if err != nil {
+			return err
+		}
+	}
+	return r.RunGoExternal(ctx, run)
+}
+
+func (r *Runner) runJava(ctx context.Context, run *cmd.Run) error {
+	if r.config.DirName != "" {
+		var err error
+		r.program, err = sdkbuild.JavaProgramFromDir(filepath.Join(r.rootDir, r.config.DirName))
+		if err != nil {
+			return err
+		}
+	}
+	return r.RunJavaExternal(ctx, run)
+}
+
+func (r *Runner) runTypeScript(ctx context.Context, run *cmd.Run) error {
+	if r.config.DirName != "" {
+		var err error
+		r.program, err = sdkbuild.TypeScriptProgramFromDir(filepath.Join(r.rootDir, r.config.DirName))
+		if err != nil {
+			return err
+		}
+	}
+	return r.RunTypeScriptExternal(ctx, run)
+}
+
+func (r *Runner) runPython(ctx context.Context, run *cmd.Run) error {
+	if r.config.DirName != "" {
+		var err error
+		r.program, err = sdkbuild.PythonProgramFromDir(filepath.Join(r.rootDir, r.config.DirName))
+		if err != nil {
+			return err
+		}
+	}
+	return r.RunPythonExternal(ctx, run)
+}
+
+func (r *Runner) runDotNet(ctx context.Context, run *cmd.Run) error {
+	if r.config.DirName != "" {
+		var err error
+		r.program, err = sdkbuild.DotNetProgramFromDir(filepath.Join(r.rootDir, r.config.DirName))
+		if err != nil {
+			return err
+		}
+	}
+	return r.RunDotNetExternal(ctx, run)
 }
 
 func (r *Runner) handleHistory(ctx context.Context, run *cmd.Run, summary Summary) error {
@@ -536,4 +674,59 @@ func (s Summary) Find(featureName string) (*SummaryEntry, bool) {
 		}
 	}
 	return nil, false
+}
+
+func (r *Runner) startProxy(ctx context.Context) error {
+	execPath, err := exec.LookPath(r.config.ProxyExecutablePath)
+	if err != nil {
+		return err
+	}
+
+	r.proxy = exec.CommandContext(
+		ctx,
+		execPath,
+		"-control", r.config.ProxyControlHostPort,
+		"-listen", r.config.ProxyListenHostPort,
+		"-dial", r.config.Server,
+	)
+	if err != nil {
+		return err
+	}
+
+	r.proxy.Stderr = os.Stderr
+	err = r.proxy.Start()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *Runner) stopProxy() error {
+	if r.proxy == nil {
+		return nil
+	}
+
+	if err := r.proxy.Process.Signal(os.Interrupt); err != nil {
+		return fmt.Errorf("failed to interrupt proxy subprocess: %w", err)
+	}
+
+	if err := r.proxy.Wait(); err != nil {
+		return fmt.Errorf("proxy subprocess failed: %w", err)
+	}
+
+	return nil
+}
+
+func pickFreePort() (string, error) {
+	addr, err := net.ResolveTCPAddr("tcp", freePortListenAddr)
+	if err != nil {
+		return "", err
+	}
+	l, err := net.ListenTCP("tcp", addr)
+	if err != nil {
+		return "", err
+	}
+	hostPort := l.Addr().String()
+	_ = l.Close()
+	return hostPort, nil
 }

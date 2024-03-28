@@ -1,6 +1,7 @@
 # No exe or temp dir
 /temporal-features*
 /cloned-repo-*
+/program-*
 
 # Build Java stuff
 build

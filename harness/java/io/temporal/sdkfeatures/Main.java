@@ -10,6 +10,8 @@ import io.temporal.serviceclient.SimpleSslContextBuilder;
 import java.io.*;
 import java.net.Socket;
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -57,7 +59,8 @@ public class Main implements Runnable {
       switch (uri.getScheme()) {
         case "tcp":
           Socket socket = new Socket(uri.getHost(), uri.getPort());
-          return new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF-8"));
+          return new BufferedWriter(
+              new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8));
         case "file":
           FileWriter fileWriter = new FileWriter(uri.getPath(), true);
           return new BufferedWriter(fileWriter);
@@ -74,8 +77,18 @@ public class Main implements Runnable {
   @Option(names = "--summary-uri", description = "The URL of the summary server", required = true)
   private String summaryUri;
 
+  @Option(
+      names = "--proxy-control-uri",
+      description = "The URL of temporal-features-test-proxy (optional)")
+  private String proxyControlUri;
+
   @Option(names = "--server", description = "The host:port of the server", required = true)
   private String server;
+
+  @Option(
+      names = "--direct-server",
+      description = "The host:port of the server, bypassing the temporal-features-test-proxy")
+  private String directServer;
 
   @Option(names = "--namespace", description = "The namespace to use", required = true)
   private String namespace;
@@ -110,6 +123,19 @@ public class Main implements Runnable {
       throw new RuntimeException("Client cert path must be specified since key path is");
     }
 
+    // Parse proxyControlUri if present
+    URI proxyControl = null;
+    if (proxyControlUri != null && !proxyControlUri.isEmpty()) {
+      try {
+        proxyControl = new URI(proxyControlUri);
+      } catch (URISyntaxException e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    final String processedDirectServer =
+        (directServer != null && !directServer.isEmpty()) ? directServer : server;
+
     try (BufferedWriter writer = createSummaryServerWriter()) {
       ObjectMapper mapper = new ObjectMapper();
 
@@ -134,8 +160,10 @@ public class Main implements Runnable {
         log.info("Running feature {}", feature.dir);
         var config = new Runner.Config();
         config.serverHostPort = server;
+        config.directHostPort = processedDirectServer;
         config.namespace = namespace;
         config.sslContext = sslContext;
+        config.proxyControl = proxyControl;
         config.taskQueue = pieces[1];
         Outcome outcome = Outcome.PASSED;
         String message = "";

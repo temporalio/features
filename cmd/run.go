@@ -74,28 +74,28 @@ type RunConfig struct {
 }
 
 func (config RunConfig) appendFlags(out []string) ([]string, error) {
-	out = append(out, "--server", config.Server)
-	out = append(out, "--direct-server", config.DirectServer)
-	out = append(out, "--namespace", config.Namespace)
+	out = append(out, "--server="+config.Server)
+	out = append(out, "--direct-server="+config.DirectServer)
+	out = append(out, "--namespace="+config.Namespace)
 	if config.ClientCertPath != "" {
 		clientCertPath, err := filepath.Abs(config.ClientCertPath)
 		if err != nil {
 			return nil, err
 		}
-		out = append(out, "--client-cert-path", clientCertPath)
+		out = append(out, "--client-cert-path="+clientCertPath)
 	}
 	if config.ClientKeyPath != "" {
 		clientKeyPath, err := filepath.Abs(config.ClientKeyPath)
 		if err != nil {
 			return nil, err
 		}
-		out = append(out, "--client-key-path", clientKeyPath)
+		out = append(out, "--client-key-path="+clientKeyPath)
 	}
 	if config.SummaryURI != "" {
-		out = append(out, "--summary-uri", config.SummaryURI)
+		out = append(out, "--summary-uri="+config.SummaryURI)
 	}
 	if config.ProxyControlHostPort != "" {
-		out = append(out, "--proxy-control-uri", "http://"+config.ProxyControlHostPort+"/")
+		out = append(out, "--proxy-control-uri=http://"+config.ProxyControlHostPort+"/")
 	}
 	return out, nil
 }

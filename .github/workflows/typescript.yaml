@@ -94,7 +94,7 @@ jobs:
       - name: Start containerized server and dependencies
         if: inputs.docker-image-artifact-name
         run: |
-          docker-compose \
+          docker compose \
             -f ./dockerfiles/docker-compose.for-server-image.yaml \
             -f /tmp/server-docker/docker-compose.yml \
             up -d temporal-server cassandra elasticsearch
@@ -107,11 +107,11 @@ jobs:
       - name: Run containerized SDK-features tests
         if: inputs.docker-image-artifact-name
         run: |
-          docker-compose \
+          docker compose \
             -f ./dockerfiles/docker-compose.for-server-image.yaml \
             -f /tmp/server-docker/docker-compose.yml \
             up --no-log-prefix --exit-code-from features-tests-ts features-tests-ts
 
       - name: Tear down docker compose
         if: inputs.docker-image-artifact-name && (success() || failure())
-        run: docker-compose -f ./dockerfiles/docker-compose.for-server-image.yaml -f /tmp/server-docker/docker-compose.yml down -v
+        run: docker compose -f ./dockerfiles/docker-compose.for-server-image.yaml -f /tmp/server-docker/docker-compose.yml down -v

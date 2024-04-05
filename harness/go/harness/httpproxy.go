@@ -1,10 +1,12 @@
 package harness
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
+	"strings"
 	"sync/atomic"
 
 	"go.temporal.io/sdk/log"
@@ -14,7 +16,8 @@ import (
 type HTTPConnectProxyServer struct {
 	Address string
 	// This is incremented on each successful CONNECT.
-	ConnectionsTunneled atomic.Uint32
+	UnauthedConnectionsTunneled atomic.Uint32
+	AuthedConnectionsTunneled   atomic.Uint32
 
 	server http.Server
 	log    log.Logger
@@ -57,6 +60,20 @@ func (h *HTTPConnectProxyServer) handler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	h.log.Debug("Got HTTP proxy request", "host", r.Host)
+
+	// Check auth if present
+	hasAuth := false
+	if auth := r.Header.Get("Proxy-Authorization"); auth != "" {
+		hasAuth = true
+		// Works the same as regular auth header
+		b, _ := base64.StdEncoding.DecodeString(strings.TrimPrefix(auth, "Basic "))
+		parts := strings.SplitN(string(b), ":", 2)
+		if len(parts) != 2 || parts[0] != "proxy-user" || parts[1] != "proxy-pass" {
+			http.Error(w, "Auth failed", http.StatusProxyAuthRequired)
+			return
+		}
+	}
+
 	hijacker, ok := w.(http.Hijacker)
 	if !ok {
 		panic("no hijack iface")
@@ -75,14 +92,19 @@ func (h *HTTPConnectProxyServer) handler(w http.ResponseWriter, r *http.Request)
 
 	targetConn, err := net.Dial("tcp", r.URL.Host)
 	if err != nil {
-		panic(fmt.Sprintf("net.Dial(%q) failed: %v", r.URL.Host, err))
+		http.Error(w, fmt.Sprintf("Upstream conn failed: %v", err), http.StatusBadGateway)
+		return
 	}
 
 	if err := res.Write(clientConn); err != nil {
 		panic(fmt.Sprintf("Writing 200 OK failed: %v", err))
 	}
 
-	h.ConnectionsTunneled.Add(1)
+	if hasAuth {
+		h.AuthedConnectionsTunneled.Add(1)
+	} else {
+		h.UnauthedConnectionsTunneled.Add(1)
+	}
 	go io.Copy(targetConn, clientConn)
 	go func() {
 		io.Copy(clientConn, targetConn)

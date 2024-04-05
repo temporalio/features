@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 
 	"github.com/google/uuid"
@@ -16,13 +17,17 @@ import (
 
 var Feature = harness.Feature{
 	Workflows:       Workflow,
-	Execute:         Execute,
+	Execute:         HTTPProxyTest{}.Execute,
 	ExpectRunResult: "done",
 }
 
 func Workflow(ctx workflow.Context) (string, error) { return "done", nil }
 
-func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error) {
+type HTTPProxyTest struct {
+	UseAuth bool
+}
+
+func (h HTTPProxyTest) Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error) {
 	// Since HTTP proxy in gRPC only works with the environment variable, we have
 	// to test in a subprocess to not infect other things in this process. The
 	// subprocess will make the client call to run the workflow, this will just
@@ -54,8 +59,20 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 	if err != nil {
 		return nil, fmt.Errorf("failed creating subprocess command")
 	}
+
+	// Put auth on URL if needed
+	proxyURL := r.HTTPProxyURL
+	if h.UseAuth {
+		u, err := url.Parse(r.HTTPProxyURL)
+		if err != nil {
+			return nil, err
+		}
+		u.User = url.UserPassword("proxy-user", "proxy-pass")
+		proxyURL = u.String()
+	}
+
 	// Set env var so the client will proxy
-	cmd.Env = append([]string{"HTTPS_PROXY=" + r.HTTPProxyURL}, os.Environ()...)
+	cmd.Env = append([]string{"HTTPS_PROXY=" + proxyURL}, os.Environ()...)
 	if err := cmd.Run(); err != nil {
 		return nil, fmt.Errorf("failed running subprocess: %w", err)
 	}
@@ -123,6 +140,7 @@ type subprocessArgs struct {
 	clientKeyPath  string
 	taskQueue      string
 	workflowID     string
+	useAuth        bool
 }
 
 func (s *subprocessArgs) flags() []cli.Flag {

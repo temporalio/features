@@ -75,9 +75,10 @@ type RunFeature struct {
 
 // RunFeatureConfig is config from .config.json.
 type RunFeatureConfig struct {
-	NoWorkflow                        bool               `json:"noWorkflow"`
-	Go                                RunFeatureConfigGo `json:"go"`
-	ExpectsHTTPProxiedConnectionCount int                `json:"expectsHttpProxiedConnectionCount"`
+	NoWorkflow               bool               `json:"noWorkflow"`
+	Go                       RunFeatureConfigGo `json:"go"`
+	ExpectUnauthedProxyCount int                `json:"expectUnauthedProxyCount"`
+	ExpectAuthedProxyCount   int                `json:"expectAuthedProxyCount"`
 }
 
 // RunFeatureConfigGo is go-specific configuration in the JSON file.

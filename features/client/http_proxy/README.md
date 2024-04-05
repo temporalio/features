@@ -1,3 +1,3 @@
 # HTTP proxy support
 
-SDKs need to support HTTP CONNECT proxies for their clients.
+HTTP CONNECT proxies allow users to proxy all client calls.

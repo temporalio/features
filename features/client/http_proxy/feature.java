@@ -19,18 +19,25 @@ public interface feature extends Feature {
   class Impl implements feature {
     @Override
     public Run execute(Runner runner) throws Exception {
+      return execute(runner, false);
+    }
+
+    public static Run execute(Runner runner, boolean useAuth) throws Exception {
       // Make sure proxy URL is present
       Assertions.assertNotNull(runner.config.httpProxyUrl);
 
       // Build proxied addr
       var proxyUrl = new URL(runner.config.httpProxyUrl);
       var targetParts = runner.config.serverHostPort.split(":");
-      var proxyAddr =
+      var proxyAddrBuilder =
           HttpConnectProxiedSocketAddress.newBuilder()
               .setProxyAddress(new InetSocketAddress(proxyUrl.getHost(), proxyUrl.getPort()))
               .setTargetAddress(
-                  new InetSocketAddress(targetParts[0], Integer.parseInt(targetParts[1])))
-              .build();
+                  new InetSocketAddress(targetParts[0], Integer.parseInt(targetParts[1])));
+      if (useAuth) {
+        proxyAddrBuilder.setUsername("proxy-user").setPassword("proxy-pass");
+      }
+      var proxyAddr = proxyAddrBuilder.build();
 
       // Build a client that uses the HTTP proxy
       var service =

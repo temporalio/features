@@ -193,7 +193,7 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 		run.Features[i].Dir = feature.Dir
 		run.Features[i].TaskQueue = fmt.Sprintf("features-%v-%v", feature.Dir, uuid.NewString())
 		run.Features[i].Config = feature.Config
-		if feature.Config.ExpectsHTTPProxiedConnectionCount > 0 {
+		if feature.Config.ExpectUnauthedProxyCount > 0 || feature.Config.ExpectAuthedProxyCount > 0 {
 			expectsProxy = true
 		}
 	}
@@ -329,7 +329,7 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 	// even do the comparison.
 	if proxyServer != nil {
 		var anyFailed bool
-		var expectedProxyCount int
+		var expectUnauthedProxyCount, expectAuthedProxyCount int
 		for _, summ := range summary {
 			if summ.Outcome == "FAILED" {
 				anyFailed = true
@@ -337,19 +337,24 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 			} else if summ.Outcome == "PASSED" {
 				for _, feature := range features {
 					if feature.Dir == summ.Name {
-						expectedProxyCount += feature.Config.ExpectsHTTPProxiedConnectionCount
+						expectUnauthedProxyCount += feature.Config.ExpectUnauthedProxyCount
+						expectAuthedProxyCount += feature.Config.ExpectAuthedProxyCount
 						break
 					}
 				}
 			}
 		}
 		if !anyFailed {
-			if proxyServer.ConnectionsTunneled.Load() != uint32(expectedProxyCount) {
-				return fmt.Errorf("expected %v HTTP proxy connections, got %v",
-					expectedProxyCount, proxyServer.ConnectionsTunneled.Load())
+			if proxyServer.UnauthedConnectionsTunneled.Load() != uint32(expectUnauthedProxyCount) {
+				return fmt.Errorf("expected %v unauthed HTTP proxy connections, got %v",
+					expectUnauthedProxyCount, proxyServer.UnauthedConnectionsTunneled.Load())
+			} else if proxyServer.AuthedConnectionsTunneled.Load() != uint32(expectAuthedProxyCount) {
+				return fmt.Errorf("expected %v authed HTTP proxy connections, got %v",
+					expectAuthedProxyCount, proxyServer.AuthedConnectionsTunneled.Load())
 			} else {
 				r.log.Debug("Matched expected HTTP proxy connections",
-					"expected", expectedProxyCount, "actual", proxyServer.ConnectionsTunneled.Load())
+					"expectUnauthed", expectUnauthedProxyCount, "actualUnauthed", proxyServer.UnauthedConnectionsTunneled.Load(),
+					"expectAuthed", expectAuthedProxyCount, "actualAuthed", proxyServer.AuthedConnectionsTunneled.Load())
 			}
 		}
 	}

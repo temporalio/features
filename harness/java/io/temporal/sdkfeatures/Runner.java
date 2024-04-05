@@ -42,6 +42,7 @@ public class Runner implements Closeable {
     public String taskQueue;
     public Scope metricsScope = new NoopScope();
     public SslContext sslContext;
+    public String httpProxyUrl;
   }
 
   public final Config config;
@@ -123,6 +124,10 @@ public class Runner implements Closeable {
   }
 
   public Run executeSingleParameterlessWorkflow() {
+    return executeSingleParameterlessWorkflow(client);
+  }
+
+  public Run executeSingleParameterlessWorkflow(WorkflowClient client) {
     // Find single workflow method or fail if multiple
     var methods = featureInfo.metadata.getWorkflowMethods();
     Preconditions.checkState(
@@ -136,7 +141,7 @@ public class Runner implements Closeable {
         reflectMethod.getParameterCount());
 
     // Call
-    return new Run(methods.get(0), executeWorkflow(methods.get(0).getName()));
+    return new Run(methods.get(0), executeWorkflow(client, methods.get(0).getName()));
   }
 
   public Run executeSingleWorkflow(WorkflowOptions options, Object... args) {
@@ -174,6 +179,11 @@ public class Runner implements Closeable {
   }
 
   public WorkflowExecution executeWorkflow(String workflowType, Object... args) {
+    return executeWorkflow(client, workflowType, args);
+  }
+
+  public WorkflowExecution executeWorkflow(
+      WorkflowClient client, String workflowType, Object... args) {
     var builder =
         WorkflowOptions.newBuilder()
             .setTaskQueue(config.taskQueue)

@@ -11,6 +11,7 @@ public class PreparedFeature {
           activity.cancel_try_cancel.feature.Impl.class,
           child_workflow.result.feature.Impl.class,
           child_workflow.signal.feature.Impl.class,
+          client.http_proxy.feature.Impl.class,
           continue_as_new.continue_as_same.feature.Impl.class,
           data_converter.binary.feature.Impl.class,
           data_converter.binary_protobuf.feature.Impl.class,

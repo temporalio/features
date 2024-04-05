@@ -14,6 +14,7 @@ import (
 	build_id_versioning_versions_added_while_worker_polling "github.com/temporalio/features/features/build_id_versioning/versions_added_while_worker_polling"
 	child_workflow_result "github.com/temporalio/features/features/child_workflow/result"
 	child_workflow_signal "github.com/temporalio/features/features/child_workflow/signal"
+	client_http_proxy "github.com/temporalio/features/features/client/http_proxy"
 	continue_as_new_continue_as_same "github.com/temporalio/features/features/continue_as_new/continue_as_same"
 	data_converter_binary "github.com/temporalio/features/features/data_converter/binary"
 	data_converter_binary_protobuf "github.com/temporalio/features/features/data_converter/binary_protobuf"
@@ -66,6 +67,7 @@ func init() {
 		build_id_versioning_versions_added_while_worker_polling.Feature,
 		child_workflow_result.Feature,
 		child_workflow_signal.Feature,
+		client_http_proxy.Feature,
 		continue_as_new_continue_as_same.Feature,
 		data_converter_binary_protobuf.Feature,
 		data_converter_binary.Feature,

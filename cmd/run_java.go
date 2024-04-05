@@ -58,6 +58,9 @@ func (r *Runner) RunJavaExternal(ctx context.Context, run *cmd.Run) error {
 	if r.config.SummaryURI != "" {
 		args = append(args, "--summary-uri", r.config.SummaryURI)
 	}
+	if r.config.HTTPProxyURL != "" {
+		args = append(args, "--http-proxy-url", r.config.HTTPProxyURL)
+	}
 	args = append(args, run.ToArgs()...)
 
 	// Run

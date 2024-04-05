@@ -57,14 +57,18 @@ func (r *Runner) RunGoExternal(ctx context.Context, run *cmd.Run) error {
 		}
 	}
 
-	args := append([]string{
+	args := []string{
 		"run",
 		"--server", r.config.Server,
 		"--namespace", r.config.Namespace,
 		"--client-cert-path", r.config.ClientCertPath,
 		"--client-key-path", r.config.ClientKeyPath,
 		"--summary-uri", r.config.SummaryURI,
-	}, run.ToArgs()...)
+	}
+	if r.config.HTTPProxyURL != "" {
+		args = append(args, "--http-proxy-url", r.config.HTTPProxyURL)
+	}
+	args = append(args, run.ToArgs()...)
 	cmd, err := r.program.NewCommand(ctx, args...)
 	if err == nil {
 		r.log.Debug("Running Go separately", "Args", cmd.Args)

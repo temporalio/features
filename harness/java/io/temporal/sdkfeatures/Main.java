@@ -86,6 +86,9 @@ public class Main implements Runnable {
   @Option(names = "--client-key-path", description = "Path to a client key for TLS")
   private String clientKeyPath;
 
+  @Option(names = "--http-proxy-url", description = "URL for an HTTP CONNECT proxy to the server")
+  private String httpProxyUrl;
+
   @Parameters(description = "Features as dir + ':' + task queue")
   private List<String> features;
 
@@ -135,6 +138,7 @@ public class Main implements Runnable {
         var config = new Runner.Config();
         config.serverHostPort = server;
         config.namespace = namespace;
+        config.httpProxyUrl = httpProxyUrl;
         config.sslContext = sslContext;
         config.taskQueue = pieces[1];
         Outcome outcome = Outcome.PASSED;
@@ -157,7 +161,7 @@ public class Main implements Runnable {
         try {
           String jsonInString =
               mapper.writeValueAsString(new SummaryEntry(feature.dir, outcome.toString(), message));
-          writer.write(jsonInString);
+          writer.write(jsonInString + "\n");
         } catch (IOException e) {
           throw new RuntimeException(e);
         }

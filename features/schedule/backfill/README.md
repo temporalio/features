@@ -8,4 +8,4 @@ Each feature:
 * Creates a paused every-minute schedule
 * Adds a backfill for 3 years ago and two minutes ago to 3 years ago
 * Adds a backfill for 32 minutes ago to 30 minutes ago
-* Confirms the backfilled schedule ran 4 times
+* Confirms the backfilled schedule ran 6 times (start time and end time are both inclusive)

@@ -76,7 +76,11 @@ public interface feature extends Feature {
         // Confirm 6 executions
         // TODO: remove the == 4 case after server 1.24
         runner.retry(
-            () -> (handle.describe().getInfo().getNumActions() == 6 || handle.describe().getInfo().getNumActions() == 4), 5, Duration.ofSeconds(1));
+            () ->
+                (handle.describe().getInfo().getNumActions() == 6
+                    || handle.describe().getInfo().getNumActions() == 4),
+            5,
+            Duration.ofSeconds(1));
       } catch (Exception e) {
         Assertions.fail();
       } finally {

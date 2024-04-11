@@ -14,7 +14,7 @@ jobs:
   latest-sdk-versions:
     runs-on: 'ubuntu-latest'
     outputs:
-      go_latest: '77626eee301574bc4cfd756dbf0641c61e9e6907'
+      go_latest: '1.26.1'
       typescript_latest: '1.9.3'
       java_latest: '1.23.0'
       python_latest: '1.4.0'

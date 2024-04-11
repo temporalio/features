@@ -73,9 +73,9 @@ public interface feature extends Feature {
                     thirtyMinutesAgo.minus(Duration.ofMinutes(2)),
                     thirtyMinutesAgo,
                     ScheduleOverlapPolicy.SCHEDULE_OVERLAP_POLICY_ALLOW_ALL)));
-        // Confirm 4 executions
+        // Confirm 6 executions
         runner.retry(
-            () -> handle.describe().getInfo().getNumActions() == 4, 5, Duration.ofSeconds(1));
+            () -> handle.describe().getInfo().getNumActions() == 6, 5, Duration.ofSeconds(1));
       } catch (Exception e) {
         Assertions.fail();
       } finally {

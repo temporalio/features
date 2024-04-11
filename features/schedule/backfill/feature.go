@@ -59,11 +59,11 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 	})
 	r.Require.NoError(err)
 
-	// Confirm 4 executions
+	// Confirm 6 executions
 	r.Require.Eventually(func() bool {
 		desc, err := handle.Describe(ctx)
 		r.Require.NoError(err)
-		return desc.Info.NumActions == 4 && len(desc.Info.RunningWorkflows) == 0
+		return desc.Info.NumActions == 6 && len(desc.Info.RunningWorkflows) == 0
 	}, 5*time.Second, 1*time.Second)
 	return nil, nil
 }

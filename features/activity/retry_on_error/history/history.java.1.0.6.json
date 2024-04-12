@@ -106,7 +106,8 @@
             "applicationFailureInfo": {
               "type": "java.lang.IllegalStateException"
             }
-          }
+          },
+          "workerVersion": {}
         }
       },
       {

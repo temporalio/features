@@ -188,6 +188,11 @@ func scrubRunSpecificScalars(v interface{}) {
 		v.Identity = ""
 		v.RequestId = ""
 		v.HistorySizeBytes = 0
+		// Because binary checksum will show up in the stamp where it didn't before, ignore unless
+		// versioning was actually turned on.
+		if v.GetWorkerVersion() != nil && !v.GetWorkerVersion().GetUseVersioning() {
+			v.WorkerVersion = nil
+		}
 	case *history.WorkflowTaskCompletedEventAttributes:
 		v.Identity = ""
 		v.BinaryChecksum = ""
@@ -220,6 +225,11 @@ func scrubRunSpecificScalars(v interface{}) {
 	case *history.ActivityTaskStartedEventAttributes:
 		v.Identity = ""
 		v.RequestId = ""
+		// Because binary checksum will show up in the stamp where it didn't before, ignore unless
+		// versioning was actually turned on.
+		if v.GetWorkerVersion() != nil && !v.GetWorkerVersion().GetUseVersioning() {
+			v.WorkerVersion = nil
+		}
 	case *history.ActivityTaskCompletedEventAttributes:
 		v.Identity = ""
 		// Because binary checksum will show up in the stamp where it didn't before, ignore unless

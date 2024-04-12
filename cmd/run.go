@@ -65,6 +65,7 @@ type RunConfig struct {
 	DisableHistoryCheck bool
 	RetainTempDir       bool
 	SummaryURI          string
+	HTTPProxyURL        string
 }
 
 // dockerRunFlags are a subset of flags that apply when running in a docker container
@@ -187,10 +188,14 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 	}
 	// Aa task queue to every feature
 	run := &cmd.Run{Features: make([]cmd.RunFeature, len(features))}
+	var expectsProxy bool
 	for i, feature := range features {
 		run.Features[i].Dir = feature.Dir
 		run.Features[i].TaskQueue = fmt.Sprintf("features-%v-%v", feature.Dir, uuid.NewString())
 		run.Features[i].Config = feature.Config
+		if feature.Config.ExpectUnauthedProxyCount > 0 || feature.Config.ExpectAuthedProxyCount > 0 {
+			expectsProxy = true
+		}
 	}
 
 	// If the server is not set, start it ourselves
@@ -220,6 +225,18 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	// If any feature requires an HTTP proxy, we must run it
+	var proxyServer *harness.HTTPConnectProxyServer
+	if expectsProxy {
+		proxyServer, err = harness.StartHTTPConnectProxyServer(harness.HTTPConnectProxyServerOptions{Log: r.log})
+		if err != nil {
+			return fmt.Errorf("could not start proxy server: %w", err)
+		}
+		r.config.HTTPProxyURL = "https://" + proxyServer.Address
+		r.log.Info("Started HTTP CONNECT proxy server", "address", proxyServer.Address)
+		defer proxyServer.Close()
 	}
 
 	// Ensure any created temp dir is cleaned on ctrl-c or normal exit
@@ -261,6 +278,7 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 				ClientCertPath: r.config.ClientCertPath,
 				ClientKeyPath:  r.config.ClientKeyPath,
 				SummaryURI:     r.config.SummaryURI,
+				HTTPProxyURL:   r.config.HTTPProxyURL,
 			}).Run(ctx, run)
 		}
 	case "java":
@@ -305,6 +323,42 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 			summary = append(summary, SummaryEntry{Name: feature.Dir, Outcome: FeaturePassed})
 		}
 	}
+
+	// For features that expected proxy connections, count how many expected
+	// ignoring skips and compare count with actual. If any failed we don't need
+	// even do the comparison.
+	if proxyServer != nil {
+		var anyFailed bool
+		var expectUnauthedProxyCount, expectAuthedProxyCount int
+		for _, summ := range summary {
+			if summ.Outcome == "FAILED" {
+				anyFailed = true
+				break
+			} else if summ.Outcome == "PASSED" {
+				for _, feature := range features {
+					if feature.Dir == summ.Name {
+						expectUnauthedProxyCount += feature.Config.ExpectUnauthedProxyCount
+						expectAuthedProxyCount += feature.Config.ExpectAuthedProxyCount
+						break
+					}
+				}
+			}
+		}
+		if !anyFailed {
+			if proxyServer.UnauthedConnectionsTunneled.Load() != uint32(expectUnauthedProxyCount) {
+				return fmt.Errorf("expected %v unauthed HTTP proxy connections, got %v",
+					expectUnauthedProxyCount, proxyServer.UnauthedConnectionsTunneled.Load())
+			} else if proxyServer.AuthedConnectionsTunneled.Load() != uint32(expectAuthedProxyCount) {
+				return fmt.Errorf("expected %v authed HTTP proxy connections, got %v",
+					expectAuthedProxyCount, proxyServer.AuthedConnectionsTunneled.Load())
+			} else {
+				r.log.Debug("Matched expected HTTP proxy connections",
+					"expectUnauthed", expectUnauthedProxyCount, "actualUnauthed", proxyServer.UnauthedConnectionsTunneled.Load(),
+					"expectAuthed", expectAuthedProxyCount, "actualAuthed", proxyServer.AuthedConnectionsTunneled.Load())
+			}
+		}
+	}
+
 	return r.handleHistory(ctx, run, summary)
 }
 

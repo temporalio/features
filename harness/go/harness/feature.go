@@ -3,6 +3,8 @@ package harness
 import (
 	"context"
 	"fmt"
+	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"reflect"
@@ -10,6 +12,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/urfave/cli/v2"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/temporal"
@@ -162,6 +165,35 @@ func PrepareFeature(feature Feature) (*PreparedFeature, error) {
 
 func NoHistoryCheck(context.Context, *Runner, client.WorkflowRun) error {
 	return nil
+}
+
+var registeredSubprocessCommands []*cli.Command
+var registeredSubprocessCommandsMutex sync.RWMutex
+
+// MustRegisterSubprocessCommand registers the given CLI command.
+func MustRegisterSubprocessCommand(cmd *cli.Command) {
+	registeredSubprocessCommandsMutex.Lock()
+	defer registeredSubprocessCommandsMutex.Unlock()
+	registeredSubprocessCommands = append(registeredSubprocessCommands, cmd)
+}
+
+// GetRegisteredSubprocessCommands gets a copy of all registered subcommands.
+func GetRegisteredSubprocessCommands() []*cli.Command {
+	registeredSubprocessCommandsMutex.RLock()
+	defer registeredSubprocessCommandsMutex.RUnlock()
+	return append(make([]*cli.Command, 0, len(registeredSubprocessCommands)), registeredSubprocessCommands...)
+}
+
+// CreateSubprocessCommand creates a subprocess command that will invoke a
+// registered subprocess.
+func CreateSubprocessCommand(ctx context.Context, name string, args ...string) (*exec.Cmd, error) {
+	exe, err := os.Executable()
+	if err != nil {
+		return nil, fmt.Errorf("cannot get current executable: %w", err)
+	}
+	cmd := exec.CommandContext(ctx, exe, append([]string{"go-subprocess", name}, args...)...)
+	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
+	return cmd, nil
 }
 
 func rawToSlice(v interface{}) []interface{} {

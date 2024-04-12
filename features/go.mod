@@ -6,6 +6,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/temporalio/features/harness/go v0.0.0-00010101000000-000000000000
 	github.com/uber-go/tally/v4 v4.1.1
+	github.com/urfave/cli/v2 v2.3.0
 	go.temporal.io/api v1.32.0
 	go.temporal.io/sdk v1.26.1
 	go.temporal.io/sdk/contrib/tally v0.2.0
@@ -15,6 +16,7 @@ require (
 )
 
 require (
+	github.com/cpuguy83/go-md2man/v2 v2.0.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/facebookgo/clock v0.0.0-20150410010913-600d898af40a // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
@@ -24,6 +26,7 @@ require (
 	github.com/pborman/uuid v1.2.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/robfig/cron v1.2.0 // indirect
+	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/stretchr/testify v1.9.0 // indirect
 	github.com/twmb/murmur3 v1.1.6 // indirect

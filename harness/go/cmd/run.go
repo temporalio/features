@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"go.temporal.io/sdk/client"
 	"io"
 	"net"
 	"net/url"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/temporalio/features/harness/go/harness"
 	"github.com/urfave/cli/v2"
+	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/log"
 	"go.uber.org/zap"
 )
@@ -75,8 +75,10 @@ type RunFeature struct {
 
 // RunFeatureConfig is config from .config.json.
 type RunFeatureConfig struct {
-	NoWorkflow bool               `json:"noWorkflow"`
-	Go         RunFeatureConfigGo `json:"go"`
+	NoWorkflow               bool               `json:"noWorkflow"`
+	Go                       RunFeatureConfigGo `json:"go"`
+	ExpectUnauthedProxyCount int                `json:"expectUnauthedProxyCount"`
+	ExpectAuthedProxyCount   int                `json:"expectAuthedProxyCount"`
 }
 
 // RunFeatureConfigGo is go-specific configuration in the JSON file.
@@ -91,6 +93,7 @@ type RunConfig struct {
 	ClientCertPath string
 	ClientKeyPath  string
 	SummaryURI     string
+	HTTPProxyURL   string
 }
 
 func (r *RunConfig) flags() []cli.Flag {
@@ -119,6 +122,11 @@ func (r *RunConfig) flags() []cli.Flag {
 			Name:        "summary-uri",
 			Usage:       "where to stream the test summary JSONL",
 			Destination: &r.SummaryURI,
+		},
+		&cli.StringFlag{
+			Name:        "http-proxy-url",
+			Usage:       "URL for an HTTP CONNECT proxy to the server",
+			Destination: &r.HTTPProxyURL,
 		},
 	}
 }
@@ -216,6 +224,7 @@ func (r *Runner) Run(ctx context.Context, run *Run) error {
 				ClientKeyPath:  r.config.ClientKeyPath,
 				TaskQueue:      runFeature.TaskQueue,
 				Log:            r.log,
+				HTTPProxyURL:   r.config.HTTPProxyURL,
 			}
 			err := r.runFeature(ctx, runnerConfig, feature)
 

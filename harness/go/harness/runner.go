@@ -49,6 +49,7 @@ type RunnerConfig struct {
 	ClientCertPath string
 	ClientKeyPath  string
 	Log            log.Logger
+	HTTPProxyURL   string
 }
 
 // NewRunner creates a new runner for the given config and feature.

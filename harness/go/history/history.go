@@ -216,7 +216,7 @@ func scrubRunSpecificScalars(v interface{}) {
 		// These are UUIDs in Java, even though they are deterministic numbers in Go
 		v.ActivityId = ""
 		// TODO: Shouldn't be fully ignorable, but should be ignorable if not present in old hist
-		v.UseCompatibleVersion = false
+		v.UseWorkflowBuildId = false
 	case *history.ActivityTaskStartedEventAttributes:
 		v.Identity = ""
 		v.RequestId = ""
@@ -258,11 +258,11 @@ func scrubRunSpecificScalars(v interface{}) {
 	case *history.WorkflowExecutionContinuedAsNewEventAttributes:
 		v.NewExecutionRunId = ""
 		// TODO: Shouldn't be fully ignorable, but should be ignorable if not present in old hist
-		v.UseCompatibleVersion = false
+		v.InheritBuildId = false
 	case *history.StartChildWorkflowExecutionInitiatedEventAttributes:
 		v.Namespace = ""
 		// TODO: Shouldn't be fully ignorable, but should be ignorable if not present in old hist
-		v.UseCompatibleVersion = false
+		v.InheritBuildId = false
 	case *history.StartChildWorkflowExecutionFailedEventAttributes:
 		v.Namespace = ""
 	case *history.ChildWorkflowExecutionStartedEventAttributes:

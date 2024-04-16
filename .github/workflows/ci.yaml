@@ -157,7 +157,7 @@ jobs:
     # TODO: Find some way to automatically upgrade to "latest"
     with:
       do-push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-      go-repo-ref: ${{ needs.latest-sdk-versions.outputs.go_latest }}
+      go-ver: '${{ needs.latest-sdk-versions.outputs.go_latest }}'
       ts-ver: 'v${{ needs.latest-sdk-versions.outputs.typescript_latest }}'
       java-ver: 'v${{ needs.latest-sdk-versions.outputs.java_latest }}'
       py-ver: 'v${{ needs.latest-sdk-versions.outputs.python_latest }}'

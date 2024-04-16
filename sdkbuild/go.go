@@ -18,8 +18,9 @@ type BuildGoProgramOptions struct {
 	// Directory that will have a temporary directory created underneath
 	BaseDir string
 	// If not set, not put in go.mod which means go mod tidy will automatically
-	// use latest. If set and does not start with a "v", it is assumed to be a
-	// path, otherwise it is a specific version.
+	// use latest. If set and contains a slash, it is assumed to be a path,
+	// otherwise it is a specific version (with leading "v" is trimmed if
+	// present).
 	Version string
 	// The SDK Repository import to use. If unspecified we default to go.temporal.io/sdk
 	// If specified version must also be provided
@@ -79,22 +80,22 @@ func BuildGoProgram(ctx context.Context, options BuildGoProgramOptions) (*GoProg
 	goMod := options.GoModContents
 	// If a version is specified, overwrite the SDK to use that
 	if options.Version != "" || options.SDKRepository != "" {
-		// If version does not start with a "v" we assume path unless the SDK repository is provided
+		// If version has a "/" we assume path unless the SDK repository is provided
 		if options.SDKRepository != "" {
 			if options.Version == "" {
 				return nil, errors.New("Version must be provided alongside SDKRepository")
 			}
-			goMod += fmt.Sprintf("\nreplace %s => %s %s", sdkImport, options.SDKRepository, options.Version)
-		} else if strings.HasPrefix(options.Version, "v") {
-			goMod += fmt.Sprintf("\nreplace %s => %s %s", sdkImport, sdkImport, options.Version)
+			goMod += fmt.Sprintf("\nreplace %s => %s v%s", sdkImport, options.SDKRepository, strings.TrimPrefix(options.Version, "v"))
+		} else if !strings.Contains(options.Version, "/") {
+			goMod += fmt.Sprintf("\nreplace %s => %s v%s", sdkImport, sdkImport, strings.TrimPrefix(options.Version, "v"))
 		} else {
 			absVersion, err := filepath.Abs(options.Version)
 			if err != nil {
-				return nil, fmt.Errorf("version does not start with 'v' and cannot get abs dir: %w", err)
+				return nil, fmt.Errorf("version has a '/' and cannot get abs dir: %w", err)
 			}
 			relVersion, err := filepath.Rel(dir, absVersion)
 			if err != nil {
-				return nil, fmt.Errorf("version does not start with 'v' and unable to relativize: %w", err)
+				return nil, fmt.Errorf("version has a '/' and unable to relativize: %w", err)
 			}
 			goMod += fmt.Sprintf("\nreplace %s => %s", sdkImport, filepath.ToSlash(relVersion))
 		}

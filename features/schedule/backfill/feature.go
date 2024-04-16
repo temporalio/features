@@ -64,6 +64,13 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 		desc, err := handle.Describe(ctx)
 		r.Require.NoError(err)
 		// TODO: remove the == 4 case after server 1.24
+		r.Log.Info("debug: checking info", "NumActions", desc.Info.NumActions, "RecentActions", len(desc.Info.RecentActions))
+		for i, ra := range desc.Info.RecentActions {
+			r.Log.Info("debug: recent action", "i", i, "ScheduleTime", ra.ScheduleTime, "ActualTime", ra.ActualTime, "WID", ra.StartWorkflowResult.WorkflowID)
+		}
+		for i, rw := range desc.Info.RunningWorkflows {
+			r.Log.Info("debug: running", "i", i, "WID", rw.WorkflowID)
+		}
 		return (desc.Info.NumActions == 6 || desc.Info.NumActions == 4) && len(desc.Info.RunningWorkflows) == 0
 	}, 5*time.Second, 1*time.Second)
 	return nil, nil

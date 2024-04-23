@@ -211,6 +211,7 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 				"--dynamic-config-value", "frontend.enableUpdateWorkflowExecution=true",
 				"--dynamic-config-value", "frontend.enableUpdateWorkflowExecutionAsyncAccepted=true",
 			},
+			CachedDownload: testsuite.CachedDownload{Version: "v0.12.0-rc.3"},
 		})
 		if err != nil {
 			return fmt.Errorf("failed starting devserver: %w", err)

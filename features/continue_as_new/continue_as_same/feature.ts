@@ -19,7 +19,7 @@ export async function workflow(input: string): Promise<string> {
 export const feature = new Feature({
   workflow,
   execute: async (runner) => {
-    return await runner.client.start(workflow, {
+    return await runner.client.workflow.start(workflow, {
       taskQueue: runner.options.taskQueue,
       args: [InputData],
       memo: {

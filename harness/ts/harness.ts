@@ -1,20 +1,21 @@
 import { randomUUID } from 'node:crypto';
 import {
   Connection,
-  WorkflowClient,
+  Client,
   WorkflowHandleWithFirstExecutionRunId,
   WorkflowHandle,
   WorkflowStartOptions,
   TLSConfig,
+  ConnectionOptions,
 } from '@temporalio/client';
 import * as proto from '@temporalio/proto';
 import { DataConverter, UntypedActivities, Workflow, WorkflowResultType } from '@temporalio/common';
-import { Worker, WorkerOptions, NativeConnection, appendDefaultInterceptors } from '@temporalio/worker';
+import { Worker, WorkerOptions, NativeConnection, NativeConnectionOptions } from '@temporalio/worker';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { ConnectionInjectorInterceptor } from './activity-interceptors';
 import { setTimeout } from 'timers/promises';
-export { getConnection, getWorkflowClient, Context } from './activity-interceptors';
+export { getConnection, getClient, Context } from './activity-interceptors';
 
 export interface FeatureOptions<W extends Workflow, A extends UntypedActivities> {
   /**
@@ -112,6 +113,7 @@ export class FeatureSource {
 export interface RunnerOptions {
   address: string;
   namespace: string;
+  proxyUrl?: string;
   taskQueue: string;
   tlsConfig?: TLSConfig;
 }
@@ -122,21 +124,23 @@ export class Runner<W extends Workflow, A extends UntypedActivities> {
     const feature = source.loadFeature();
 
     // Connect to client
-    const connection = await Connection.connect({
+    const connectionOpts: ConnectionOptions = {
       address: options.address,
       tls: options.tlsConfig,
-    });
-    const client = new WorkflowClient({
+    };
+    const connection = await Connection.connect(connectionOpts);
+    const client = new Client({
       connection,
       namespace: options.namespace,
       dataConverter: feature.options.dataConverter,
     });
 
     // Create a connection for the Worker
-    const nativeConn = await NativeConnection.connect({
+    const nativeConnectionOpts: NativeConnectionOptions = {
       address: options.address,
       tls: options.tlsConfig,
-    });
+    };
+    const nativeConn = await NativeConnection.connect(nativeConnectionOpts);
 
     // Create and start the worker
     const workflowsPath = feature.options.workflowsPath ?? require.resolve(path.join(source.absDir, 'feature.js'));
@@ -160,26 +164,38 @@ export class Runner<W extends Workflow, A extends UntypedActivities> {
           };
         },
       },
-      interceptors: appendDefaultInterceptors({
+      interceptors: {
         activityInbound: [() => new ConnectionInjectorInterceptor(connection, client)],
         workflowModules: [require.resolve('./workflow-globals-injection-interceptors')],
-      }),
+      },
       ...feature.options.workerOptions,
     };
     const worker = await Worker.create(workerOpts);
     const workerRunPromise = (async () => {
       await worker.run();
     })();
-
-    return new Runner(source, feature, options, client, nativeConn, worker, workerOpts, workerRunPromise);
+    return new Runner(
+      source,
+      feature,
+      options,
+      client,
+      connectionOpts,
+      nativeConn,
+      nativeConnectionOpts,
+      worker,
+      workerOpts,
+      workerRunPromise
+    );
   }
 
   private constructor(
     readonly source: FeatureSource,
     readonly feature: Feature<W, A>,
     readonly options: RunnerOptions,
-    readonly client: WorkflowClient,
+    readonly client: Client,
+    readonly connectionOpts: ConnectionOptions,
     readonly nativeConnection: NativeConnection,
+    readonly nativeConnectionOpts: NativeConnectionOptions,
     private _worker: Worker,
     readonly workerOpts: WorkerOptions,
     private _workerRunPromise: Promise<void>
@@ -253,7 +269,7 @@ export class Runner<W extends Workflow, A extends UntypedActivities> {
       workflowExecutionTimeout: 60000,
       ...(this.feature.options.workflowStartOptions ?? {}),
     };
-    return await this.client.start(workflow, startOptions);
+    return await this.client.workflow.start(workflow, startOptions);
   }
 
   async waitForRunResult<W extends Workflow>(

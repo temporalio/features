@@ -90,7 +90,7 @@ func countPanicWFTFailures(ctx context.Context, runner *harness.Runner) int {
 var panicUpdate = true
 
 func PanickyUpdates(ctx workflow.Context) error {
-	if err := workflow.SetUpdateHandler(ctx, panicFromExecUpdate, func() error {
+	if err := workflow.SetUpdateHandler(ctx, panicFromExecUpdate, func(ctx workflow.Context) error {
 		// DON'T DO THIS. This panicUpdate global is not part of the workflow
 		// state so reading and setting it is non-determinism. We allow
 		// ourselves this transgression in this controlled test setting to
@@ -105,7 +105,7 @@ func PanickyUpdates(ctx workflow.Context) error {
 		return err
 	}
 
-	if err := workflow.SetUpdateHandlerWithOptions(ctx, panicFromValidateUpdate, func() error {
+	if err := workflow.SetUpdateHandlerWithOptions(ctx, panicFromValidateUpdate, func(ctx workflow.Context) error {
 		return nil
 	}, workflow.UpdateHandlerOptions{
 		Validator: func() error { panic(panicMsg) },

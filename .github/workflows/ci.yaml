@@ -18,7 +18,7 @@ jobs:
       typescript_latest: '1.9.3'
       java_latest: '1.23.0'
       python_latest: '1.4.0'
-      csharp_latest: '0.1.0-beta2'
+      csharp_latest: '1.1.1'
     steps:
       - run: 'echo noop'
 

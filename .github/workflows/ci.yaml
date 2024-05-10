@@ -14,7 +14,7 @@ jobs:
   latest-sdk-versions:
     runs-on: 'ubuntu-latest'
     outputs:
-      go_latest: 'v1.26.1'
+      go_latest: '1.26.1'
       typescript_latest: '1.9.3'
       java_latest: '1.23.0'
       python_latest: '1.6.0'
@@ -119,7 +119,7 @@ jobs:
     uses: ./.github/workflows/go.yaml
     with:
       version: ${{ needs.latest-sdk-versions.outputs.go_latest }}
-      version-is-repo-ref: true
+      version-is-repo-ref: false
       features-repo-ref: ${{ github.head_ref }}
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
 
@@ -157,7 +157,7 @@ jobs:
     # TODO: Find some way to automatically upgrade to "latest"
     with:
       do-push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-      go-repo-ref: ${{ needs.latest-sdk-versions.outputs.go_latest }}
+      go-ver: 'v${{ needs.latest-sdk-versions.outputs.go_latest }}'
       ts-ver: 'v${{ needs.latest-sdk-versions.outputs.typescript_latest }}'
       java-ver: 'v${{ needs.latest-sdk-versions.outputs.java_latest }}'
       py-ver: 'v${{ needs.latest-sdk-versions.outputs.python_latest }}'

@@ -48,7 +48,7 @@ var Feature = harness.Feature{
 func Workflow(ctx workflow.Context) (string, error) {
 	workflowResult := ""
 	if err := workflow.SetUpdateHandler(ctx, myUpdateName,
-		func(arg string) (string, error) {
+		func(ctx workflow.Context, arg string) (string, error) {
 			workflowResult = arg
 			return fmt.Sprintf("update-result:%s", arg), nil
 		},

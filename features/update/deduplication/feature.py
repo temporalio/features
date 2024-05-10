@@ -2,7 +2,7 @@ import asyncio
 from datetime import timedelta
 
 from temporalio import activity, workflow
-from temporalio.client import WorkflowHandle
+from temporalio.client import WorkflowHandle, WorkflowUpdateStage
 
 from harness.python.feature import Runner, register_feature
 
@@ -37,15 +37,25 @@ async def start(runner: Runner) -> WorkflowHandle:
 
 async def check_result(runner: Runner, handle: WorkflowHandle) -> None:
     update_id = "incrementer"
-    h1 = await handle.start_update(Workflow.inc_counter, id=update_id)
-    h2 = await handle.start_update(Workflow.inc_counter, id=update_id)
+    h1 = await handle.start_update(
+        Workflow.inc_counter,
+        wait_for_stage=WorkflowUpdateStage.ACCEPTED,
+        id=update_id,
+    )
+    h2 = await handle.start_update(
+        Workflow.inc_counter,
+        wait_for_stage=WorkflowUpdateStage.ACCEPTED,
+        id=update_id,
+    )
     await handle.signal(Workflow.unblock)
     results = await asyncio.gather(h1.result(), h2.result())
     assert results[0] == 1
     assert results[1] == 1
 
     # This only needs to start to unblock the workflow
-    await handle.start_update(Workflow.inc_counter)
+    await handle.start_update(
+        Workflow.inc_counter, wait_for_stage=WorkflowUpdateStage.ACCEPTED
+    )
 
     # There should be two accepted updates, and only one of them should be completed with the set id
     total_updates = 0

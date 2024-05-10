@@ -2,7 +2,13 @@ import asyncio
 from datetime import timedelta
 
 from temporalio import activity, workflow
-from temporalio.client import RPCError, WorkflowHandle, WorkflowUpdateFailedError
+from temporalio.client import (
+    RPCError,
+    RPCStatusCode,
+    WorkflowHandle,
+    WorkflowUpdateFailedError,
+    WorkflowUpdateStage,
+)
 from temporalio.exceptions import ApplicationError
 
 from harness.python.feature import Runner, register_feature
@@ -51,7 +57,10 @@ async def check_result(runner: Runner, handle: WorkflowHandle) -> None:
     # Issue async update
     update_id = "sleepy_update"
     update_handle = await handle.start_update(
-        Workflow.do_maybe_wait_update, True, id=update_id
+        Workflow.do_maybe_wait_update,
+        True,
+        wait_for_stage=WorkflowUpdateStage.ACCEPTED,
+        id=update_id,
     )
     await handle.signal(Workflow.unblock)
     # There's no API at the moment for directly creating a handle w/o calling start update since
@@ -61,7 +70,10 @@ async def check_result(runner: Runner, handle: WorkflowHandle) -> None:
     # Async update which throws
     fail_update_id = "failing_update"
     update_handle = await handle.start_update(
-        Workflow.do_maybe_wait_update, False, id=fail_update_id
+        Workflow.do_maybe_wait_update,
+        False,
+        wait_for_stage=WorkflowUpdateStage.ACCEPTED,
+        id=fail_update_id,
     )
     try:
         await update_handle.result()
@@ -74,13 +86,19 @@ async def check_result(runner: Runner, handle: WorkflowHandle) -> None:
     # Verify timeouts work, but we can only use RPC timeout for now, because of ☝️
     timeout_update_id = "timeout_update"
     update_handle = await handle.start_update(
-        Workflow.do_maybe_wait_update, True, id=timeout_update_id
+        Workflow.do_maybe_wait_update,
+        True,
+        wait_for_stage=WorkflowUpdateStage.ACCEPTED,
+        id=timeout_update_id,
     )
     try:
         await update_handle.result(rpc_timeout=timedelta(seconds=1))
         raise RuntimeError("Should have failed")
     except RPCError as err:
-        assert "Timeout expired" == err.message
+        assert (
+            err.status == RPCStatusCode.DEADLINE_EXCEEDED
+            or err.status == RPCStatusCode.CANCELLED
+        ), f"Status: {err.status}"
 
     await handle.signal(Workflow.finish)
     await handle.result()

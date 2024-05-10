@@ -1,7 +1,11 @@
 from datetime import timedelta
 
 from temporalio import workflow
-from temporalio.client import WorkflowHandle, WorkflowUpdateFailedError
+from temporalio.client import (
+    WorkflowHandle,
+    WorkflowUpdateFailedError,
+    WorkflowUpdateStage,
+)
 
 from harness.python.feature import Runner, register_feature
 
@@ -35,7 +39,11 @@ class Workflow:
 
 async def checker(runner: Runner, handle: WorkflowHandle):
     await runner.skip_if_update_unsupported()
-    bad_update_handle = await handle.start_update(Workflow.my_update, "bad-update-arg")
+    bad_update_handle = await handle.start_update(
+        Workflow.my_update,
+        "bad-update-arg",
+        wait_for_stage=WorkflowUpdateStage.ACCEPTED,
+    )
     try:
         await bad_update_handle.result()
     except WorkflowUpdateFailedError:
@@ -43,7 +51,11 @@ async def checker(runner: Runner, handle: WorkflowHandle):
     else:
         assert False, "Expected Update to be rejected due to validation failure"
 
-    update_handle = await handle.start_update(Workflow.my_update, "update-arg")
+    update_handle = await handle.start_update(
+        Workflow.my_update,
+        "update-arg",
+        wait_for_stage=WorkflowUpdateStage.ACCEPTED,
+    )
     update_result = await update_handle.result()
     assert update_result == "update-result"
     result = await handle.result()

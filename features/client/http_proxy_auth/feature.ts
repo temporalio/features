@@ -41,7 +41,7 @@ export const feature = new Feature({
           grpc_proxy: proxyUrl,
           subprocess_opts: JSON.stringify(subprocessOpts),
         },
-        execArgv: ['-r', 'ts-node/register', '-r', 'tsconfig-paths/register', __filename],
+        execArgv: ['-r', 'tsconfig-paths/register', __filename],
       });
       child.on('exit', (code) => {
         if (code !== 0) {

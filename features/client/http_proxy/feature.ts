@@ -13,6 +13,10 @@ export const feature = new Feature({
   async alternateRun(runner) {
     assert(runner.options.proxyUrl);
 
+    // Proxying config is internally passed to @grpc/grpc-js using an environment variable.
+    // Here, we assert that the original value of that env var is properly restored afterward.
+    process.env.grpc_proxy = 'foo';
+
     const connection = await Connection.connect({
       ...runner.connectionOpts,
       proxy: {
@@ -21,6 +25,9 @@ export const feature = new Feature({
       },
     });
     try {
+      if (process.env.grpc_proxy !== 'foo') {
+        throw new Error('Expected process.env.grpc_proxy to be foo');
+      }
       const client = await new Client({
         ...runner.client.options,
         connection,

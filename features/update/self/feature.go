@@ -51,7 +51,7 @@ var Feature = harness.Feature{
 func SelfUpdateWorkflow(ctx workflow.Context, cm ConnMaterial) (string, error) {
 	const expectedState = "called"
 	state := "not " + expectedState
-	workflow.SetUpdateHandler(ctx, updateName, func() error {
+	workflow.SetUpdateHandler(ctx, updateName, func(ctx workflow.Context) error {
 		state = expectedState
 		return nil
 	})

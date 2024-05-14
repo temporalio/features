@@ -22,6 +22,7 @@ async def run():
     )
     parser.add_argument("--client-key-path", help="Path to a client key for TLS")
     parser.add_argument("--log-level", help="Log level", default="INFO")
+    parser.add_argument("--http-proxy-url", help="HTTP proxy URL")
     parser.add_argument(
         "features", help="Features as dir + ':' + task queue", nargs="+"
     )
@@ -70,6 +71,7 @@ async def run():
                 task_queue=task_queue,
                 feature=features[rel_dir],
                 tls_config=tls_config,
+                http_proxy_url=args.http_proxy_url if args.http_proxy_url else None,
             ).run()
         except Exception:
             logger.exception("Feature %s failed", rel_dir)

@@ -1,0 +1,16 @@
+version: "3"
+rpc:
+    listen: tcp://127.0.0.1:6001
+
+server:
+    command: "php worker.php"
+
+# Workflow and activity mesh service
+temporal:
+    address: "localhost:7233"
+    activities:
+        num_workers: 2
+
+logs:
+    mode: development
+    level: debug

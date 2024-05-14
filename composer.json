@@ -1,0 +1,15 @@
+{
+    "name": "temporal/harness",
+    "type": "project",
+    "description": "Temporal SDK Harness",
+    "keywords": ["temporal", "sdk", "harness"],
+    "license": "MIT",
+    "require": {
+        "temporal/sdk": "^2.9"
+    },
+    "scripts": {
+        "rr-get": "rr get"
+    },
+    "prefer-stable": true,
+    "minimum-stability": "dev"
+}

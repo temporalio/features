@@ -108,12 +108,15 @@ func PhpProgramFromDir(dir string) (*PhpProgram, error) {
 // Dir is the directory to run in.
 func (p *PhpProgram) Dir() string { return p.dir }
 
-// NewCommand makes a new Poetry command. The first argument needs to be the
-// name of the module.
-// TODO: implement
+// NewCommand makes a new RoadRunner run command
 func (p *PhpProgram) NewCommand(ctx context.Context, args ...string) (*exec.Cmd, error) {
-	args = append([]string{"run", "php", "-m"}, args...)
-	cmd := exec.CommandContext(ctx, "poetry", args...)
+	exe := "./rr"
+	if runtime.GOOS == "windows" {
+		exe += ".exe"
+	}
+
+	args = append([]string{"serve"}, args...)
+	cmd := exec.CommandContext(ctx, exe, args...)
 	cmd.Dir = p.dir
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	return cmd, nil

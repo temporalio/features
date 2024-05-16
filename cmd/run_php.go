@@ -49,7 +49,6 @@ func (p *Preparer) BuildPhpProgram(ctx context.Context) (sdkbuild.Program, error
 
 // RunPhpExternal runs the PHP run in an external process. This expects
 // the server to already be started.
-// todo
 func (r *Runner) RunPhpExternal(ctx context.Context, run *cmd.Run) error {
 	// If program not built, build it
 	if r.program == nil {
@@ -59,23 +58,33 @@ func (r *Runner) RunPhpExternal(ctx context.Context, run *cmd.Run) error {
 		}
 	}
 
-	// Build args
-	args := []string{"harness.Php.main", "--server", r.config.Server, "--namespace", r.config.Namespace}
+	// Compose RoadRunner command options
+
+	// Namespace
+	args := []string{"-o", "temporal.namespace=" + r.config.Namespace}
+
+	// Server address
+	args = append(args, "-o", "temporal.address="+r.config.Server)
+
+	// TLS
 	if r.config.ClientCertPath != "" {
 		clientCertPath, err := filepath.Abs(r.config.ClientCertPath)
 		if err != nil {
 			return err
 		}
-		args = append(args, "--client-cert-path", clientCertPath)
+		args = append(args, "-o", "temporal.tls.cert="+clientCertPath)
 	}
 	if r.config.ClientKeyPath != "" {
 		clientKeyPath, err := filepath.Abs(r.config.ClientKeyPath)
 		if err != nil {
 			return err
 		}
-		args = append(args, "--client-key-path", clientKeyPath)
+		args = append(args, "-o", "temporal.tls.key="+clientKeyPath)
 	}
+
 	args = append(args, run.ToArgs()...)
+
+	// r.log.Debug("ARGS", "Args", args)
 
 	// Run
 	cmd, err := r.program.NewCommand(ctx, args...)

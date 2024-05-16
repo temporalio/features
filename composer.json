@@ -7,6 +7,14 @@
     "require": {
         "temporal/sdk": "^2.9"
     },
+    "require-dev": {
+        "buggregator/trap": "^1.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "Harness\\": "src/"
+        }
+    },
     "scripts": {
         "rr-get": "rr get"
     },

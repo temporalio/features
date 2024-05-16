@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"github.com/temporalio/features/harness/go/cmd"
 	"github.com/temporalio/features/sdkbuild"
 )
@@ -82,9 +83,7 @@ func (r *Runner) RunPhpExternal(ctx context.Context, run *cmd.Run) error {
 		args = append(args, "-o", "temporal.tls.key="+clientKeyPath)
 	}
 
-	args = append(args, run.ToArgs()...)
-
-	// r.log.Debug("ARGS", "Args", args)
+	args = append(args, "-o", "server.command=php,worker.php,"+strings.Join(run.ToArgs(), ","))
 
 	// Run
 	cmd, err := r.program.NewCommand(ctx, args...)

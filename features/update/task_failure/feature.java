@@ -1,6 +1,7 @@
 package update.task_failure;
 
 import io.temporal.activity.ActivityInterface;
+import io.temporal.client.WorkflowOptions;
 import io.temporal.client.WorkflowUpdateException;
 import io.temporal.failure.ApplicationFailure;
 import io.temporal.sdkfeatures.Feature;
@@ -11,7 +12,8 @@ import io.temporal.workflow.SignalMethod;
 import io.temporal.workflow.UpdateMethod;
 import io.temporal.workflow.UpdateValidatorMethod;
 import io.temporal.workflow.Workflow;
-import java.util.concurrent.ExecutionException;
+
+import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Assertions;
 
@@ -64,6 +66,11 @@ public interface feature extends Feature, SimpleWorkflow {
     }
 
     @Override
+    public void workflowOptions(WorkflowOptions.Builder builder) {
+      builder.setWorkflowTaskTimeout(Duration.ofSeconds(1));
+    }
+
+    @Override
     public Run execute(Runner runner) {
       runner.skipIfUpdateNotSupported();
 
@@ -79,19 +86,7 @@ public interface feature extends Feature, SimpleWorkflow {
         Assertions.assertEquals("Failure", ((ApplicationFailure) e.getCause()).getType());
         Assertions.assertEquals(
             "message='simulated 3', type='Failure', nonRetryable=false", e.getCause().getMessage());
-      } catch (RuntimeException e) {
-        // TODO(https://github.com/temporalio/sdk-java/issues/1973) The SDK should be unwrapping the
-        // ExecutionException.
-        Assertions.assertTrue(e.getCause() instanceof ExecutionException);
-        ExecutionException ee = (ExecutionException) e.getCause();
-        Assertions.assertTrue(ee.getCause() instanceof WorkflowUpdateException);
-        WorkflowUpdateException wue = (WorkflowUpdateException) ee.getCause();
-        Assertions.assertTrue(wue.getCause() instanceof ApplicationFailure);
-        Assertions.assertEquals("Failure", ((ApplicationFailure) wue.getCause()).getType());
-        Assertions.assertEquals(
-            "message='simulated 3', type='Failure', nonRetryable=false",
-            wue.getCause().getMessage());
-      }
+        }
 
       // Check an update handle validator will fail on any exception
       try {

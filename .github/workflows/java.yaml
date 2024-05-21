@@ -37,9 +37,27 @@ jobs:
 
       - name: Download docker artifacts
         if: ${{ inputs.docker-image-artifact-name }}
-        uses: temporalio/features/.github/actions/download-artifact
+        uses: actions/download-artifact@v3
         with:
-          artifact-name: ${{ inputs.docker-image-artifact-name }}
+          name: ${{ inputs.docker-image-artifact-name }}
+          path: /tmp/server-docker
+
+      - name: Load server Docker image
+        if: ${{ inputs.docker-image-artifact-name }}
+        shell: bash
+        run: docker load --input /tmp/server-docker/temporal-autosetup.tar
+        working-directory: '.'
+
+      - name: Override IMAGE_TAG environment variable
+        if: ${{ inputs.docker-image-artifact-name }}
+        shell: bash
+        run: |
+          image_tag=latest
+          # image_tag won't exist on older builds (like 1.22.0), so default to latest
+          if [ -f /tmp/server-docker/image_tag ]; then
+            image_tag=$(cat /tmp/server-docker/image_tag)
+          fi
+          echo "IMAGE_TAG=${image_tag}" >> $GITHUB_ENV
 
       - name: Checkout SDK features repo
         uses: actions/checkout@v3

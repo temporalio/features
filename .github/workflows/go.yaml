@@ -43,13 +43,11 @@ jobs:
 
       - name: Load server Docker image
         if: ${{ inputs.docker-image-artifact-name }}
-        shell: bash
         run: docker load --input /tmp/server-docker/temporal-autosetup.tar
         working-directory: '.'
 
       - name: Override IMAGE_TAG environment variable
         if: ${{ inputs.docker-image-artifact-name }}
-        shell: bash
         run: |
           image_tag=latest
           # image_tag won't exist on older builds (like 1.22.0), so default to latest

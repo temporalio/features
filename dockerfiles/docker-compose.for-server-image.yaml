@@ -4,7 +4,7 @@ version: '3.5'
 
 services:
   temporal-server:
-    image: temporaliotest/auto-setup:latest
+    image: temporaliotest/auto-setup:${IMAGE_TAG:-latest}
     environment:
       - CASSANDRA_SEEDS=cassandra
       - ENABLE_ES=true

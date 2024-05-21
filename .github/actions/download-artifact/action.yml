@@ -1,0 +1,31 @@
+name: 'Load server image'
+description: 'Loads the provided temporal server image into docker'
+
+inputs:
+  artifact-name:
+    required: true
+    type: string
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Download docker artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: /tmp/server-docker
+
+    - name: Load server Docker image
+      shell: bash
+      run: docker load --input /tmp/server-docker/temporal-autosetup.tar
+      working-directory: '.'
+
+    - name: Override IMAGE_TAG environment variable
+      shell: bash
+      run: |
+        image_tag=latest
+        # image_tag won't exist on older builds (like 1.22.0), so default to latest
+        if [ -f /tmp/server-docker/image_tag ]; then
+          image_tag=$(cat /tmp/server-docker/image_tag)
+        fi
+        echo "IMAGE_TAG=${image_tag}" >> $GITHUB_ENV

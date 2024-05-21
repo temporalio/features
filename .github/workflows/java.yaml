@@ -23,10 +23,6 @@ on:
       docker-image-artifact-name:
         type: string
         required: false
-      # If set, override the IMAGE_TAG environment variable for docker compose
-      docker-image-tag:
-        type: string
-        required: false
 
 jobs:
   test:
@@ -41,20 +37,9 @@ jobs:
 
       - name: Download docker artifacts
         if: ${{ inputs.docker-image-artifact-name }}
-        uses: actions/download-artifact@v3
+        uses: ./.github/actions/download-artifact
         with:
-          name: ${{ inputs.docker-image-artifact-name }}
-          path: /tmp/server-docker
-
-      - name: Load server Docker image
-        if: ${{ inputs.docker-image-artifact-name }}
-        run: docker load --input /tmp/server-docker/temporal-autosetup.tar
-        working-directory: '.'
-
-      - name: Override IMAGE_TAG environment variable
-        if: inputs.docker-image-tag
-        run: |
-          echo "IMAGE_TAG=${{inputs.docker-image-tag}}" >> $GITHUB_ENV
+          artifact-name: ${{ inputs.docker-image-artifact-name }}
 
       - name: Checkout SDK features repo
         uses: actions/checkout@v3

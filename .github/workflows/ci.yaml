@@ -15,7 +15,7 @@ jobs:
     runs-on: 'ubuntu-latest'
     outputs:
       go_latest: '1.26.1'
-      typescript_latest: '1.9.3'
+      typescript_latest: '1.10.0'
       java_latest: '1.23.0'
       python_latest: '1.6.0'
       csharp_latest: '0.1.1'

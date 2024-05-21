@@ -36,7 +36,7 @@ jobs:
 
       - name: Download docker artifacts
         if: ${{ inputs.docker-image-artifact-name }}
-        uses: ./.github/actions/download-artifact
+        uses: temporalio/features/.github/actions/download-artifact
         with:
           artifact-name: ${{ inputs.docker-image-artifact-name }}
 

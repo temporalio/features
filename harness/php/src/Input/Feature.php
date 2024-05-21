@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Harness;
+namespace Harness\Input;
 
 final class Feature
 {

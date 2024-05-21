@@ -2,18 +2,12 @@
 
 declare(strict_types=1);
 
-use Harness\ClassLocator;
-use Harness\Run;
-use Temporal\Activity\ActivityInterface;
 use Temporal\Worker\WorkerInterface;
 use Temporal\Worker\WorkerOptions;
 use Temporal\WorkerFactory;
-use Temporal\Workflow\WorkflowInterface;
 
 ini_set('display_errors', 'stderr');
 include "vendor/autoload.php";
-
-$run = Run::fromCommandLine($argv);
 
 /** @var array<non-empty-string, WorkerInterface> $run */
 $workers = [];
@@ -26,27 +20,21 @@ $getWorker = static function (string $taskQueue) use (&$workers, $factory): Work
 };
 
 try {
-    $featuresDir = \dirname(__DIR__, 2) . '/features/';
-    foreach ($run->features as $feature) {
-        foreach (ClassLocator::loadClasses($featuresDir . $feature->dir, $feature->namespace) as $class) {
-            # Register Workflow
-            $reflection = new \ReflectionClass($class);
-            $attrs = $reflection->getAttributes(WorkflowInterface::class);
-            if ($attrs !== []) {
-                $getWorker($feature->taskQueue)->registerWorkflowTypes($class);
-                continue;
-            }
+    $runtime = \Harness\RuntimeBuilder::createState($argv, \dirname(__DIR__, 2) . '/features/');
+    $run = $runtime->command;
 
-            # Register Activity
-            $attrs = $reflection->getAttributes(ActivityInterface::class);
-            if ($attrs !== []) {
-                $getWorker($feature->taskQueue)->registerActivityImplementations(new $class());
-            }
-        }
+    // Register Workflows
+    foreach ($runtime->workflows() as $feature => $workflow) {
+        $getWorker($feature->taskQueue)->registerWorkflowTypes($workflow);
+    }
+
+    // Register Activities
+    foreach ($runtime->activities() as $feature => $activity) {
+        $getWorker($feature->taskQueue)->registerActivityImplementations(new $activity());
     }
 
     $factory->run();
 } catch (\Throwable $e) {
-    dump($e);
+    \trap($e);
     exit(1);
 }

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Harness;
+namespace Harness\Input;
 
-final class Run
+final class Command
 {
     /** @var non-empty-string|null Temporal Namespace */
     public ?string $namespace = null;
@@ -62,13 +62,6 @@ final class Run
         return $self;
     }
 
-    private static function namespaceFromPath(string $dir): string
-    {
-        $normalized = \str_replace('/', '\\', \trim($dir, '/\\')) . '\\';
-        // snake_case to PascalCase:
-        return \str_replace('_', '', \ucwords($normalized, '_\\'));
-    }
-
     /**
      * @return list<non-empty-string> CLI arguments that can be parsed by `fromCommandLine`
      */
@@ -84,5 +77,12 @@ final class Run
         }
 
         return $result;
+    }
+
+    private static function namespaceFromPath(string $dir): string
+    {
+        $normalized = \str_replace('/', '\\', \trim($dir, '/\\')) . '\\';
+        // snake_case to PascalCase:
+        return \str_replace('_', '', \ucwords($normalized, '_\\'));
     }
 }

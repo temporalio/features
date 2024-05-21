@@ -6,7 +6,8 @@
     "license": "MIT",
     "require": {
         "symfony/process": ">=6.4",
-        "temporal/sdk": "^2.9"
+        "temporal/sdk": "^2.9",
+        "yiisoft/injector": "^1.2"
     },
     "require-dev": {
         "buggregator/trap": "^1.6"

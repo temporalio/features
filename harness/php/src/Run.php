@@ -6,21 +6,44 @@ namespace Harness;
 
 final class Run
 {
-    public string $namespace;
+    /** @var non-empty-string|null Temporal Namespace */
+    public ?string $namespace = null;
+
+    /** @var non-empty-string|null Temporal Address */
+    public ?string $address = null;
 
     /** @var list<Feature> */
     public array $features = [];
 
+    /** @var non-empty-string|null */
+    public ?string $tlsKey = null;
+
+    /** @var non-empty-string|null */
+    public ?string $tlsCert = null;
+
     public static function fromCommandLine(array $argv): self
     {
         $self = new self();
+
+        \array_shift($argv); // remove the script name (worker.php or runner.php)
         foreach ($argv as $chunk) {
-            if (\str_ends_with($chunk, '.php')) {
+            if (\str_starts_with($chunk, 'namespace=')) {
+                $self->namespace = \substr($chunk, 10);
                 continue;
             }
 
-            if (\str_starts_with($chunk, 'namespace=')) {
-                $self->namespace = \substr($chunk, 10);
+            if (\str_starts_with($chunk, 'address=')) {
+                $self->address = \substr($chunk, 8);
+                continue;
+            }
+
+            if (\str_starts_with($chunk, 'tls.cert=')) {
+                $self->tlsCert = \substr($chunk, 9);
+                continue;
+            }
+
+            if (\str_starts_with($chunk, 'tls.key=')) {
+                $self->tlsKey = \substr($chunk, 8);
                 continue;
             }
 
@@ -29,7 +52,11 @@ final class Run
             }
 
             [$dir, $taskQueue] = \explode(':', $chunk, 2);
-            $self->features[] = new Feature($dir, 'Harness\\Feature\\' . self::namespaceFromPath($dir), $taskQueue);
+            $self->features[] = new Feature(
+                dir: $dir,
+                namespace: 'Harness\\Feature\\' . self::namespaceFromPath($dir),
+                taskQueue: $taskQueue,
+            );
         }
 
         return $self;
@@ -40,5 +67,22 @@ final class Run
         $normalized = \str_replace('/', '\\', \trim($dir, '/\\')) . '\\';
         // snake_case to PascalCase:
         return \str_replace('_', '', \ucwords($normalized, '_\\'));
+    }
+
+    /**
+     * @return list<non-empty-string> CLI arguments that can be parsed by `fromCommandLine`
+     */
+    public function toCommandLineArguments(): array
+    {
+        $result = [];
+        $this->namespace === null or $result[] = "namespace=$this->namespace";
+        $this->address === null or $result[] = "address=$this->address";
+        $this->tlsCert === null or $result[] = "tls.cert=$this->tlsCert";
+        $this->tlsKey === null or $result[] = "tls.key=$this->tlsKey";
+        foreach ($this->features as $feature) {
+            $result[] = "{$feature->dir}:{$feature->taskQueue}";
+        }
+
+        return $result;
     }
 }

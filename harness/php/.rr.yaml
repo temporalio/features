@@ -7,10 +7,10 @@ server:
 
 # Workflow and activity mesh service
 temporal:
-    address: "localhost:7233"
+    address: ${TEMPORAL_ADDRESS:-localhost:7233}
+    namespace: ${TEMPORAL_NAMESPACE:-default}
     activities:
         num_workers: 2
-
 logs:
     mode: development
     level: debug

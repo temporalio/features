@@ -110,13 +110,8 @@ func (p *PhpProgram) Dir() string { return p.dir }
 
 // NewCommand makes a new RoadRunner run command
 func (p *PhpProgram) NewCommand(ctx context.Context, args ...string) (*exec.Cmd, error) {
-	exe := "./rr"
-	if runtime.GOOS == "windows" {
-		exe += ".exe"
-	}
-
-	args = append([]string{"serve"}, args...)
-	cmd := exec.CommandContext(ctx, exe, args...)
+	args = append([]string{"runner.php"}, args...)
+	cmd := exec.CommandContext(ctx, "php", args...)
 	cmd.Dir = p.dir
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	return cmd, nil

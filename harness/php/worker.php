@@ -25,23 +25,28 @@ $getWorker = static function (string $taskQueue) use (&$workers, $factory): Work
     );
 };
 
-$featuresDir = \dirname(__DIR__, 2) . '/features/';
-foreach ($run->features as $feature) {
-    foreach (ClassLocator::loadClasses($featuresDir . $feature->dir, $feature->namespace) as $class) {
-        # Register Workflow
-        $reflection = new \ReflectionClass($class);
-        $attrs = $reflection->getAttributes(WorkflowInterface::class);
-        if ($attrs !== []) {
-            $getWorker($feature->taskQueue)->registerWorkflowTypes($class);
-            continue;
-        }
+try {
+    $featuresDir = \dirname(__DIR__, 2) . '/features/';
+    foreach ($run->features as $feature) {
+        foreach (ClassLocator::loadClasses($featuresDir . $feature->dir, $feature->namespace) as $class) {
+            # Register Workflow
+            $reflection = new \ReflectionClass($class);
+            $attrs = $reflection->getAttributes(WorkflowInterface::class);
+            if ($attrs !== []) {
+                $getWorker($feature->taskQueue)->registerWorkflowTypes($class);
+                continue;
+            }
 
-        # Register Activity
-        $attrs = $reflection->getAttributes(ActivityInterface::class);
-        if ($attrs !== []) {
-            $getWorker($feature->taskQueue)->registerActivityImplementations(new $class());
+            # Register Activity
+            $attrs = $reflection->getAttributes(ActivityInterface::class);
+            if ($attrs !== []) {
+                $getWorker($feature->taskQueue)->registerActivityImplementations(new $class());
+            }
         }
     }
-}
 
-$factory->run();
+    $factory->run();
+} catch (\Throwable $e) {
+    dump($e);
+    exit(1);
+}

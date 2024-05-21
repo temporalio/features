@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
 	"github.com/temporalio/features/harness/go/cmd"
 	"github.com/temporalio/features/sdkbuild"
 )
@@ -60,30 +61,34 @@ func (r *Runner) RunPhpExternal(ctx context.Context, run *cmd.Run) error {
 	}
 
 	// Compose RoadRunner command options
-
-	// Namespace
-	args := []string{"-o", "temporal.namespace=" + r.config.Namespace}
-
-	// Server address
-	args = append(args, "-o", "temporal.address="+r.config.Server)
-
+	args := append(
+		[]string{
+			// Namespace
+			"namespace=" + r.config.Namespace,
+			// Server address
+			"address=" + r.config.Server,
+		},
+		// Features
+		run.ToArgs()...,
+	)
 	// TLS
 	if r.config.ClientCertPath != "" {
 		clientCertPath, err := filepath.Abs(r.config.ClientCertPath)
 		if err != nil {
 			return err
 		}
-		args = append(args, "-o", "temporal.tls.cert="+clientCertPath)
+		args = append(args, "tls.cert="+clientCertPath)
 	}
 	if r.config.ClientKeyPath != "" {
 		clientKeyPath, err := filepath.Abs(r.config.ClientKeyPath)
 		if err != nil {
 			return err
 		}
-		args = append(args, "-o", "temporal.tls.key="+clientKeyPath)
+		args = append(args, "tls.key="+clientKeyPath)
 	}
 
-	args = append(args, "-o", "server.command=php,worker.php,"+strings.Join(run.ToArgs(), ","))
+	// r.log.Debug("ARGS", "Args", args)
+	r.log.Debug("ARGS", "Args", strings.Join(args, " "))
 
 	// Run
 	cmd, err := r.program.NewCommand(ctx, args...)

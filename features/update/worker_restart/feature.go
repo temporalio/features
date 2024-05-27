@@ -38,7 +38,16 @@ var Feature = harness.Feature{
 		updateErr := make(chan error, 1)
 		updateResult := make(chan int, 1)
 		go func() {
-			handle, err := runner.Client.UpdateWorkflow(ctx, run.GetID(), run.GetRunID(), fetchAndAdd, addend)
+			handle, err := runner.Client.UpdateWorkflow(
+				ctx,
+				client.UpdateWorkflowOptions{
+					WorkflowID:   run.GetID(),
+					RunID:        run.GetRunID(),
+					UpdateName:   fetchAndAdd,
+					Args:         []interface{}{addend},
+					WaitForStage: client.WorkflowUpdateStageCompleted,
+				},
+			)
 			var result int
 			if err != nil {
 				updateErr <- err

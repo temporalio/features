@@ -29,10 +29,13 @@ var Feature = harness.Feature{
 
 		updateHandle, err := runner.Client.UpdateWorkflow(
 			ctx,
-			run.GetID(),
-			run.GetRunID(),
-			myUpdateName,
-			myUpdateArg,
+			client.UpdateWorkflowOptions{
+				WorkflowID:   run.GetID(),
+				RunID:        run.GetRunID(),
+				UpdateName:   myUpdateName,
+				Args:         []interface{}{myUpdateArg},
+				WaitForStage: client.WorkflowUpdateStageCompleted,
+			},
 		)
 		runner.Require.NoError(err)
 

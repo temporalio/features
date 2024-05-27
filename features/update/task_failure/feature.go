@@ -36,9 +36,12 @@ var Feature = harness.Feature{
 
 		handle, err := runner.Client.UpdateWorkflow(
 			ctx,
-			run.GetID(),
-			run.GetRunID(),
-			panicFromValidateUpdate,
+			client.UpdateWorkflowOptions{
+				WorkflowID:   run.GetID(),
+				RunID:        run.GetRunID(),
+				UpdateName:   panicFromValidateUpdate,
+				WaitForStage: client.WorkflowUpdateStageCompleted,
+			},
 		)
 		runner.Require.NoError(err)
 		err = handle.Get(ctx, nil)
@@ -48,9 +51,12 @@ var Feature = harness.Feature{
 
 		_, err = runner.Client.UpdateWorkflow(
 			ctx,
-			run.GetID(),
-			run.GetRunID(),
-			panicFromExecUpdate,
+			client.UpdateWorkflowOptions{
+				WorkflowID:   run.GetID(),
+				RunID:        run.GetRunID(),
+				UpdateName:   panicFromExecUpdate,
+				WaitForStage: client.WorkflowUpdateStageCompleted,
+			},
 		)
 		runner.Require.NoError(err)
 

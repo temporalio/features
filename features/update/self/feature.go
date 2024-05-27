@@ -79,7 +79,7 @@ func SelfUpdateActivity(ctx context.Context, cm ConnMaterial) error {
 	if err != nil {
 		return err
 	}
-	client, err := client.Dial(
+	c, err := client.Dial(
 		client.Options{
 			HostPort:          cm.HostPort,
 			Namespace:         cm.Namespace,
@@ -93,7 +93,15 @@ func SelfUpdateActivity(ctx context.Context, cm ConnMaterial) error {
 		return err
 	}
 	wfe := activity.GetInfo(ctx).WorkflowExecution
-	updateHandle, err := client.UpdateWorkflow(ctx, wfe.ID, wfe.RunID, updateName)
+	updateHandle, err := c.UpdateWorkflow(
+		ctx,
+		client.UpdateWorkflowOptions{
+			WorkflowID:   wfe.ID,
+			RunID:        wfe.RunID,
+			WaitForStage: client.WorkflowUpdateStageCompleted,
+			UpdateName:   updateName,
+		},
+	)
 	if err != nil {
 		return err
 	}

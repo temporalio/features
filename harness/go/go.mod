@@ -41,3 +41,5 @@ require (
 )
 
 replace github.com/cactus/go-statsd-client => github.com/cactus/go-statsd-client v3.2.1+incompatible
+
+replace go.temporal.io/sdk => ../../../../sdk-go

@@ -9,7 +9,7 @@ require (
 	github.com/temporalio/features/features v0.0.0-00010101000000-000000000000
 	github.com/temporalio/features/harness/go v0.0.0-00010101000000-000000000000
 	github.com/urfave/cli/v2 v2.25.7
-	go.temporal.io/sdk v1.26.1
+	go.temporal.io/sdk v1.26.2-0.20240524165812-9f29c4c866ec
 	golang.org/x/mod v0.14.0
 )
 
@@ -50,5 +50,4 @@ require (
 replace (
 	github.com/temporalio/features/features => ./features
 	github.com/temporalio/features/harness/go => ./harness/go
-	go.temporal.io/sdk => ../../sdk-go
 )

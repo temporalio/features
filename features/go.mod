@@ -8,7 +8,7 @@ require (
 	github.com/uber-go/tally/v4 v4.1.1
 	github.com/urfave/cli/v2 v2.3.0
 	go.temporal.io/api v1.32.0
-	go.temporal.io/sdk v1.26.1
+	go.temporal.io/sdk v1.26.2-0.20240524165812-9f29c4c866ec
 	go.temporal.io/sdk/contrib/tally v0.2.0
 	golang.org/x/mod v0.14.0
 	google.golang.org/grpc v1.63.2
@@ -44,5 +44,3 @@ require (
 )
 
 replace github.com/temporalio/features/harness/go => ../harness/go
-
-replace go.temporal.io/sdk => ../../../sdk-go

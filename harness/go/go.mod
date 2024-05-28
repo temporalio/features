@@ -7,7 +7,7 @@ require (
 	github.com/stretchr/testify v1.9.0
 	github.com/urfave/cli/v2 v2.3.0
 	go.temporal.io/api v1.32.0
-	go.temporal.io/sdk v1.26.1
+	go.temporal.io/sdk v1.26.2-0.20240524165812-9f29c4c866ec
 	go.uber.org/zap v1.19.1
 	golang.org/x/mod v0.14.0
 	google.golang.org/protobuf v1.33.0
@@ -41,5 +41,3 @@ require (
 )
 
 replace github.com/cactus/go-statsd-client => github.com/cactus/go-statsd-client v3.2.1+incompatible
-
-replace go.temporal.io/sdk => ../../../../sdk-go

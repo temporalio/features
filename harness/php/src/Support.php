@@ -12,16 +12,14 @@ final class Support
             isset($trace['file']) &&
             !\str_contains($trace['file'], DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR),
         );
-        \array_pop($trace);
-
-        foreach ($trace as $line) {
+        if ($trace !== []) {
+            $line = \reset($trace);
             echo "-> \e[1;33m{$line['file']}:{$line['line']}\e[0m\n";
         }
 
         do {
             /** @var \Throwable $err */
-            $err = $e;
-            $name = \substr(\strrchr($e::class, "\\"), 1);
+            $name = \ltrim(\strrchr($e::class, "\\") ?: $e::class, "\\");
             echo "\e[1;34m$name\e[0m\n";
             echo "\e[3m{$e->getMessage()}\e[0m\n";
             $e = $e->getPrevious();

@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace Harness\Feature\Query\SuccessfulQuery;
 
 use Harness\Attribute\Check;
-use Harness\Runtime\Feature;
-use Temporal\Client\WorkflowClientInterface;
-use Temporal\Client\WorkflowOptions;
+use Harness\Attribute\Stub;
+use Temporal\Client\WorkflowStubInterface;
 use Temporal\Workflow;
 use Temporal\Workflow\QueryMethod;
 use Temporal\Workflow\SignalMethod;
@@ -48,25 +47,19 @@ class FeatureWorkflow
 class FeatureChecker
 {
     #[Check]
-    public static function check(WorkflowClientInterface $client, Feature $feature): void
+    public static function check(#[Stub('Workflow')] WorkflowStubInterface $stub): void
     {
-        $stub = $client->newWorkflowStub(
-            FeatureWorkflow::class,
-            WorkflowOptions::new()->withTaskQueue($feature->taskQueue),
-        );
-        $run = $client->start($stub);
+        \assert($stub->query('get_counter')?->getValue(0) === 0);
 
-        \assert($stub->getCounter() === 0);
+        $stub->signal('inc_counter');
+        \assert($stub->query('get_counter')?->getValue(0) === 1);
 
-        $stub->incCounter();
-        \assert($stub->getCounter() === 1);
+        $stub->signal('inc_counter');
+        $stub->signal('inc_counter');
+        $stub->signal('inc_counter');
+        \assert($stub->query('get_counter')?->getValue(0) === 4);
 
-        $stub->incCounter();
-        $stub->incCounter();
-        $stub->incCounter();
-        \assert($stub->getCounter() === 4);
-
-        $stub->finish();
-        $run->getResult();
+        $stub->signal('finish');
+        $stub->getResult();
     }
 }

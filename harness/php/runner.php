@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Harness\Feature\WorkflowStubInjector;
 use Harness\Runtime\Feature;
 use Harness\Runtime\State;
 use Harness\RuntimeBuilder;
@@ -15,6 +16,7 @@ use Temporal\Client\ScheduleClient;
 use Temporal\Client\ScheduleClientInterface;
 use Temporal\Client\WorkflowClient;
 use Temporal\Client\WorkflowClientInterface;
+use Temporal\Client\WorkflowStubInterface;
 
 ini_set('display_errors', 'stderr');
 chdir(__DIR__);
@@ -67,6 +69,7 @@ $container->bindSingleton(State::class, $runtime);
 $container->bindSingleton(ServiceClientInterface::class, $serviceClient);
 $container->bindSingleton(WorkflowClientInterface::class, $workflowClient);
 $container->bindSingleton(ScheduleClientInterface::class, $scheduleClient);
+$container->bindInjector(WorkflowStubInterface::class, WorkflowStubInjector::class);
 
 // Run checks
 foreach ($runtime->checks() as $feature => $definition) {

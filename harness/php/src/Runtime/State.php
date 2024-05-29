@@ -93,6 +93,6 @@ final class State
 
     private function getFeature(\Harness\Input\Feature $feature): Feature
     {
-        return $this->features[$feature->namespace] ??= new Feature($feature->namespace);
+        return $this->features[$feature->namespace] ??= new Feature($feature->taskQueue);
     }
 }

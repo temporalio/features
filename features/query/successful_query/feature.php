@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Harness\Feature\Query\SuccessfulQuery;
 
 use Harness\Attribute\Check;
+use Harness\Runtime\Feature;
 use Temporal\Client\WorkflowClientInterface;
+use Temporal\Client\WorkflowOptions;
 use Temporal\Workflow;
 use Temporal\Workflow\QueryMethod;
 use Temporal\Workflow\SignalMethod;
@@ -18,7 +20,7 @@ class FeatureWorkflow
     private int $counter = 0;
     private bool $beDone = false;
 
-    #[WorkflowMethod]
+    #[WorkflowMethod('Workflow')]
     public function run()
     {
         yield Workflow::await(fn(): bool => $this->beDone);
@@ -46,10 +48,14 @@ class FeatureWorkflow
 class FeatureChecker
 {
     #[Check]
-    public static function check(WorkflowClientInterface $client): void
+    public static function check(WorkflowClientInterface $client, Feature $feature): void
     {
-        $stub = $client->newWorkflowStub(FeatureWorkflow::class);
+        $stub = $client->newWorkflowStub(
+            FeatureWorkflow::class,
+            WorkflowOptions::new()->withTaskQueue($feature->taskQueue),
+        );
         $run = $client->start($stub);
+
         \assert($stub->getCounter() === 0);
 
         $stub->incCounter();

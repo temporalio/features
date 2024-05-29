@@ -2,8 +2,12 @@
 
 declare(strict_types=1);
 
+use Harness\Runtime\Feature;
+use Harness\Runtime\State;
 use Harness\RuntimeBuilder;
 use Harness\Support;
+use Psr\Container\ContainerInterface;
+use Spiral\Core\Scope;
 use Temporal\Client\ClientOptions;
 use Temporal\Client\GRPC\ServiceClient;
 use Temporal\Client\GRPC\ServiceClientInterface;
@@ -51,14 +55,15 @@ try {
 $workflowClient = WorkflowClient::create(
     serviceClient: $serviceClient,
     options: (new ClientOptions())->withNamespace($runtime->namespace),
-)->withTimeout(5); // default timeout 10s
+)->withTimeout(5);
 
 $scheduleClient = ScheduleClient::create(
     serviceClient: $serviceClient,
     options: (new ClientOptions())->withNamespace($runtime->namespace),
-)->withTimeout(5); // default timeout 10s
+)->withTimeout(5);
 
 $container = new Spiral\Core\Container();
+$container->bindSingleton(State::class, $runtime);
 $container->bindSingleton(ServiceClientInterface::class, $serviceClient);
 $container->bindSingleton(WorkflowClientInterface::class, $workflowClient);
 $container->bindSingleton(ScheduleClientInterface::class, $scheduleClient);
@@ -66,12 +71,18 @@ $container->bindSingleton(ScheduleClientInterface::class, $scheduleClient);
 // Run checks
 foreach ($runtime->checks() as $feature => $definition) {
     try {
-        // todo modify services based on feature requirements
-        [$class, $method] = $definition;
-        echo "Running check \e[1;36m{$class}::{$method}\e[0m ";
-        $check = $container->make($class);
-        $container->invoke($definition);
-        echo "\e[1;32mOK\e[0m\n";
+        $container->runScope(
+            new Scope(name: 'feature',bindings: [
+                Feature::class => $feature,
+            ]),
+            static function (ContainerInterface $container) use ($definition) {
+                // todo modify services based on feature requirements
+                [$class, $method] = $definition;
+                echo "Running check \e[1;36m{$class}::{$method}\e[0m ";
+                $container->invoke($definition);
+                echo "\e[1;32mOK\e[0m\n";
+            },
+        );
     } catch (\Throwable $e) {
         \trap($e);
 

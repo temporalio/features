@@ -5,9 +5,9 @@
     "keywords": ["temporal", "sdk", "harness"],
     "license": "MIT",
     "require": {
+        "spiral/core": "^3.12",
         "symfony/process": ">=6.4",
-        "temporal/sdk": "^2.9",
-        "yiisoft/injector": "^1.2"
+        "temporal/sdk": "^2.9"
     },
     "require-dev": {
         "buggregator/trap": "^1.6"

@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Harness\Feature\Query\SuccessfulQuery;
+namespace Harness\Feature\Query\UnexpectedReturnType;
 
 use Harness\Attribute\Check;
 use Harness\Attribute\Stub;
 use Temporal\Client\WorkflowStubInterface;
+use Temporal\Exception\DataConverterException;
 use Temporal\Workflow;
 use Temporal\Workflow\QueryMethod;
 use Temporal\Workflow\SignalMethod;
@@ -17,7 +18,6 @@ use Webmozart\Assert\Assert;
 #[WorkflowInterface]
 class FeatureWorkflow
 {
-    private int $counter = 0;
     private bool $beDone = false;
 
     #[WorkflowMethod('Workflow')]
@@ -26,16 +26,10 @@ class FeatureWorkflow
         yield Workflow::await(fn(): bool => $this->beDone);
     }
 
-    #[QueryMethod('get_counter')]
-    public function getCounter(): int
+    #[QueryMethod('the_query')]
+    public function theQuery(): string
     {
-        return $this->counter;
-    }
-
-    #[SignalMethod('inc_counter')]
-    public function incCounter(): void
-    {
-        ++$this->counter;
+        return 'hi bob';
     }
 
     #[SignalMethod('finish')]
@@ -48,17 +42,18 @@ class FeatureWorkflow
 class FeatureChecker
 {
     #[Check]
-    public static function check(#[Stub('Workflow')] WorkflowStubInterface $stub): void
-    {
-        Assert::same($stub->query('get_counter')?->getValue(0), 0);
-
-        $stub->signal('inc_counter');
-        Assert::same($stub->query('get_counter')?->getValue(0), 1);
-
-        $stub->signal('inc_counter');
-        $stub->signal('inc_counter');
-        $stub->signal('inc_counter');
-        Assert::same($stub->query('get_counter')?->getValue(0), 4);
+    public static function check(
+        #[Stub('Workflow')] WorkflowStubInterface $stub,
+    ): void {
+        try {
+            $stub->query('the_query')?->getValue(0, 'int');
+            throw new \Exception('Query must fail due to unexpected return type');
+        } catch (DataConverterException $e) {
+            Assert::contains(
+                $e->getMessage(),
+                'The passed value of type "string" can not be converted to required type "int"',
+            );
+        }
 
         $stub->signal('finish');
         $stub->getResult();

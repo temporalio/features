@@ -114,6 +114,7 @@ class Runner:
         task_queue: str,
         feature: Feature,
         tls_config: Optional[TLSConfig],
+        http_proxy_url: Optional[str],
     ) -> None:
         self.address = address
         self.namespace = namespace
@@ -124,6 +125,7 @@ class Runner:
         self.tls_config: Union[bool, TLSConfig] = False
         if tls_config is not None:
             self.tls_config = tls_config
+        self.http_proxy_url = http_proxy_url
 
     async def run(self) -> None:
         logger.info("Executing feature %s", self.feature.rel_dir)
@@ -160,12 +162,18 @@ class Runner:
         finally:
             await self.stop_worker()
 
-    async def start_single_parameterless_workflow(self) -> WorkflowHandle:
+    async def start_single_parameterless_workflow(
+        self, *, override_client: Optional[Client] = None
+    ) -> WorkflowHandle:
         if len(self.feature.workflows) != 1:
             raise ValueError("Must have a single workflow")
-        return await self.start_parameterless_workflow(self.feature.workflows[0])
+        return await self.start_parameterless_workflow(
+            self.feature.workflows[0], override_client=override_client
+        )
 
-    async def start_parameterless_workflow(self, workflow_cls: Type) -> WorkflowHandle:
+    async def start_parameterless_workflow(
+        self, workflow_cls: Type, *, override_client: Optional[Client] = None
+    ) -> WorkflowHandle:
         defn = workflow._Definition.must_from_class(workflow_cls)
         start_options = {
             "id": f"{self.feature.rel_dir}-{uuid.uuid4()}",
@@ -173,7 +181,8 @@ class Runner:
             "execution_timeout": timedelta(minutes=1),
         }
         start_options |= self.feature.start_options
-        return await self.client.start_workflow(defn.name, **start_options)  # type: ignore
+        client = override_client or self.client
+        return await client.start_workflow(defn.name, **start_options)  # type: ignore
 
     async def check_result(self, handle: WorkflowHandle) -> None:
         try:

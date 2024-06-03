@@ -72,7 +72,7 @@ public interface feature extends Feature {
           UpdateOptions.newBuilder(Integer.class)
               .setUpdateName("incrementCount")
               .setUpdateId(REUSED_UPDATE_ID)
-              .setWaitPolicy(WorkflowUpdateStage.ACCEPTED)
+              .setWaitForStage(WorkflowUpdateStage.ACCEPTED)
               .setFirstExecutionRunId(run.execution.getRunId())
               .build();
 

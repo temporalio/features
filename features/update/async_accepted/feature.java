@@ -77,6 +77,7 @@ public interface feature extends Feature, SimpleWorkflow {
                   .setUpdateName("update")
                   .setUpdateId(updateId)
                   .setFirstExecutionRunId(run.execution.getRunId())
+                  .setWaitForStage(WorkflowUpdateStage.ACCEPTED)
                   .build(),
               true);
 
@@ -93,6 +94,7 @@ public interface feature extends Feature, SimpleWorkflow {
                   .setUpdateName("update")
                   .setUpdateId(updateId)
                   .setFirstExecutionRunId(run.execution.getRunId())
+                  .setWaitForStage(WorkflowUpdateStage.ACCEPTED)
                   .build(),
               false);
       try {
@@ -115,7 +117,7 @@ public interface feature extends Feature, SimpleWorkflow {
                   .setUpdateName("update")
                   .setUpdateId(updateId)
                   .setFirstExecutionRunId(run.execution.getRunId())
-                  .setWaitPolicy(WorkflowUpdateStage.ACCEPTED)
+                  .setWaitForStage(WorkflowUpdateStage.ACCEPTED)
                   .build(),
               true);
       // Expect to get a timeout exception

@@ -8,27 +8,50 @@ use Temporal\Testing\Environment;
 
 final class Runner
 {
-    public static function runRoadRunner(State $runtime): Environment
+    private Environment $environment;
+    private bool $started = false;
+
+    public function __construct(
+        private State $runtime,
+    ) {
+        $this->environment = Environment::create();
+        \register_shutdown_function(fn() => $this->stop());
+    }
+
+    public function start(): void
     {
-        $run = $runtime->command;
+        if ($this->started) {
+            return;
+        }
+
+        $run = $this->runtime->command;
         $rrCommand = [
             './rr',
             'serve',
             '-o',
-            "temporal.namespace={$runtime->namespace}",
+            "temporal.namespace={$this->runtime->namespace}",
             '-o',
-            "temporal.address={$runtime->address}",
+            "temporal.address={$this->runtime->address}",
             '-o',
             'server.command=php,worker.php,' . \implode(',', $run->toCommandLineArguments()),
         ];
         $run->tlsKey === null or $rrCommand = [...$rrCommand, '-o', "tls.key={$run->tlsKey}"];
         $run->tlsCert === null or $rrCommand = [...$rrCommand, '-o', "tls.cert={$run->tlsCert}"];
-        $environment = \Temporal\Testing\Environment::create();
         $command = \implode(' ', $rrCommand);
 
         echo "\e[1;36mStart RoadRunner with command:\e[0m {$command}\n";
-        $environment->startRoadRunner($command);
+        $this->environment->startRoadRunner($command);
+        $this->started = true;
+    }
 
-        return $environment;
+    public function stop(): void
+    {
+        if (!$this->started) {
+            return;
+        }
+
+        echo "\e[1;36mStop RoadRunner\e[0m\n";
+        $this->environment->stop();
+        $this->started = false;
     }
 }

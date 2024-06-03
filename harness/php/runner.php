@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Harness\Feature\WorkflowStubInjector;
 use Harness\Runtime\Feature;
+use Harness\Runtime\Runner;
 use Harness\Runtime\State;
 use Harness\RuntimeBuilder;
 use Harness\Support;
@@ -24,10 +25,11 @@ include "vendor/autoload.php";
 
 $runtime = RuntimeBuilder::createState($argv, \dirname(__DIR__, 2) . '/features/');
 
+$runner = new Runner($runtime);
+
 // Run RoadRunner server if workflows or activities are defined
 if (\iterator_to_array($runtime->workflows(), false) !== [] || \iterator_to_array($runtime->activities(), false) !== []) {
-    $environment = \Harness\Runtime\Runner::runRoadRunner($runtime);
-    \register_shutdown_function(static fn() => $environment->stop());
+    $runner->start();
 }
 
 // Prepare and run checks
@@ -66,6 +68,7 @@ $scheduleClient = ScheduleClient::create(
 
 $container = new Spiral\Core\Container();
 $container->bindSingleton(State::class, $runtime);
+$container->bindSingleton(Runner::class, $runner);
 $container->bindSingleton(ServiceClientInterface::class, $serviceClient);
 $container->bindSingleton(WorkflowClientInterface::class, $workflowClient);
 $container->bindSingleton(ScheduleClientInterface::class, $scheduleClient);
@@ -92,5 +95,7 @@ foreach ($runtime->checks() as $feature => $definition) {
         echo "\e[1;31mFAILED\e[0m\n";
         Support::echoException($e);
         echo "\n";
+    } finally {
+        $runner->start();
     }
 }

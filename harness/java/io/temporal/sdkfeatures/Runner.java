@@ -80,7 +80,8 @@ public class Runner implements Closeable {
     }
     feature.workflowServiceOptions(serviceBuild);
     final var serviceOptions = serviceBuild.build();
-    final var directServiceOptions = serviceBuild.setTarget(config.serverHostPort).setSslContext(config.sslContext).build();
+    final var directServiceOptions =
+        serviceBuild.setTarget(config.serverHostPort).setSslContext(config.sslContext).build();
 
     service = WorkflowServiceStubs.newConnectedServiceStubs(serviceOptions, Duration.ofSeconds(10));
     // Shutdown service on failure

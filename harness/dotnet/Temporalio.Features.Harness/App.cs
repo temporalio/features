@@ -27,6 +27,10 @@ public static class App
         name: "--client-key-path",
         description: "Path to a client key for TLS");
 
+    private static readonly Option<string> summaryUriOption = new(
+        name: "--summary-uri",
+        description: "Where to stream the test summary JSONL (not implemented)");
+
     private static readonly Argument<List<(string, string)>> featuresArgument = new(
         name: "features",
         parse: result => result.Tokens.Select(token =>
@@ -53,9 +57,11 @@ public static class App
     {
         var cmd = new RootCommand(".NET features harness");
         cmd.AddOption(serverOption);
+        cmd.AddOption(directServerOption);
         cmd.AddOption(namespaceOption);
         cmd.AddOption(clientCertPathOption);
         cmd.AddOption(clientKeyPathOption);
+        cmd.AddOption(proxyControlUriOption);
         cmd.AddArgument(featuresArgument);
         cmd.SetHandler(RunCommandAsync);
         return cmd;

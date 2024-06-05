@@ -21,6 +21,10 @@ async def run():
         "--client-cert-path", help="Path to a client certificate for TLS"
     )
     parser.add_argument("--client-key-path", help="Path to a client key for TLS")
+    parser.add_argument(
+        "--summary-uri",
+        help="where to stream the test summary JSONL (not implemented)",
+    )
     parser.add_argument("--log-level", help="Log level", default="INFO")
     parser.add_argument("--http-proxy-url", help="HTTP proxy URL")
     parser.add_argument(

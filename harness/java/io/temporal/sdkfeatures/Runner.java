@@ -76,10 +76,11 @@ public class Runner implements Closeable {
             .setMetricsScope(config.metricsScope);
     if (feature.initiatorUsesProxy()) {
       serviceBuild.setTarget(config.proxyListenHostPort);
+      serviceBuild.setSslContext(null);
     }
     feature.workflowServiceOptions(serviceBuild);
     final var serviceOptions = serviceBuild.build();
-    final var directServiceOptions = serviceBuild.setTarget(config.serverHostPort).build();
+    final var directServiceOptions = serviceBuild.setTarget(config.serverHostPort).setSslContext(config.sslContext).build();
 
     service = WorkflowServiceStubs.newConnectedServiceStubs(serviceOptions, Duration.ofSeconds(10));
     // Shutdown service on failure

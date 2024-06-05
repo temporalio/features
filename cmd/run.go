@@ -10,7 +10,6 @@ import (
 	"io"
 	"net"
 	"os"
-	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"runtime"
@@ -170,7 +169,6 @@ type Runner struct {
 	rootDir    string
 	createTime time.Time
 	program    sdkbuild.Program
-	proxy      *exec.Cmd
 }
 
 // NewRunner creates a new runner for the given config.

@@ -47,6 +47,17 @@ jobs:
         run: docker load --input /tmp/server-docker/temporal-autosetup.tar
         working-directory: '.'
 
+      - name: Override IMAGE_TAG environment variable
+        if: ${{ inputs.docker-image-artifact-name }}
+        run: |
+          image_tag=latest
+          # image_tag won't exist on older builds (like 1.22.0), so default to latest
+          if [ -f /tmp/server-docker/image_tag ]; then
+            image_tag=$(cat /tmp/server-docker/image_tag)
+          fi
+          echo "IMAGE_TAG=${image_tag}" >> $GITHUB_ENV
+        working-directory: '.'
+
       - name: Checkout SDK features repo
         uses: actions/checkout@v3
         with:

@@ -90,7 +90,7 @@ public static class App
             };
 
         // Go over each feature, calling the runner for it
-        var failureCount = 0;
+        var failures = new List<string>();
         foreach (var (dir, taskQueue) in ctx.ParseResult.GetValueForArgument(featuresArgument))
         {
             var feature =
@@ -109,13 +109,14 @@ public static class App
             catch (Exception e)
             {
                 logger.LogError(e, "Feature {Feature} failed", feature.Dir);
-                failureCount++;
+                failures.Add(feature.Dir);
             }
         }
 
-        if (failureCount > 0)
+        if (failures.Count > 0)
         {
-            throw new InvalidOperationException($"{failureCount} feature(s) failed");
+            throw new InvalidOperationException(
+                $"{failures.Count} feature(s) failed: {string.Join(", ", failures)}");
         }
 
         logger.LogInformation("All features passed");

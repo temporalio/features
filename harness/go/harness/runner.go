@@ -86,20 +86,23 @@ func NewRunner(config RunnerConfig, feature *PreparedFeature) (*Runner, error) {
 	}()
 
 	// Create client
-	r.Feature.ClientOptions.HostPort = r.ServerHostPort
-	if r.Feature.ClientUsesProxy {
-		r.Feature.ClientOptions.HostPort = r.ProxyListenHostPort
-	}
-	r.Feature.ClientOptions.Namespace = r.Namespace
-	if r.Feature.ClientOptions.Logger == nil {
-		r.Feature.ClientOptions.Logger = r.Log
-	}
 	var err error
 	tlsCfg, err := LoadTLSConfig(r.ClientCertPath, r.ClientKeyPath)
 	if err != nil {
 		return nil, err
 	}
-	r.Feature.ClientOptions.ConnectionOptions.TLS = tlsCfg
+
+	r.Feature.ClientOptions.HostPort = r.ServerHostPort
+	if r.Feature.ClientUsesProxy {
+		r.Feature.ClientOptions.HostPort = r.ProxyListenHostPort
+	} else {
+		// Don't use TLS for the proxy connection
+		r.Feature.ClientOptions.ConnectionOptions.TLS = tlsCfg
+	}
+	r.Feature.ClientOptions.Namespace = r.Namespace
+	if r.Feature.ClientOptions.Logger == nil {
+		r.Feature.ClientOptions.Logger = r.Log
+	}
 
 	if r.Feature.BeforeDial != nil {
 		if err = r.Feature.BeforeDial(r); err != nil {
@@ -113,6 +116,7 @@ func NewRunner(config RunnerConfig, feature *PreparedFeature) (*Runner, error) {
 
 	savedValue := r.Feature.ClientOptions.HostPort
 	r.Feature.ClientOptions.HostPort = r.ServerHostPort
+	r.Feature.ClientOptions.ConnectionOptions.TLS = tlsCfg
 	if r.DirectClient, err = client.Dial(r.Feature.ClientOptions); err != nil {
 		return nil, fmt.Errorf("failed creating client: %w", err)
 	}

@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 
 	"github.com/temporalio/features/harness/go/cmd"
 	"github.com/temporalio/features/sdkbuild"
@@ -40,26 +39,10 @@ func (r *Runner) RunJavaExternal(ctx context.Context, run *cmd.Run) error {
 	}
 
 	// Build args
-	args := []string{"--server", r.config.Server, "--namespace", r.config.Namespace}
-	if r.config.ClientCertPath != "" {
-		clientCertPath, err := filepath.Abs(r.config.ClientCertPath)
-		if err != nil {
-			return err
-		}
-		args = append(args, "--client-cert-path", clientCertPath)
-	}
-	if r.config.ClientKeyPath != "" {
-		clientKeyPath, err := filepath.Abs(r.config.ClientKeyPath)
-		if err != nil {
-			return err
-		}
-		args = append(args, "--client-key-path", clientKeyPath)
-	}
-	if r.config.SummaryURI != "" {
-		args = append(args, "--summary-uri", r.config.SummaryURI)
-	}
-	if r.config.HTTPProxyURL != "" {
-		args = append(args, "--http-proxy-url", r.config.HTTPProxyURL)
+	args := make([]string, 0, 64)
+	args, err := r.config.appendFlags(args)
+	if err != nil {
+		return err
 	}
 	args = append(args, run.ToArgs()...)
 

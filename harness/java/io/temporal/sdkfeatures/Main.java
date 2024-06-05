@@ -10,6 +10,8 @@ import io.temporal.serviceclient.SimpleSslContextBuilder;
 import java.io.*;
 import java.net.Socket;
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -17,6 +19,9 @@ import javax.net.ssl.SSLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Option;
+import picocli.CommandLine.Parameters;
 
 @Command(name = "features", description = "Runs Java features")
 public class Main implements Runnable {
@@ -57,7 +62,8 @@ public class Main implements Runnable {
       switch (uri.getScheme()) {
         case "tcp":
           Socket socket = new Socket(uri.getHost(), uri.getPort());
-          return new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF-8"));
+          return new BufferedWriter(
+              new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8));
         case "file":
           FileWriter fileWriter = new FileWriter(uri.getPath(), true);
           return new BufferedWriter(fileWriter);
@@ -89,6 +95,16 @@ public class Main implements Runnable {
   @Option(names = "--http-proxy-url", description = "URL for an HTTP CONNECT proxy to the server")
   private String httpProxyUrl;
 
+  @Option(
+    names = "--proxy-control-uri",
+    description = "The URL of temporal-features-test-proxy (optional)")
+  private String proxyControlUri;
+
+  @Option(
+    names = "--proxy-listen-host-port",
+    description = "The host:port of the server, bypassing the temporal-features-test-proxy")
+  private String proxyListenHotsPort;
+
   @Parameters(description = "Features as dir + ':' + task queue")
   private List<String> features;
 
@@ -111,6 +127,16 @@ public class Main implements Runnable {
 
     } else if (StringUtils.isNotEmpty(clientKeyPath) && StringUtils.isEmpty(clientCertPath)) {
       throw new RuntimeException("Client cert path must be specified since key path is");
+    }
+
+    // Parse proxyControlUri if present
+    URI proxyControl = null;
+    if (proxyControlUri != null && !proxyControlUri.isEmpty()) {
+      try {
+        proxyControl = new URI(proxyControlUri);
+      } catch (URISyntaxException e) {
+        throw new RuntimeException(e);
+      }
     }
 
     try (BufferedWriter writer = createSummaryServerWriter()) {
@@ -140,6 +166,8 @@ public class Main implements Runnable {
         config.namespace = namespace;
         config.httpProxyUrl = httpProxyUrl;
         config.sslContext = sslContext;
+        config.proxyControl = proxyControl;
+        config.proxyListenHostPort = proxyListenHotsPort;
         config.taskQueue = pieces[1];
         Outcome outcome = Outcome.PASSED;
         String message = "";

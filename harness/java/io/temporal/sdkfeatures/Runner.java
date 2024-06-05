@@ -12,11 +12,12 @@ import io.temporal.activity.ActivityInterface;
 import io.temporal.api.common.v1.Payload;
 import io.temporal.api.common.v1.WorkflowExecution;
 import io.temporal.api.history.v1.History;
+import io.temporal.api.history.v1.HistoryEvent;
 import io.temporal.api.workflow.v1.WorkflowExecutionInfo;
 import io.temporal.api.workflowservice.v1.DescribeWorkflowExecutionRequest;
 import io.temporal.client.*;
 import io.temporal.internal.client.WorkflowClientHelper;
-import io.temporal.internal.common.WorkflowExecutionHistory;
+import io.temporal.common.WorkflowExecutionHistory;
 import io.temporal.serviceclient.WorkflowServiceStubs;
 import io.temporal.serviceclient.WorkflowServiceStubsOptions;
 import io.temporal.worker.Worker;
@@ -24,6 +25,8 @@ import io.temporal.worker.WorkerFactory;
 import io.temporal.worker.WorkerFactoryOptions;
 import io.temporal.worker.WorkerOptions;
 import java.io.Closeable;
+import java.io.IOException;
+import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.*;
@@ -43,6 +46,8 @@ public class Runner implements Closeable {
     public Scope metricsScope = new NoopScope();
     public SslContext sslContext;
     public String httpProxyUrl;
+    public URI proxyControl;
+    public String proxyListenHostPort;
   }
 
   public final Config config;
@@ -50,6 +55,8 @@ public class Runner implements Closeable {
   public final Feature feature;
   public final WorkflowServiceStubs service;
   public final WorkflowClient client;
+  public final WorkflowServiceStubs directService;
+  public final WorkflowClient directClient;
   private WorkerFactory workerFactory;
   private Worker worker;
 
@@ -62,25 +69,162 @@ public class Runner implements Closeable {
     feature = featureInfo.newInstance();
 
     // Build service
-    var serviceBuild =
+    final var serviceBuild =
         WorkflowServiceStubsOptions.newBuilder()
             .setTarget(config.serverHostPort)
             .setSslContext(config.sslContext)
             .setMetricsScope(config.metricsScope);
+    if (feature.initiatorUsesProxy()) {
+      serviceBuild.setTarget(config.proxyListenHostPort);
+    }
     feature.workflowServiceOptions(serviceBuild);
-    service = WorkflowServiceStubs.newServiceStubs(serviceBuild.build());
+    final var serviceOptions = serviceBuild.build();
+    final var directServiceOptions = serviceBuild.setTarget(config.serverHostPort).build();
+
+    service = WorkflowServiceStubs.newConnectedServiceStubs(serviceOptions, Duration.ofSeconds(10));
     // Shutdown service on failure
     try {
-      // Build client
-      var clientBuild = WorkflowClientOptions.newBuilder().setNamespace(config.namespace);
-      feature.workflowClientOptions(clientBuild);
-      client = WorkflowClient.newInstance(service, clientBuild.build());
+      directService =  WorkflowServiceStubs.newConnectedServiceStubs(directServiceOptions, Duration.ofSeconds(10));
+      try {
+        // Build client
+        var clientBuild = WorkflowClientOptions.newBuilder().setNamespace(config.namespace);
+        feature.workflowClientOptions(clientBuild);
+        client = WorkflowClient.newInstance(service, clientBuild.build());
+        directClient = WorkflowClient.newInstance(directService, clientBuild.build());
 
-      // Build worker
-      restartWorker();
+        // Build worker
+        restartWorker();
+      } catch (Throwable e) {
+        try {
+          directService.shutdownNow();
+        } catch (Throwable ignored) {
+        }
+        throw e;
+      }
     } catch (Throwable e) {
-      service.shutdownNow();
+      try {
+        service.shutdownNow();
+      } catch (Throwable ignored) {
+      }
       throw e;
+    }
+  }
+
+  public WorkflowClient workerClient() {
+    if (feature.workerUsesProxy()) {
+      return client;
+    } else {
+      return directClient;
+    }
+  }
+
+  public WorkflowClient initiatorClient() {
+    return client;
+  }
+
+  public WorkflowServiceStubs initiatorService() {
+    return service;
+  }
+
+  public void proxyReject() throws IOException {
+    proxySendCommand("reject");
+  }
+
+  public void proxyAccept() throws IOException {
+    proxySendCommand("accept");
+  }
+
+  public void proxyFreeze() throws IOException {
+    proxySendCommand("freeze");
+  }
+
+  public void proxyThaw() throws IOException {
+    proxySendCommand("thaw");
+  }
+
+  public void proxyRestart(Duration sleep, boolean forceful) throws IOException {
+    final var sleepStr = sleep.toMillis() + "ms";
+    final var forcefulStr = forceful ? "true" : "false";
+    proxySendCommand("restart", "sleep", sleepStr, "forceful", forcefulStr);
+  }
+
+  public <T, E extends Throwable> T proxyRejectAndAccept(
+      Duration sleep, CheckedCallable<T, E> runnable) throws E, IOException {
+    return proxyFirstAndSecond(sleep, runnable, this::proxyReject, this::proxyAccept);
+  }
+
+  public <T, E extends Throwable> T proxyFreezeAndThaw(
+      Duration sleep, CheckedCallable<T, E> callable) throws E, IOException {
+    return proxyFirstAndSecond(sleep, callable, this::proxyFreeze, this::proxyThaw);
+  }
+
+  private <T, E extends Throwable> T proxyFirstAndSecond(
+      Duration sleep,
+      CheckedCallable<T, E> callable,
+      CheckedRunnable<IOException> first,
+      CheckedRunnable<IOException> second)
+      throws E, IOException {
+    first.run();
+    final var thread =
+        new Thread(
+            () -> {
+              try {
+                Thread.sleep(sleep.toMillis());
+              } catch (InterruptedException ignored) {
+                Thread.currentThread().interrupt();
+              }
+              try {
+                second.run();
+              } catch (IOException ignored) {
+              }
+            });
+    thread.start();
+    try {
+      return callable.call();
+    } finally {
+      try {
+        thread.join();
+      } catch (InterruptedException ignored) {
+        Thread.currentThread().interrupt();
+      }
+    }
+  }
+
+  public void proxySendCommand(String method, String... args) throws IOException {
+    if (config.proxyControl == null) {
+      skip("temporal-features-test-proxy is required for this test");
+    }
+
+    final StringBuilder sb = new StringBuilder();
+    sb.append('/');
+    sb.append(method);
+    if (args != null && args.length != 0) {
+      char separator = '?';
+      for (int i = 0; i < args.length; i += 2) {
+        String key = args[i];
+        String value = args[i + 1];
+        sb.append(separator);
+        sb.append(URLEncoder.encode(key, StandardCharsets.UTF_8));
+        sb.append('=');
+        sb.append(URLEncoder.encode(value, StandardCharsets.UTF_8));
+        separator = '&';
+      }
+    }
+    final URI uri = config.proxyControl.resolve(sb.toString());
+    log.info("proxySendCommand: {}", uri);
+    var connection = (HttpURLConnection) uri.toURL().openConnection();
+    connection.setConnectTimeout(1000);
+    connection.setReadTimeout(10000);
+    connection.setInstanceFollowRedirects(false);
+    connection.setRequestMethod("POST");
+    try {
+      connection.connect();
+      final int code = connection.getResponseCode();
+      if (code >= 400) {
+        throw new IOException("proxy command failed with HTTP code " + code);
+      }
+    } finally {
+      connection.disconnect();
     }
   }
 
@@ -91,7 +235,7 @@ public class Runner implements Closeable {
   public void restartWorker() {
     var factoryBuild = WorkerFactoryOptions.newBuilder();
     feature.workerFactoryOptions(factoryBuild);
-    this.workerFactory = WorkerFactory.newInstance(client, factoryBuild.build());
+    this.workerFactory = WorkerFactory.newInstance(workerClient(), factoryBuild.build());
     var workerBuild = WorkerOptions.newBuilder();
     feature.workerOptions(workerBuild);
     this.worker = workerFactory.newWorker(config.taskQueue, workerBuild.build());
@@ -160,7 +304,7 @@ public class Runner implements Closeable {
       options = builder.build();
     }
 
-    var stub = client.newUntypedWorkflowStub(methods.get(0).getName(), options);
+    var stub = initiatorClient().newUntypedWorkflowStub(methods.get(0).getName(), options);
 
     // Call workflow with args
     return new Run(methods.get(0), stub.start(args));
@@ -174,7 +318,7 @@ public class Runner implements Closeable {
   }
 
   public <T> T waitForRunResult(Run run, Class<T> type) {
-    var stub = client.newUntypedWorkflowStub(run.execution, Optional.empty());
+    var stub = initiatorClient().newUntypedWorkflowStub(run.execution, Optional.empty());
     return stub.getResult(type);
   }
 
@@ -196,7 +340,7 @@ public class Runner implements Closeable {
   public History getWorkflowHistory(Run run) throws Exception {
     var eventIter =
         WorkflowClientHelper.getHistory(
-            service, config.namespace, run.execution, config.metricsScope);
+            initiatorService(), config.namespace, run.execution, config.metricsScope);
     return History.newBuilder().addAllEvents(() -> eventIter).build();
   }
 
@@ -204,7 +348,7 @@ public class Runner implements Closeable {
     var history = getWorkflowHistory(run);
     var event =
         history.getEventsList().stream()
-            .filter(e -> e.hasWorkflowExecutionCompletedEventAttributes())
+            .filter(HistoryEvent::hasWorkflowExecutionCompletedEventAttributes)
             .findFirst();
     return event.get().getWorkflowExecutionCompletedEventAttributes().getResult().getPayloads(0);
   }
@@ -213,7 +357,7 @@ public class Runner implements Closeable {
     var history = getWorkflowHistory(run);
     var event =
         history.getEventsList().stream()
-            .filter(e -> e.hasWorkflowExecutionStartedEventAttributes())
+            .filter(HistoryEvent::hasWorkflowExecutionStartedEventAttributes)
             .findFirst();
     return event.get().getWorkflowExecutionStartedEventAttributes().getInput().getPayloads(0);
   }
@@ -225,7 +369,7 @@ public class Runner implements Closeable {
             .setExecution(run.execution)
             .build();
     var exec =
-        this.client
+        this.initiatorClient()
             .getWorkflowServiceStubs()
             .blockingStub()
             .describeWorkflowExecution(describeRequest);
@@ -251,7 +395,6 @@ public class Runner implements Closeable {
     }
   }
 
-  @SuppressWarnings("UnstableApiUsage")
   public Map<Version, WorkflowExecutionHistory[]> loadPastHistories() throws Exception {
     var pkg = featureInfo.dir.replace('/', '.') + ".history";
     var jsonPaths = new Reflections(pkg, Scanners.Resources).getResources(".*\\.json");
@@ -304,6 +447,20 @@ public class Runner implements Closeable {
       workerFactory.shutdownNow();
     } catch (Throwable e) {
       try {
+        directService.shutdownNow();
+      } catch (Throwable ignored) {
+      }
+      try {
+        service.shutdownNow();
+      } catch (Throwable ignored) {
+      }
+      throw e;
+    }
+
+    try {
+      directService.shutdownNow();
+    } catch (Throwable e) {
+      try {
         service.shutdownNow();
       } catch (Throwable ignored) {
       }
@@ -324,14 +481,14 @@ public class Runner implements Closeable {
     var history = getWorkflowHistory(run);
     var event =
         history.getEventsList().stream()
-            .filter(e -> e.hasWorkflowExecutionUpdateRejectedEventAttributes())
+            .filter(HistoryEvent::hasWorkflowExecutionUpdateRejectedEventAttributes)
             .findFirst();
     Assertions.assertFalse(event.isPresent());
   }
 
   public void skipIfUpdateNotSupported() {
     try {
-      client.newUntypedWorkflowStub("fake").update("also_fake", Void.class);
+      initiatorClient().newUntypedWorkflowStub("fake").update("also_fake", Void.class);
     } catch (WorkflowNotFoundException exception) {
       return;
     } catch (WorkflowServiceException exception) {
@@ -342,6 +499,8 @@ public class Runner implements Closeable {
               "server support for update is disabled; set frontend.enableUpdateWorkflowExecution=true in dynamic config to enable");
         case UNIMPLEMENTED:
           skip("server version too old to support update");
+        default:
+          break;
       }
     }
     skip("unknown");
@@ -349,7 +508,7 @@ public class Runner implements Closeable {
 
   public void skipIfAsyncAcceptedUpdateNotSupported() {
     try {
-      client.newUntypedWorkflowStub("fake").startUpdate("also_fake", Void.class);
+      initiatorClient().newUntypedWorkflowStub("fake").startUpdate("also_fake", Void.class);
     } catch (WorkflowNotFoundException exception) {
       return;
     } catch (WorkflowServiceException exception) {
@@ -360,6 +519,8 @@ public class Runner implements Closeable {
               "server support for async accepted update is disabled; set frontend.enableUpdateWorkflowExecutionAsyncAccepted=true in dynamic config to enable");
         case UNIMPLEMENTED:
           skip("server version too old to support update");
+        default:
+          break;
       }
     }
     skip("unknown");
@@ -381,5 +542,15 @@ public class Runner implements Closeable {
       }
     }
     Assertions.fail("retry limit exceeded");
+  }
+
+  @FunctionalInterface
+  public interface CheckedRunnable<E extends Throwable> {
+    void run() throws E;
+  }
+
+  @FunctionalInterface
+  public interface CheckedCallable<T, E extends Throwable> {
+    T call() throws E;
   }
 }

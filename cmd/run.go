@@ -10,6 +10,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"runtime"
@@ -30,8 +31,9 @@ import (
 )
 
 const (
-	summaryListenAddr = "127.0.0.1:0"
-	FeaturePassed     = "PASSED"
+	proxyExecutableAuto = "auto"
+	freePortListenAddr  = "127.0.0.1:0"
+	FeaturePassed       = "PASSED"
 )
 
 func runCmd() *cli.Command {
@@ -66,6 +68,40 @@ type RunConfig struct {
 	RetainTempDir       bool
 	SummaryURI          string
 	HTTPProxyURL        string
+	ProxyControlURI     string
+	ProxyListenHostPort string
+}
+
+func (config RunConfig) appendFlags(out []string) ([]string, error) {
+	out = append(out, "--server="+config.Server)
+	out = append(out, "--namespace="+config.Namespace)
+	if config.ClientCertPath != "" {
+		clientCertPath, err := filepath.Abs(config.ClientCertPath)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, "--client-cert-path="+clientCertPath)
+	}
+	if config.ClientKeyPath != "" {
+		clientKeyPath, err := filepath.Abs(config.ClientKeyPath)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, "--client-key-path="+clientKeyPath)
+	}
+	if config.SummaryURI != "" {
+		out = append(out, "--summary-uri="+config.SummaryURI)
+	}
+	if config.HTTPProxyURL != "" {
+		out = append(out, "--http-proxy-url", config.HTTPProxyURL)
+	}
+	if config.ProxyControlURI != "" {
+		out = append(out, "--proxy-control-uri="+config.ProxyControlURI)
+	}
+	if config.ProxyListenHostPort != "" {
+		out = append(out, "--proxy-listen-host-port="+config.ProxyListenHostPort)
+	}
+	return out, nil
 }
 
 // dockerRunFlags are a subset of flags that apply when running in a docker container
@@ -134,6 +170,7 @@ type Runner struct {
 	rootDir    string
 	createTime time.Time
 	program    sdkbuild.Program
+	proxy      *exec.Cmd
 }
 
 // NewRunner creates a new runner for the given config.
@@ -188,13 +225,17 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 	}
 	// Aa task queue to every feature
 	run := &cmd.Run{Features: make([]cmd.RunFeature, len(features))}
-	var expectsProxy bool
+	var expectsHTTPProxy bool
+	var expectsGrpcProxy bool
 	for i, feature := range features {
 		run.Features[i].Dir = feature.Dir
 		run.Features[i].TaskQueue = fmt.Sprintf("features-%v-%v", feature.Dir, uuid.NewString())
 		run.Features[i].Config = feature.Config
 		if feature.Config.ExpectUnauthedProxyCount > 0 || feature.Config.ExpectAuthedProxyCount > 0 {
-			expectsProxy = true
+			expectsHTTPProxy = true
+		}
+		if feature.Config.GrpcProxy {
+			expectsGrpcProxy = true
 		}
 	}
 
@@ -228,15 +269,32 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 	}
 
 	// If any feature requires an HTTP proxy, we must run it
-	var proxyServer *harness.HTTPConnectProxyServer
-	if expectsProxy {
-		proxyServer, err = harness.StartHTTPConnectProxyServer(harness.HTTPConnectProxyServerOptions{Log: r.log})
+	var httpProxyServer *harness.HTTPConnectProxyServer
+	if expectsHTTPProxy {
+		httpProxyServer, err = harness.StartHTTPConnectProxyServer(harness.HTTPConnectProxyServerOptions{Log: r.log})
 		if err != nil {
-			return fmt.Errorf("could not start proxy server: %w", err)
+			return fmt.Errorf("could not start http proxy server: %w", err)
 		}
-		r.config.HTTPProxyURL = "http://" + proxyServer.Address
-		r.log.Info("Started HTTP CONNECT proxy server", "address", proxyServer.Address)
-		defer proxyServer.Close()
+		r.config.HTTPProxyURL = "https://" + httpProxyServer.Address
+		r.log.Info("Started HTTP CONNECT proxy server", "address", httpProxyServer.Address)
+		defer httpProxyServer.Close()
+	}
+
+	// if any feature requires a gRPC proxy, we must run it
+	if expectsGrpcProxy {
+		grpcProxyServer, err := harness.StartGRPCProxyServer(harness.GRPCProxyServerOptions{
+			DialAddress:    r.config.Server,
+			ClientCertPath: r.config.ClientCertPath,
+			ClientKeyPath:  r.config.ClientKeyPath,
+			Log:            r.log,
+		})
+		if err != nil {
+			return fmt.Errorf("could not start grpc proxy server: %w", err)
+		}
+		r.config.ProxyListenHostPort = grpcProxyServer.ProxyAddress()
+		r.config.ProxyControlURI = "http://" + grpcProxyServer.ControlAddress()
+		r.log.Info("Started gRPC proxy server", "address", grpcProxyServer.ProxyAddress(), "control", grpcProxyServer.ControlAddress())
+		defer grpcProxyServer.Close()
 	}
 
 	// Ensure any created temp dir is cleaned on ctrl-c or normal exit
@@ -251,14 +309,14 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 		defer r.destroyTempDir()
 	}
 
-	l, err := net.Listen("tcp", summaryListenAddr)
+	summaryListener, err := net.Listen("tcp", freePortListenAddr)
 	if err != nil {
 		return err
 	}
-	defer l.Close()
+	defer summaryListener.Close()
 	summaryChan := make(chan Summary)
-	go r.summaryServer(l, summaryChan)
-	r.config.SummaryURI = "tcp://" + l.Addr().String()
+	go r.summaryServer(summaryListener, summaryChan)
+	r.config.SummaryURI = "tcp://" + summaryListener.Addr().String()
 
 	err = nil
 	switch r.config.Lang {
@@ -273,12 +331,14 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 			}
 		} else {
 			err = cmd.NewRunner(cmd.RunConfig{
-				Server:         r.config.Server,
-				Namespace:      r.config.Namespace,
-				ClientCertPath: r.config.ClientCertPath,
-				ClientKeyPath:  r.config.ClientKeyPath,
-				SummaryURI:     r.config.SummaryURI,
-				HTTPProxyURL:   r.config.HTTPProxyURL,
+				Server:              r.config.Server,
+				Namespace:           r.config.Namespace,
+				ClientCertPath:      r.config.ClientCertPath,
+				ClientKeyPath:       r.config.ClientKeyPath,
+				SummaryURI:          r.config.SummaryURI,
+				HTTPProxyURL:        r.config.HTTPProxyURL,
+				ProxyControlURI:     r.config.ProxyControlURI,
+				ProxyListenHostPort: r.config.ProxyListenHostPort,
 			}).Run(ctx, run)
 		}
 	case "java":
@@ -315,7 +375,7 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 	if err != nil {
 		return err
 	}
-	l.Close()
+	summaryListener.Close()
 	summary, ok := <-summaryChan
 	if !ok {
 		r.log.Debug("did not receive a test run summary - adopting legacy behavior of assuming no tests were skipped")
@@ -327,7 +387,7 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 	// For features that expected proxy connections, count how many expected
 	// ignoring skips and compare count with actual. If any failed we don't need
 	// even do the comparison.
-	if proxyServer != nil {
+	if httpProxyServer != nil {
 		var anyFailed bool
 		var expectUnauthedProxyCount, expectAuthedProxyCount int
 		for _, summ := range summary {
@@ -345,21 +405,26 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 			}
 		}
 		if !anyFailed {
-			if proxyServer.UnauthedConnectionsTunneled.Load() != uint32(expectUnauthedProxyCount) {
+			if httpProxyServer.UnauthedConnectionsTunneled.Load() != uint32(expectUnauthedProxyCount) {
 				return fmt.Errorf("expected %v unauthed HTTP proxy connections, got %v",
-					expectUnauthedProxyCount, proxyServer.UnauthedConnectionsTunneled.Load())
-			} else if proxyServer.AuthedConnectionsTunneled.Load() != uint32(expectAuthedProxyCount) {
+					expectUnauthedProxyCount, httpProxyServer.UnauthedConnectionsTunneled.Load())
+			} else if httpProxyServer.AuthedConnectionsTunneled.Load() != uint32(expectAuthedProxyCount) {
 				return fmt.Errorf("expected %v authed HTTP proxy connections, got %v",
-					expectAuthedProxyCount, proxyServer.AuthedConnectionsTunneled.Load())
+					expectAuthedProxyCount, httpProxyServer.AuthedConnectionsTunneled.Load())
 			} else {
 				r.log.Debug("Matched expected HTTP proxy connections",
-					"expectUnauthed", expectUnauthedProxyCount, "actualUnauthed", proxyServer.UnauthedConnectionsTunneled.Load(),
-					"expectAuthed", expectAuthedProxyCount, "actualAuthed", proxyServer.AuthedConnectionsTunneled.Load())
+					"expectUnauthed", expectUnauthedProxyCount, "actualUnauthed", httpProxyServer.UnauthedConnectionsTunneled.Load(),
+					"expectAuthed", expectAuthedProxyCount, "actualAuthed", httpProxyServer.AuthedConnectionsTunneled.Load())
 			}
 		}
 	}
 
-	return r.handleHistory(ctx, run, summary)
+	err = r.handleHistory(ctx, run, summary)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (r *Runner) handleHistory(ctx context.Context, run *cmd.Run, summary Summary) error {

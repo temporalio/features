@@ -16,8 +16,8 @@ import io.temporal.api.history.v1.HistoryEvent;
 import io.temporal.api.workflow.v1.WorkflowExecutionInfo;
 import io.temporal.api.workflowservice.v1.DescribeWorkflowExecutionRequest;
 import io.temporal.client.*;
-import io.temporal.internal.client.WorkflowClientHelper;
 import io.temporal.common.WorkflowExecutionHistory;
+import io.temporal.internal.client.WorkflowClientHelper;
 import io.temporal.serviceclient.WorkflowServiceStubs;
 import io.temporal.serviceclient.WorkflowServiceStubsOptions;
 import io.temporal.worker.Worker;
@@ -84,7 +84,9 @@ public class Runner implements Closeable {
     service = WorkflowServiceStubs.newConnectedServiceStubs(serviceOptions, Duration.ofSeconds(10));
     // Shutdown service on failure
     try {
-      directService =  WorkflowServiceStubs.newConnectedServiceStubs(directServiceOptions, Duration.ofSeconds(10));
+      directService =
+          WorkflowServiceStubs.newConnectedServiceStubs(
+              directServiceOptions, Duration.ofSeconds(10));
       try {
         // Build client
         var clientBuild = WorkflowClientOptions.newBuilder().setNamespace(config.namespace);

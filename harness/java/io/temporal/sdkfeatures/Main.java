@@ -96,13 +96,13 @@ public class Main implements Runnable {
   private String httpProxyUrl;
 
   @Option(
-    names = "--proxy-control-uri",
-    description = "The URL of temporal-features-test-proxy (optional)")
+      names = "--proxy-control-uri",
+      description = "The URL of temporal-features-test-proxy (optional)")
   private String proxyControlUri;
 
   @Option(
-    names = "--proxy-listen-host-port",
-    description = "The host:port of the server, bypassing the temporal-features-test-proxy")
+      names = "--proxy-listen-host-port",
+      description = "The host:port of the server, bypassing the temporal-features-test-proxy")
   private String proxyListenHotsPort;
 
   @Parameters(description = "Features as dir + ':' + task queue")

@@ -57,11 +57,9 @@ public static class App
     {
         var cmd = new RootCommand(".NET features harness");
         cmd.AddOption(serverOption);
-        cmd.AddOption(directServerOption);
         cmd.AddOption(namespaceOption);
         cmd.AddOption(clientCertPathOption);
         cmd.AddOption(clientKeyPathOption);
-        cmd.AddOption(proxyControlUriOption);
         cmd.AddArgument(featuresArgument);
         cmd.SetHandler(RunCommandAsync);
         return cmd;

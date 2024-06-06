@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Harness\Feature\DataConverter\Json;
+namespace Harness\Feature\DataConverter\JsonProtobuf;
 
 use Harness\Attribute\Check;
 use Harness\Attribute\Client;
 use Harness\Attribute\Stub;
+use Temporal\Api\Common\V1\DataBlob;
 use Temporal\Client\WorkflowStubInterface;
 use Temporal\DataConverter\EncodedValues;
 use Temporal\Interceptor\PipelineProvider;
@@ -18,13 +19,14 @@ use Temporal\Workflow\WorkflowInterface;
 use Temporal\Workflow\WorkflowMethod;
 use Webmozart\Assert\Assert;
 
-\define('EXPECTED_RESULT', (object)['spec' => true]);
+\define('EXPECTED_RESULT', 0xDEADBEEF);
+\define('INPUT', (new DataBlob())->setData(EXPECTED_RESULT));
 
 #[WorkflowInterface]
 class FeatureWorkflow
 {
     #[WorkflowMethod('Workflow')]
-    public function run(object $data)
+    public function run(DataBlob $data)
     {
         return $data;
     }
@@ -61,13 +63,14 @@ class FeatureChecker
 
     #[Check]
     public function check(
-        #[Stub('Workflow', args: [EXPECTED_RESULT])]
+        #[Stub('Workflow', args: [INPUT])]
         #[Client(pipelineProvider: [FeatureChecker::class, 'pipelineProvider'])]
         WorkflowStubInterface $stub,
     ): void {
-        $result = $stub->getResult();
+        /** @var DataBlob $result */
+        $result = $stub->getResult(DataBlob::class);
 
-        Assert::eq($result, EXPECTED_RESULT);
+        Assert::eq($result->getData(), EXPECTED_RESULT);
 
         $result = $this->interceptor->result;
         Assert::notNull($result);
@@ -76,7 +79,8 @@ class FeatureChecker
         /** @var \Temporal\Api\Common\V1\Payload $payload */
         $payload = $payloads->getPayloads()[0];
 
-        Assert::same($payload->getMetadata()['encoding'], 'json/plain');
-        Assert::same($payload->getData(), '{"spec":true}');
+        Assert::same($payload->getMetadata()['encoding'], 'json/protobuf');
+        Assert::same($payload->getMetadata()['messageType'], 'temporal.api.common.v1.DataBlob');
+        Assert::same($payload->getData(), '{"data":"MzczNTkyODU1OQ=="}');
     }
 }

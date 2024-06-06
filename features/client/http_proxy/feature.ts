@@ -28,7 +28,23 @@ export const feature = new Feature({
     // subprocess will make the client call to run the workflow, this will just
     // return the run.
     const subprocessOpts: SubprocessOpts = {
-      connectionOpts: runner.connectionOpts,
+      connectionOpts: {
+        ...runner.connectionOpts,
+        ...(typeof runner.connectionOpts?.tls === 'object'
+          ? {
+              tls: {
+                ...runner.connectionOpts.tls,
+                clientCertPair: {
+                  // Can't serialize Buffers safely to JSON, so let's cheat a bit
+                  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                  crt: runner.connectionOpts.tls!.clientCertPair!.crt.toString('base64') as unknown as Buffer,
+                  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                  key: runner.connectionOpts.tls!.clientCertPair!.key.toString('base64') as unknown as Buffer,
+                },
+              },
+            }
+          : undefined),
+      },
       clientOpts: runner.client.options,
       taskQueue: runner.options.taskQueue,
     };
@@ -56,17 +72,31 @@ export const feature = new Feature({
 async function subprocess() {
   if (typeof process.env.subprocess_opts !== 'string')
     throw new Error('Expected process.env.subprocess_opts to be a string');
-  const subprocessOpts: SubprocessOpts = JSON.parse(process.env.subprocess_opts);
+  const { connectionOpts, clientOpts, taskQueue } = JSON.parse(process.env.subprocess_opts) as SubprocessOpts;
   const connection = await Connection.connect({
-    ...subprocessOpts.connectionOpts,
+    ...connectionOpts,
+    ...(typeof connectionOpts?.tls === 'object'
+      ? {
+          tls: {
+            ...connectionOpts.tls,
+            // Can't serialize Buffers safely to JSON, so let's cheat a bit
+            clientCertPair: {
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              crt: Buffer.from(connectionOpts.tls!.clientCertPair!.crt as unknown as string, 'base64'),
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              key: Buffer.from(connectionOpts.tls!.clientCertPair!.key as unknown as string, 'base64'),
+            },
+          },
+        }
+      : undefined),
   });
   try {
     const client = await new Client({
-      ...subprocessOpts.clientOpts,
+      ...clientOpts,
       connection,
     });
     await client.workflow.execute(workflow, {
-      taskQueue: subprocessOpts.taskQueue,
+      taskQueue,
       workflowId: `http-connect-proxy-${randomUUID()}`,
     });
   } finally {

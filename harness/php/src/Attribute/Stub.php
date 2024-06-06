@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Harness\Attribute;
 
 /**
- * An attribute to mark a method as a Feature checker.
+ * An attribute to configure workflow stub.
+ *
+ * @see \Harness\Feature\WorkflowStubInjector
  */
 #[\Attribute(\Attribute::TARGET_PARAMETER)]
 final class Stub

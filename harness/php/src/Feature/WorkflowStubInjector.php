@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Harness\Feature;
 
-use Harness\Attribute\Memo;
+use Harness\Attribute\Client;
 use Harness\Attribute\Stub;
 use Harness\Runtime\Feature;
 use Psr\Container\ContainerInterface;
@@ -39,7 +39,8 @@ final class WorkflowStubInjector implements InjectorInterface
         }
 
         /** @var WorkflowClientInterface $client */
-        $client = $this->container->get(WorkflowClientInterface::class);
+        $client = $this->getClient($context);
+
         /** @var Feature $feature */
         $feature = $this->container->get(Feature::class);
         $options = WorkflowOptions::new()
@@ -53,5 +54,20 @@ final class WorkflowStubInjector implements InjectorInterface
         $client->start($stub, ...$attribute->args);
 
         return $stub;
+    }
+
+    public function getClient(\ReflectionParameter $context): WorkflowClientInterface
+    {
+        /** @var Client|null $attribute */
+        $attribute = ($context->getAttributes(Client::class)[0] ?? null)?->newInstance();
+
+        $client = $this->container->get(WorkflowClientInterface::class);
+        if ($attribute === null) {
+            return $client;
+        }
+
+        $attribute->timeout === null or $client = $client->withTimeout($attribute->timeout);
+
+        return $client;
     }
 }

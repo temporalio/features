@@ -59,7 +59,7 @@ export const feature = new Feature({
       // );
 
       const waitCompletedWith = async (untilResult: string) => {
-        const iterable = await runner.client.list({
+        const iterable = await runner.client.workflow.list({
           query: "WorkflowType = 'BasicWorkflow'",
         });
         for await (const exec of iterable) {
@@ -67,7 +67,7 @@ export const feature = new Feature({
             continue;
           }
           if (exec.status.name == 'COMPLETED') {
-            const wfHandle = runner.client.getHandle(exec.workflowId, exec.runId);
+            const wfHandle = runner.client.workflow.getHandle(exec.workflowId, exec.runId);
             const result = await wfHandle.result();
             if (result === untilResult) {
               return true;

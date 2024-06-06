@@ -1,6 +1,6 @@
 import { Context } from '@temporalio/activity';
 import { CancelledFailure } from '@temporalio/common';
-import { Feature, getWorkflowClient } from '@temporalio/harness';
+import { Feature, getClient } from '@temporalio/harness';
 import { ActivityFailure, ApplicationFailure } from '@temporalio/common';
 import * as wf from '@temporalio/workflow';
 
@@ -46,7 +46,7 @@ export async function workflow(): Promise<void> {
 
 const activitiesImpl = {
   async cancellableActivity() {
-    const client = getWorkflowClient();
+    const client = getClient();
 
     // Heartbeat every second for a minute
     let result = 'timeout';
@@ -68,7 +68,9 @@ const activitiesImpl = {
     }
 
     // Send to signal
-    await client.getHandle(Context.current().info.workflowExecution.workflowId).signal(activityResultSignal, result);
+    await client.workflow
+      .getHandle(Context.current().info.workflowExecution.workflowId)
+      .signal(activityResultSignal, result);
   },
 };
 

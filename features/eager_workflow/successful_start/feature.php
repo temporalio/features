@@ -5,15 +5,13 @@ declare(strict_types=1);
 namespace Harness\Feature\EagerWorkflow\SuccessfulStart;
 
 use Harness\Attribute\Check;
-use Harness\Runtime\Feature;
-use Harness\Runtime\State;
+use Harness\Attribute\Client;
+use Harness\Attribute\Stub;
 use Temporal\Api\Workflowservice\V1\StartWorkflowExecutionResponse;
-use Temporal\Client\ClientOptions;
 use Temporal\Client\GRPC\ContextInterface;
-use Temporal\Client\GRPC\ServiceClientInterface;
-use Temporal\Client\WorkflowClient;
-use Temporal\Client\WorkflowOptions;
+use Temporal\Client\WorkflowStubInterface;
 use Temporal\Interceptor\GrpcClientInterceptor;
+use Temporal\Interceptor\PipelineProvider;
 use Temporal\Interceptor\SimplePipelineProvider;
 use Temporal\Workflow\WorkflowInterface;
 use Temporal\Workflow\WorkflowMethod;
@@ -48,33 +46,27 @@ class grpcCallInterceptor implements GrpcClientInterceptor
 
 class FeatureChecker
 {
+    private grpcCallInterceptor $interceptor;
+
+    public function __construct()
+    {
+        $this->interceptor = new grpcCallInterceptor();
+    }
+
+    public function pipelineProvider(): PipelineProvider
+    {
+        return new SimplePipelineProvider([$this->interceptor]);
+    }
+
     #[Check]
-    public static function check(
-        State $runtime,
-        Feature $feature,
-        ServiceClientInterface $serviceClient,
+    public function check(
+        #[Stub('Workflow', eagerStart: true, )]
+        #[Client(timeout:30, pipelineProvider: [FeatureChecker::class, 'pipelineProvider'])]
+        WorkflowStubInterface $stub,
     ): void {
-        $pipelineProvider = new SimplePipelineProvider([
-            $interceptor = new grpcCallInterceptor(),
-        ]);
-
-        // Build custom WorkflowClient with gRPC interceptor
-        $workflowClient = WorkflowClient::create(
-            serviceClient: $serviceClient
-                ->withInterceptorPipeline($pipelineProvider->getPipeline(GrpcClientInterceptor::class)),
-            options: (new ClientOptions())->withNamespace($runtime->namespace),
-        )->withTimeout(30);
-
-        // Execute the Workflow in eager mode
-        $stub = $workflowClient->newUntypedWorkflowStub(
-            workflowType: 'Workflow',
-            options: WorkflowOptions::new()->withEagerStart()->withTaskQueue($feature->taskQueue),
-        );
-        $workflowClient->start($stub);
-
         // Check the result and the eager workflow proof
         Assert::same($stub->getResult(), EXPECTED_RESULT);
-        Assert::notNull($interceptor->lastResponse);
-        Assert::notNull($interceptor->lastResponse->getEagerWorkflowTask());
+        Assert::notNull($this->interceptor->lastResponse);
+        Assert::notNull($this->interceptor->lastResponse->getEagerWorkflowTask());
     }
 }

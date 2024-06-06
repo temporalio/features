@@ -7,12 +7,18 @@ namespace Harness\Feature;
 use Harness\Attribute\Client;
 use Harness\Attribute\Stub;
 use Harness\Runtime\Feature;
+use Harness\Runtime\State;
 use Psr\Container\ContainerInterface;
 use Spiral\Core\Attribute\Proxy;
 use Spiral\Core\Container\InjectorInterface;
+use Spiral\Core\InvokerInterface;
+use Temporal\Client\ClientOptions;
+use Temporal\Client\WorkflowClient;
 use Temporal\Client\WorkflowClientInterface;
 use Temporal\Client\WorkflowOptions;
 use Temporal\Client\WorkflowStubInterface;
+use Temporal\Interceptor\GrpcClientInterceptor;
+use Temporal\Interceptor\PipelineProvider;
 
 /**
  * @implements InjectorInterface<WorkflowStubInterface>
@@ -20,7 +26,8 @@ use Temporal\Client\WorkflowStubInterface;
 final class WorkflowStubInjector implements InjectorInterface
 {
     public function __construct(
-        #[Proxy] private ContainerInterface $container,
+        #[Proxy] private readonly ContainerInterface $container,
+        #[Proxy] private readonly InvokerInterface $invoker,
     ) {
     }
 
@@ -61,9 +68,30 @@ final class WorkflowStubInjector implements InjectorInterface
         /** @var Client|null $attribute */
         $attribute = ($context->getAttributes(Client::class)[0] ?? null)?->newInstance();
 
+        /** @var WorkflowClientInterface $client */
         $client = $this->container->get(WorkflowClientInterface::class);
+
         if ($attribute === null) {
             return $client;
+        }
+
+        // PipelineProvider is set
+        if ($attribute->pipelineProvider !== null) {
+            $provider = $this->invoker->invoke($attribute->pipelineProvider);
+            \assert($provider instanceof PipelineProvider);
+
+            // Build custom WorkflowClient with gRPC interceptor
+            $serviceClient = $client->getServiceClient()
+                ->withInterceptorPipeline($provider->getPipeline(GrpcClientInterceptor::class));
+
+            /** @var State $runtime */
+            $runtime = $this->container->get(State::class);
+
+            $client = WorkflowClient::create(
+                serviceClient: $serviceClient,
+                options: (new ClientOptions())->withNamespace($runtime->namespace),
+                interceptorProvider: $provider,
+            )->withTimeout(5);
         }
 
         $attribute->timeout === null or $client = $client->withTimeout($attribute->timeout);

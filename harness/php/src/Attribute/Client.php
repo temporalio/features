@@ -14,6 +14,7 @@ final class Client
 {
     public function __construct(
         public int|string $timeout,
+        public \Closure|array|string|null $pipelineProvider = null,
     ) {
     }
 }

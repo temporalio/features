@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Harness\Feature;
 
+use Harness\Attribute\Memo;
 use Harness\Attribute\Stub;
 use Harness\Runtime\Feature;
 use Psr\Container\ContainerInterface;
@@ -45,11 +46,11 @@ final class WorkflowStubInjector implements InjectorInterface
             ->withTaskQueue($feature->taskQueue)
             ->withEagerStart($attribute->eagerStart);
 
-        $stub = $client->newUntypedWorkflowStub(
-            $attribute->type,
-            $options,
-        );
-        $client->start($stub);
+        $attribute->workflowId === null or $options = $options->withWorkflowId($attribute->workflowId);
+        $attribute->memo === [] or $options = $options->withMemo($attribute->memo);
+
+        $stub = $client->newUntypedWorkflowStub($attribute->type, $options);
+        $client->start($stub, ...$attribute->args);
 
         return $stub;
     }

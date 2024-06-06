@@ -54,8 +54,8 @@ public class Runner
         Logger = loggerFactory.CreateLogger(PreparedFeature.FeatureType);
         Feature = (IFeature)Activator.CreateInstance(PreparedFeature.FeatureType, true)!;
 
-        ClientOptions = clientConnectOptions;
-        Feature.ConfigureClient(this, clientConnectOptions);
+        ClientOptions = (TemporalClientConnectOptions)clientConnectOptions.Clone();
+        Feature.ConfigureClient(this, ClientOptions);
         WorkerOptions = new(taskQueue) { LoggerFactory = loggerFactory };
     }
 
@@ -196,7 +196,9 @@ public class Runner
     public Task<bool> CheckAsyncUpdateSupportedAsync() =>
         CheckUpdateSupportCallAsync(() =>
             Client.GetWorkflowHandle("does-not-exist").StartUpdateAsync(
-                "does-not-exist", Array.Empty<object?>()));
+                "does-not-exist",
+                Array.Empty<object?>(),
+                new(WorkflowUpdateStage.Accepted)));
 
     /// <summary>
     /// Start the worker.

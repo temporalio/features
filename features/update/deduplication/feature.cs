@@ -41,9 +41,9 @@ class Feature : IFeature
             runner.NewWorkflowOptions());
 
         var updateId = "myid";
-        await handle.ExecuteUpdateAsync(wf => wf.MyUpdate(false), new() {UpdateID = updateId});
+        await handle.ExecuteUpdateAsync(wf => wf.MyUpdate(false), new() { Id = updateId });
         Assert.Equal(1, await handle.QueryAsync(wf => wf.Count));
-        await handle.ExecuteUpdateAsync(wf => wf.MyUpdate(false), new() {UpdateID = updateId});
+        await handle.ExecuteUpdateAsync(wf => wf.MyUpdate(false), new() { Id = updateId });
         Assert.Equal(1, await handle.QueryAsync(wf => wf.Count));
         await handle.ExecuteUpdateAsync(wf => wf.MyUpdate(true));
 

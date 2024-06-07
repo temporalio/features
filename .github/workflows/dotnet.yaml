@@ -36,7 +36,7 @@ jobs:
 
       - name: Download docker artifacts
         if: ${{ inputs.docker-image-artifact-name }}
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ${{ inputs.docker-image-artifact-name }}
           path: /tmp/server-docker
@@ -58,36 +58,37 @@ jobs:
         working-directory: '.'
 
       - name: Checkout SDK features repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: features
           repository: ${{ inputs.features-repo-path }}
           ref: ${{ inputs.features-repo-ref }}
       - name: Checkout .NET SDK repo
         if: ${{ inputs.version-is-repo-ref }}
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           repository: ${{ inputs.dotnet-repo-path }}
           submodules: recursive
           path: sdk-dotnet
           ref: ${{ inputs.version }}
 
-      - uses: actions/setup-dotnet@v3
+      - uses: actions/setup-dotnet@v4
 
       - name: Install protoc
         if: ${{ inputs.version-is-repo-ref }}
-        uses: arduino/setup-protoc@v1
+        uses: arduino/setup-protoc@v3
         with:
-          version: '3.x'
+          # TODO: Upgrade proto once https://github.com/arduino/setup-protoc/issues/99 is fixed
+          version: '23.x'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/setup-go@v2
+      - uses: actions/setup-go@v5
         with:
           go-version: '^1.20'
 
-      - uses: Swatinem/rust-cache@v1
+      - uses: Swatinem/rust-cache@v2
         if: ${{ inputs.version-is-repo-ref }}
         with:
-          working-directory: sdk-dotnet/src/Temporalio/Bridge
+          workspaces: sdk-dotnet/src/Temporalio/Bridge
 
       # Build .NET SDK if using repo
       # Don't build during install phase since we're going to explicitly build

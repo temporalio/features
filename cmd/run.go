@@ -273,7 +273,7 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 		if err != nil {
 			return fmt.Errorf("could not start http proxy server: %w", err)
 		}
-		r.config.HTTPProxyURL = "https://" + httpProxyServer.Address
+		r.config.HTTPProxyURL = "http://" + httpProxyServer.Address
 		r.log.Info("Started HTTP CONNECT proxy server", "address", httpProxyServer.Address)
 		defer httpProxyServer.Close()
 	}

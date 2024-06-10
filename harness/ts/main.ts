@@ -22,7 +22,7 @@ async function run() {
     namespace: string;
     clientCertPath: string;
     clientKeyPath: string;
-    proxyControlUri: string;
+    httpProxyUrl: string;
     featureAndTaskQueues: string[];
   }>();
   opts.featureAndTaskQueues = program.args;

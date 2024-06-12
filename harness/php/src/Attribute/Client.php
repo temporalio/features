@@ -15,6 +15,7 @@ final class Client
     public function __construct(
         public int|string|null $timeout = null,
         public \Closure|array|string|null $pipelineProvider = null,
+        public array $payloadConverters = [],
     ) {
     }
 }

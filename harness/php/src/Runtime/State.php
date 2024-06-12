@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Harness\Runtime;
 
 use Harness\Input\Command;
+use Temporal\DataConverter\PayloadConverterInterface;
 
 final class State
 {
@@ -46,8 +47,22 @@ final class State
     public function activities(): \Traversable
     {
         foreach ($this->features as $feature) {
-            foreach ($feature->activities as $workflow) {
-                yield $feature => $workflow;
+            foreach ($feature->activities as $activity) {
+                yield $feature => $activity;
+            }
+        }
+    }
+
+    /**
+     * Iterate over all the Payload Converters.
+     *
+     * @return \Traversable<Feature, class-string<PayloadConverterInterface>>
+     */
+    public function converters(): \Traversable
+    {
+        foreach ($this->features as $feature) {
+            foreach ($feature->converters as $converter) {
+                yield $feature => $converter;
             }
         }
     }
@@ -64,6 +79,14 @@ final class State
                 yield $feature => $check;
             }
         }
+    }
+
+    /**
+     * @param class-string<PayloadConverterInterface> $class
+     */
+    public function addConverter(\Harness\Input\Feature $inputFeature, string $class): void
+    {
+        $this->getFeature($inputFeature)->converters[] = $class;
     }
 
     /**

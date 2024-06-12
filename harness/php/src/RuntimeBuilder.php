@@ -9,6 +9,7 @@ use Harness\Input\Command;
 use Harness\Input\Feature;
 use Harness\Runtime\State;
 use Temporal\Activity\ActivityInterface;
+use Temporal\DataConverter\PayloadConverterInterface;
 use Temporal\Workflow\WorkflowInterface;
 
 final class RuntimeBuilder
@@ -26,6 +27,10 @@ final class RuntimeBuilder
             # Register Activity
             $class->getAttributes(ActivityInterface::class) === [] or $runtime
                 ->addActivity($feature, $class->getName());
+
+            # Register Converters
+            $class->implementsInterface(PayloadConverterInterface::class) and $runtime
+                ->addConverter($feature, $class->getName());
 
             # Register Check
             foreach ($class->getMethods() as $method) {

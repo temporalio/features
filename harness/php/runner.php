@@ -18,6 +18,8 @@ use Temporal\Client\ScheduleClientInterface;
 use Temporal\Client\WorkflowClient;
 use Temporal\Client\WorkflowClientInterface;
 use Temporal\Client\WorkflowStubInterface;
+use Temporal\DataConverter\DataConverter;
+use Temporal\DataConverter\DataConverterInterface;
 
 ini_set('display_errors', 'stderr');
 chdir(__DIR__);
@@ -55,15 +57,18 @@ try {
 
 // TODO if authKey is set
 // $serviceClient->withAuthKey($authKey)
+$converter = DataConverter::createDefault();
 
 $workflowClient = WorkflowClient::create(
     serviceClient: $serviceClient,
     options: (new ClientOptions())->withNamespace($runtime->namespace),
+    converter: $converter,
 )->withTimeout(5);
 
 $scheduleClient = ScheduleClient::create(
     serviceClient: $serviceClient,
     options: (new ClientOptions())->withNamespace($runtime->namespace),
+    converter: $converter,
 )->withTimeout(5);
 
 $container = new Spiral\Core\Container();
@@ -73,6 +78,7 @@ $container->bindSingleton(ServiceClientInterface::class, $serviceClient);
 $container->bindSingleton(WorkflowClientInterface::class, $workflowClient);
 $container->bindSingleton(ScheduleClientInterface::class, $scheduleClient);
 $container->bindInjector(WorkflowStubInterface::class, WorkflowStubInjector::class);
+$container->bindSingleton(DataConverterInterface::class, $converter);
 
 // Run checks
 foreach ($runtime->checks() as $feature => $definition) {

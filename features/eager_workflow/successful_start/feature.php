@@ -46,12 +46,9 @@ class grpcCallInterceptor implements GrpcClientInterceptor
 
 class FeatureChecker
 {
-    private grpcCallInterceptor $interceptor;
-
-    public function __construct()
-    {
-        $this->interceptor = new grpcCallInterceptor();
-    }
+    public function __construct(
+        private grpcCallInterceptor $interceptor = new grpcCallInterceptor(),
+    ) {}
 
     public function pipelineProvider(): PipelineProvider
     {

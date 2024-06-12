@@ -18,8 +18,13 @@ use Temporal\Client\ScheduleClientInterface;
 use Temporal\Client\WorkflowClient;
 use Temporal\Client\WorkflowClientInterface;
 use Temporal\Client\WorkflowStubInterface;
+use Temporal\DataConverter\BinaryConverter;
 use Temporal\DataConverter\DataConverter;
 use Temporal\DataConverter\DataConverterInterface;
+use Temporal\DataConverter\JsonConverter;
+use Temporal\DataConverter\NullConverter;
+use Temporal\DataConverter\ProtoConverter;
+use Temporal\DataConverter\ProtoJsonConverter;
 
 ini_set('display_errors', 'stderr');
 chdir(__DIR__);
@@ -57,7 +62,15 @@ try {
 
 // TODO if authKey is set
 // $serviceClient->withAuthKey($authKey)
-$converter = DataConverter::createDefault();
+
+// todo: replace with DataConverter::createDefault() after https://github.com/temporalio/sdk-php/issues/455
+$converter = new DataConverter(
+    new NullConverter(),
+    new BinaryConverter(),
+    new ProtoJsonConverter(),
+    new ProtoConverter(),
+    new JsonConverter(),
+);
 
 $workflowClient = WorkflowClient::create(
     serviceClient: $serviceClient,

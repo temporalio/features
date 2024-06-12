@@ -18,7 +18,7 @@ use Temporal\Workflow\WorkflowInterface;
 use Temporal\Workflow\WorkflowMethod;
 use Webmozart\Assert\Assert;
 
-\define('EXPECTED_RESULT', (object)['spec' => true]);
+\define(__NAMESPACE__ . '\EXPECTED_RESULT', (object)['spec' => true]);
 
 #[WorkflowInterface]
 class FeatureWorkflow

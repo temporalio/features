@@ -19,8 +19,8 @@ use Temporal\Workflow\WorkflowInterface;
 use Temporal\Workflow\WorkflowMethod;
 use Webmozart\Assert\Assert;
 
-\define('EXPECTED_RESULT', 0xDEADBEEF);
-\define('INPUT', (new DataBlob())->setData(EXPECTED_RESULT));
+const EXPECTED_RESULT = 0xDEADBEEF;
+\define(__NAMESPACE__ . '\INPUT', (new DataBlob())->setData(EXPECTED_RESULT));
 
 #[WorkflowInterface]
 class FeatureWorkflow

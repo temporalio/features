@@ -37,8 +37,8 @@ try {
     $converters = [
         new NullConverter(),
         new BinaryConverter(),
-        new ProtoConverter(),
         new ProtoJsonConverter(),
+        new ProtoConverter(),
         new JsonConverter(),
     ];
     // Collect converters from all features

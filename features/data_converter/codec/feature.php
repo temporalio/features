@@ -23,8 +23,8 @@ use Temporal\Workflow\WorkflowInterface;
 use Temporal\Workflow\WorkflowMethod;
 use Webmozart\Assert\Assert;
 
-\define('CODEC_ENCODING', 'my-encoding');
-\define('EXPECTED_RESULT', new DTO(spec: true));
+const CODEC_ENCODING = 'my-encoding';
+const EXPECTED_RESULT = new DTO(spec: true);
 
 #[WorkflowInterface]
 class FeatureWorkflow

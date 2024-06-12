@@ -79,6 +79,7 @@ type RunFeatureConfig struct {
 	Go                       RunFeatureConfigGo `json:"go"`
 	ExpectUnauthedProxyCount int                `json:"expectUnauthedProxyCount"`
 	ExpectAuthedProxyCount   int                `json:"expectAuthedProxyCount"`
+	GrpcProxy                bool               `json:"grpcProxy"`
 }
 
 // RunFeatureConfigGo is go-specific configuration in the JSON file.
@@ -88,12 +89,14 @@ type RunFeatureConfigGo struct {
 
 // RunConfig is configuration for NewRunner.
 type RunConfig struct {
-	Server         string
-	Namespace      string
-	ClientCertPath string
-	ClientKeyPath  string
-	SummaryURI     string
-	HTTPProxyURL   string
+	Server              string
+	Namespace           string
+	ClientCertPath      string
+	ClientKeyPath       string
+	SummaryURI          string
+	ProxyControlURI     string
+	ProxyListenHostPort string
+	HTTPProxyURL        string
 }
 
 func (r *RunConfig) flags() []cli.Flag {
@@ -127,6 +130,16 @@ func (r *RunConfig) flags() []cli.Flag {
 			Name:        "http-proxy-url",
 			Usage:       "URL for an HTTP CONNECT proxy to the server",
 			Destination: &r.HTTPProxyURL,
+		},
+		&cli.StringFlag{
+			Name:        "proxy-control-uri",
+			Usage:       "how to simulate network outages via temporal-features-test-proxy (optional)",
+			Destination: &r.ProxyControlURI,
+		},
+		&cli.StringFlag{
+			Name:        "proxy-listen-host-port",
+			Usage:       "The host:port of the gRPC proxy",
+			Destination: &r.ProxyListenHostPort,
 		},
 	}
 }
@@ -177,6 +190,15 @@ func (r *Runner) Run(ctx context.Context, run *Run) error {
 		return err
 	}
 	defer summary.Close()
+
+	var proxyControlURL *url.URL
+	if r.config.ProxyControlURI != "" {
+		proxyControlURL, err = url.Parse(r.config.ProxyControlURI)
+		if err != nil {
+			return err
+		}
+	}
+
 	var failureCount int
 	failureSummary := ""
 	allFeatures := harness.RegisteredFeatures()
@@ -218,13 +240,15 @@ func (r *Runner) Run(ctx context.Context, run *Run) error {
 			}
 
 			runnerConfig := harness.RunnerConfig{
-				ServerHostPort: r.config.Server,
-				Namespace:      r.config.Namespace,
-				ClientCertPath: r.config.ClientCertPath,
-				ClientKeyPath:  r.config.ClientKeyPath,
-				TaskQueue:      runFeature.TaskQueue,
-				Log:            r.log,
-				HTTPProxyURL:   r.config.HTTPProxyURL,
+				ServerHostPort:      r.config.Server,
+				Namespace:           r.config.Namespace,
+				ClientCertPath:      r.config.ClientCertPath,
+				ClientKeyPath:       r.config.ClientKeyPath,
+				TaskQueue:           runFeature.TaskQueue,
+				Log:                 r.log,
+				HTTPProxyURL:        r.config.HTTPProxyURL,
+				ProxyControlURL:     proxyControlURL,
+				ProxyListenHostPort: r.config.ProxyListenHostPort,
 			}
 			err := r.runFeature(ctx, runnerConfig, feature)
 

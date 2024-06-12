@@ -14,6 +14,7 @@ async function run() {
     .option('--client-cert-path <clientCertPath>', 'Path to a client certificate for TLS')
     .option('--client-key-path <clientKeyPath>', 'Path to a client key for TLS')
     .option('--http-proxy-url <httpProxyUrl>', 'HTTP proxy URL')
+    .option('--summary-uri <uri>', 'where to stream the test summary JSONL (not implemented)')
     .argument('<features...>', 'Features as dir + ":" + task queue');
 
   const opts = program.parse(process.argv).opts<{

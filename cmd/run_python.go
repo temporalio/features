@@ -60,23 +60,11 @@ func (r *Runner) RunPythonExternal(ctx context.Context, run *cmd.Run) error {
 	}
 
 	// Build args
-	args := []string{"harness.python.main", "--server", r.config.Server, "--namespace", r.config.Namespace}
-	if r.config.ClientCertPath != "" {
-		clientCertPath, err := filepath.Abs(r.config.ClientCertPath)
-		if err != nil {
-			return err
-		}
-		args = append(args, "--client-cert-path", clientCertPath)
-	}
-	if r.config.ClientKeyPath != "" {
-		clientKeyPath, err := filepath.Abs(r.config.ClientKeyPath)
-		if err != nil {
-			return err
-		}
-		args = append(args, "--client-key-path", clientKeyPath)
-	}
-	if r.config.HTTPProxyURL != "" {
-		args = append(args, "--http-proxy-url", r.config.HTTPProxyURL)
+	args := make([]string, 0, 64)
+	args = append(args, "harness.python.main")
+	args, err := r.config.appendFlags(args)
+	if err != nil {
+		return err
 	}
 	args = append(args, run.ToArgs()...)
 

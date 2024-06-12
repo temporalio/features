@@ -68,6 +68,12 @@ func (r *Runner) RunGoExternal(ctx context.Context, run *cmd.Run) error {
 	if r.config.HTTPProxyURL != "" {
 		args = append(args, "--http-proxy-url", r.config.HTTPProxyURL)
 	}
+	if r.config.ProxyControlURI != "" {
+		args = append(args, "--proxy-control-uri", r.config.ProxyControlURI)
+	}
+	if r.config.ProxyListenHostPort != "" {
+		args = append(args, "--proxy-listen-host-port", r.config.ProxyListenHostPort)
+	}
 	args = append(args, run.ToArgs()...)
 	cmd, err := r.program.NewCommand(ctx, args...)
 	if err == nil {

@@ -49,7 +49,7 @@ class FeatureChecker
                     StartWorkflowAction::new('Workflow')
                         ->withWorkflowId($workflowId)
                         ->withTaskQueue($feature->taskQueue)
-                        ->withWorkflowId('arg1')
+                        ->withInput(['arg1'])
                 )->withSpec(
                     ScheduleSpec::new()
                         ->withIntervalList(CarbonInterval::minute(1))
@@ -62,24 +62,28 @@ class FeatureChecker
             scheduleId: $scheduleId,
         );
 
-        // Run backfill
-        $now = CarbonImmutable::now()->setSeconds(0);
-        $threeYearsAgo = $now->modify('-3 years');
-        $thirtyMinutesAgo = $now->modify('-30 minutes');
-        $handle->backfill([
-            BackfillPeriod::new(
-                $threeYearsAgo->modify('-2 minutes'),
-                $threeYearsAgo,
-                ScheduleOverlapPolicy::AllowAll,
-            ),
-            BackfillPeriod::new(
-                $thirtyMinutesAgo->modify('-2 minutes'),
-                $thirtyMinutesAgo,
-                ScheduleOverlapPolicy::AllowAll,
-            ),
-        ]);
+        try {
+            // Run backfill
+            $now = CarbonImmutable::now()->setSeconds(0);
+            $threeYearsAgo = $now->modify('-3 years');
+            $thirtyMinutesAgo = $now->modify('-30 minutes');
+            $handle->backfill([
+                BackfillPeriod::new(
+                    $threeYearsAgo->modify('-2 minutes'),
+                    $threeYearsAgo,
+                    ScheduleOverlapPolicy::AllowAll,
+                ),
+                BackfillPeriod::new(
+                    $thirtyMinutesAgo->modify('-2 minutes'),
+                    $thirtyMinutesAgo,
+                    ScheduleOverlapPolicy::AllowAll,
+                ),
+            ]);
 
-        // Confirm 6 executions
-        Assert::same($handle->describe()->info->numActions, 6);
+            // Confirm 6 executions
+            Assert::same($handle->describe()->info->numActions, 6);
+        } finally {
+            $handle->delete();
+        }
     }
 }

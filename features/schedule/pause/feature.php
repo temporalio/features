@@ -2,17 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Harness\Feature\Schedule\Backfill;
+namespace Harness\Feature\Schedule\Pause;
 
-use Carbon\CarbonImmutable;
 use Carbon\CarbonInterval;
 use Harness\Attribute\Check;
 use Harness\Runtime\Feature;
 use Harness\Runtime\State;
 use Ramsey\Uuid\Uuid;
 use Temporal\Client\Schedule\Action\StartWorkflowAction;
-use Temporal\Client\Schedule\BackfillPeriod;
-use Temporal\Client\Schedule\Policy\ScheduleOverlapPolicy;
 use Temporal\Client\Schedule\Schedule;
 use Temporal\Client\Schedule\ScheduleOptions;
 use Temporal\Client\Schedule\Spec\ScheduleSpec;
@@ -56,33 +53,33 @@ class FeatureChecker
                 )->withState(
                     ScheduleState::new()
                         ->withPaused(true)
+                        ->withNotes('initial note')
                 ),
             options: ScheduleOptions::new()
-                // todo: should namespace be inherited from Service Client options by default?
                 ->withNamespace($runtime->namespace),
             scheduleId: $scheduleId,
         );
 
         try {
-            // Run backfill
-            $now = CarbonImmutable::now()->setSeconds(0);
-            $threeYearsAgo = $now->modify('-3 years');
-            $thirtyMinutesAgo = $now->modify('-30 minutes');
-            $handle->backfill([
-                BackfillPeriod::new(
-                    $threeYearsAgo->modify('-2 minutes'),
-                    $threeYearsAgo,
-                    ScheduleOverlapPolicy::AllowAll,
-                ),
-                BackfillPeriod::new(
-                    $thirtyMinutesAgo->modify('-2 minutes'),
-                    $thirtyMinutesAgo,
-                    ScheduleOverlapPolicy::AllowAll,
-                ),
-            ]);
-
-            // Confirm 6 executions
-            Assert::same($handle->describe()->info->numActions, 6);
+            // Confirm pause
+            $state = $handle->describe()->schedule->state;
+            Assert::true($state->paused);
+            Assert::same($state->notes, 'initial note');
+            // Re-pause
+            $handle->pause('custom note1');
+            $state = $handle->describe()->schedule->state;
+            Assert::true($state->paused);
+            Assert::same($state->notes, 'custom note1');
+            // Unpause
+            $handle->unpause();
+            $state = $handle->describe()->schedule->state;
+            Assert::false($state->paused);
+            Assert::same($state->notes, 'Unpaused via PHP SDK');
+            // Pause
+            $handle->pause();
+            $state = $handle->describe()->schedule->state;
+            Assert::true($state->paused);
+            Assert::same($state->notes, 'Paused via PHP SDK');
         } finally {
             $handle->delete();
         }

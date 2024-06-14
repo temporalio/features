@@ -90,7 +90,7 @@ func SubprocessExecuteWorkflow(ctx context.Context, args *subprocessArgs) error 
 	}
 
 	// Dial client
-	clientOpts := client.Options{HostPort: args.server, Namespace: args.namespace}
+	clientOpts := client.Options{HostPort: fmt.Sprintf("passthrough:///%s", args.server), Namespace: args.namespace}
 	if args.clientCertPath != "" {
 		var err error
 		clientOpts.ConnectionOptions.TLS, err = harness.LoadTLSConfig(args.clientCertPath, args.clientKeyPath)

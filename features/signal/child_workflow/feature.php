@@ -57,6 +57,6 @@ class FeatureChecker
     public static function check(
         #[Stub('Workflow')] WorkflowStubInterface $stub,
     ): void {
-        Assert::same($stub->getResult(),  'child-wf-arg');
+        Assert::same($stub->getResult(), 'child-wf-arg');
     }
 }

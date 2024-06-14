@@ -15,6 +15,7 @@ use Temporal\Workflow\QueryMethod;
 use Temporal\Workflow\SignalMethod;
 use Temporal\Workflow\WorkflowInterface;
 use Temporal\Workflow\WorkflowMethod;
+use Webmozart\Assert\Assert;
 
 #[WorkflowInterface]
 class FeatureWorkflow
@@ -57,13 +58,16 @@ class FeatureChecker
             // Can be cancelled or deadline exceeded depending on whether client or
             // server hit timeout first in a racy way
             $status = $e->getPrevious()?->getCode();
-            \assert($status === StatusCode::DEADLINE_EXCEEDED || $status === StatusCode::CANCELLED);
+            Assert::inArray($status, [
+                StatusCode::CANCELLED,
+                StatusCode::DEADLINE_EXCEEDED, // Deadline Exceeded
+                StatusCode::FAILED_PRECONDITION, // no poller seen for task queue recently
+            ], 'Error code must be DEADLINE_EXCEEDED or CANCELLED. Got ' . \print_r($status, true));
+        } finally {
+            # Restart the worker and finish the wf
+            $runner->start();
+            $stub->signal('finish');
+            $stub->getResult();
         }
-
-        # Restart the worker and finish the wf
-        $runner->start();
-
-        $stub->signal('finish');
-        $stub->getResult();
     }
 }

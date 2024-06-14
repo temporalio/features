@@ -8,7 +8,6 @@ use Carbon\CarbonInterval;
 use Harness\Attribute\Check;
 use Harness\Runtime\Feature;
 use Harness\Runtime\State;
-use Ramsey\Uuid\Uuid;
 use Temporal\Client\Schedule\Action\StartWorkflowAction;
 use Temporal\Client\Schedule\Schedule;
 use Temporal\Client\Schedule\ScheduleOptions;
@@ -37,14 +36,10 @@ class FeatureChecker
         Feature $feature,
         State $runtime,
     ): void {
-        $workflowId = Uuid::uuid4()->toString();
-        $scheduleId = Uuid::uuid4()->toString();
-
         $handle = $client->createSchedule(
             schedule: Schedule::new()
                 ->withAction(
                     StartWorkflowAction::new('Workflow')
-                        ->withWorkflowId($workflowId)
                         ->withTaskQueue($feature->taskQueue)
                         ->withInput(['arg1'])
                 )->withSpec(
@@ -57,7 +52,6 @@ class FeatureChecker
                 ),
             options: ScheduleOptions::new()
                 ->withNamespace($runtime->namespace),
-            scheduleId: $scheduleId,
         );
 
         try {

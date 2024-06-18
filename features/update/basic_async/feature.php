@@ -49,7 +49,6 @@ class FeatureChecker
             $stub->update('my_update', 'bad-update-arg');
             Assert::fail('Expected validation exception');
         } catch (WorkflowUpdateException $e) {
-            trap($e);
             Assert::contains($e->getPrevious()?->getMessage(), 'Invalid Update argument');
         }
 

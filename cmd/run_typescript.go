@@ -79,6 +79,9 @@ func (r *Runner) RunTypeScriptExternal(ctx context.Context, run *cmd.Run) error 
 		}
 		args = append(args, "--client-key-path", clientKeyPath)
 	}
+	if r.config.HTTPProxyURL != "" {
+		args = append(args, "--http-proxy-url", r.config.HTTPProxyURL)
+	}
 	args = append(args, run.ToArgs()...)
 
 	// Run

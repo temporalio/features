@@ -44,7 +44,9 @@ class Feature : IFeature
             (MyWorkflow wf) => wf.RunAsync(),
             runner.NewWorkflowOptions());
 
-        var badUpdateHandle = await handle.StartUpdateAsync(wf => wf.MyUpdate("invalid"));
+        var badUpdateHandle = await handle.StartUpdateAsync(
+            wf => wf.MyUpdate("invalid"),
+            new(WorkflowUpdateStage.Accepted));
 
         try
         {
@@ -56,7 +58,9 @@ class Feature : IFeature
             // Expected
         }
 
-        var goodUpdateHandle = await handle.StartUpdateAsync(wf => wf.MyUpdate("valid"));
+        var goodUpdateHandle = await handle.StartUpdateAsync(
+            wf => wf.MyUpdate("valid"),
+            new(WorkflowUpdateStage.Accepted));
         Assert.Equal("hi", await goodUpdateHandle.GetResultAsync());
 
         return handle;

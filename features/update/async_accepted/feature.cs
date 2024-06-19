@@ -61,7 +61,8 @@ class Feature : IFeature
             runner.NewWorkflowOptions());
 
         // Start update
-        var updateHandle1 = await handle.StartUpdateAsync(wf => wf.SuccessfulUpdateAsync());
+        var updateHandle1 = await handle.StartUpdateAsync(
+            wf => wf.SuccessfulUpdateAsync(), new(WorkflowUpdateStage.Accepted));
         // Send signal to finish the update
         await handle.SignalAsync(wf => wf.FinishUpdateAsync());
         // Confirm result
@@ -70,7 +71,8 @@ class Feature : IFeature
         Assert.Equal(123, await handle.GetUpdateHandle<int>(updateHandle1.Id).GetResultAsync());
 
         // Start a failed update
-        var updateHandle2 = await handle.StartUpdateAsync(wf => wf.FailureUpdateAsync());
+        var updateHandle2 = await handle.StartUpdateAsync(
+            wf => wf.FailureUpdateAsync(), new(WorkflowUpdateStage.Accepted));
         // Send signal to finish the update
         await handle.SignalAsync(wf => wf.FinishUpdateAsync());
         // Confirm failure
@@ -79,7 +81,8 @@ class Feature : IFeature
         Assert.Equal("Intentional failure", exc.InnerException?.Message);
 
         // Start an update but cancel/timeout waiting on its result
-        var updateHandle3 = await handle.StartUpdateAsync(wf => wf.SuccessfulUpdateAsync());
+        var updateHandle3 = await handle.StartUpdateAsync(
+            wf => wf.SuccessfulUpdateAsync(), new(WorkflowUpdateStage.Accepted));
         // Wait for result only for 100ms
         using var tokenSource = new CancellationTokenSource();
         tokenSource.CancelAfter(TimeSpan.FromMilliseconds(100));

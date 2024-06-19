@@ -1,13 +1,13 @@
 import * as activity from '@temporalio/activity';
-import { Connection, WorkflowClient } from '@temporalio/client';
+import { Connection, Client } from '@temporalio/client';
 import { ActivityExecuteInput, ActivityInboundCallsInterceptor, Next } from '@temporalio/worker';
 
 export class ConnectionInjectorInterceptor implements ActivityInboundCallsInterceptor {
-  constructor(public readonly connection: Connection, public readonly workflowClient: WorkflowClient) {}
+  constructor(public readonly connection: Connection, public readonly client: Client) {}
   async execute(input: ActivityExecuteInput, next: Next<ActivityInboundCallsInterceptor, 'execute'>): Promise<unknown> {
     Object.assign(activity.Context.current(), {
       connection: this.connection,
-      workflowClient: this.workflowClient,
+      client: this.client,
     });
     return next(input);
   }
@@ -18,14 +18,14 @@ export class ConnectionInjectorInterceptor implements ActivityInboundCallsInterc
  */
 export interface Context extends activity.Context {
   connection: Connection;
-  workflowClient: WorkflowClient;
+  client: Client;
 }
 
 /**
- * Get the workflowClient object associated with the current activity context
+ * Get the client object associated with the current activity context
  */
-export function getWorkflowClient(): WorkflowClient {
-  return (activity.Context.current() as unknown as Context).workflowClient;
+export function getClient(): Client {
+  return (activity.Context.current() as unknown as Context).client;
 }
 
 /**

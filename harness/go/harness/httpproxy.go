@@ -82,13 +82,6 @@ func (h *HTTPConnectProxyServer) handler(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		panic("hijack failed")
 	}
-	res := &http.Response{
-		StatusCode: http.StatusOK,
-		Proto:      "HTTP/1.1",
-		ProtoMajor: 1,
-		ProtoMinor: 1,
-		Header:     make(http.Header),
-	}
 
 	targetConn, err := net.Dial("tcp", r.URL.Host)
 	if err != nil {
@@ -96,7 +89,7 @@ func (h *HTTPConnectProxyServer) handler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := res.Write(clientConn); err != nil {
+	if _, err := clientConn.Write([]byte("HTTP/1.1 200 Connection established\r\n\r\n")); err != nil {
 		panic(fmt.Sprintf("Writing 200 OK failed: %v", err))
 	}
 
@@ -105,6 +98,20 @@ func (h *HTTPConnectProxyServer) handler(w http.ResponseWriter, r *http.Request)
 	} else {
 		h.UnauthedConnectionsTunneled.Add(1)
 	}
+
+	// Node's HTTP2 client is sensible to the order of packets at the very start of the connection.
+	// That is, if the client receives the server's first HTTP2 packet before it sends its own first
+	// HTTP2 packet, it will terminate the connection (HTTP2 GOAWAY) and fail. Therefore, wait for
+	// the first client packet before falling into full duplex mode.
+	buf := make([]byte, 32 * 1024)
+	readBytes, err := clientConn.Read(buf)
+	if err != nil {
+		panic(fmt.Sprintf("Expected client to send a first packet: %v", err))
+	}
+	if _, err := targetConn.Write(buf[:readBytes]); err != nil {
+		panic(fmt.Sprintf("Sending client's first packet to server failed: %v", err))
+	}
+
 	go io.Copy(targetConn, clientConn)
 	go func() {
 		io.Copy(clientConn, targetConn)

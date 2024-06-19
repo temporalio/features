@@ -8,8 +8,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-
-	"github.com/otiai10/copy"
 )
 
 // BuildJavaProgramOptions are options for BuildJavaProgram.
@@ -82,25 +80,12 @@ func BuildJavaProgram(ctx context.Context, options BuildJavaProgramOptions) (*Ja
 
 	// If we depend on SDK via path, built it and get the JAR
 	isPathDep := strings.ContainsAny(options.Version, `/\`)
-	if isPathDep {
-		cmd := j.buildGradleCommand(ctx, options.Version, false, options.ApplyToCommand, "jar", "gatherRuntimeDeps")
-		if err := cmd.Run(); err != nil {
-			return nil, fmt.Errorf("failed building Java SDK: %w", err)
-		}
-		// Copy JARs to sdkjars dir
-		sdkJarsDir := filepath.Join(dir, "sdkjars")
-		if err := copy.Copy(filepath.Join(options.Version, "temporal-sdk/build/libs"), sdkJarsDir); err != nil {
-			return nil, fmt.Errorf("failed copying lib JARs: %w", err)
-		}
-		if err := copy.Copy(filepath.Join(options.Version, "temporal-sdk/build/runtimeDeps"), sdkJarsDir); err != nil {
-			return nil, fmt.Errorf("failed copying runtime JARs: %w", err)
-		}
-	}
 
 	// Create build.gradle and settings.gradle
 	temporalSDKDependency := ""
 	if isPathDep {
-		temporalSDKDependency = "implementation fileTree(dir: 'sdkjars', include: ['*.jar'])"
+		// Any version will do here with path dep since we're going to substitute it with the project
+		temporalSDKDependency = "implementation 'io.temporal:temporal-sdk:[1.0,'"
 	} else if options.Version != "" {
 		temporalSDKDependency = fmt.Sprintf("implementation 'io.temporal:temporal-sdk:%v'",
 			strings.TrimPrefix(options.Version, "v"))
@@ -128,7 +113,22 @@ application {
 	if err := os.WriteFile(filepath.Join(dir, "build.gradle"), []byte(buildGradle), 0644); err != nil {
 		return nil, fmt.Errorf("failed writing build.gradle: %w", err)
 	}
+
 	settingsGradle := fmt.Sprintf("rootProject.name = '%v'", filepath.Base(dir))
+	// If dependency is a path dep, include the SDK gradle project and substitute the sdk dependency
+	if isPathDep {
+		asAbsPath, err := filepath.Abs(options.Version)
+		if err != nil {
+			return nil, fmt.Errorf("failed getting absolute path of by-path-version: %w", err)
+		}
+		settingsGradle += `
+includeBuild('` + asAbsPath + `') {
+    dependencySubstitution {
+        substitute module('io.temporal:temporal-sdk') using project(':temporal-sdk')
+    }
+}
+`
+	}
 	if err := os.WriteFile(filepath.Join(dir, "settings.gradle"), []byte(settingsGradle), 0644); err != nil {
 		return nil, fmt.Errorf("failed writing settings.gradle: %w", err)
 	}

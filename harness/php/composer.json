@@ -5,13 +5,11 @@
     "keywords": ["temporal", "sdk", "harness"],
     "license": "MIT",
     "require": {
+        "buggregator/trap": "^1.9",
         "spiral/core": "^3.13",
         "symfony/process": ">=6.4",
         "temporal/sdk": "^2.10.1",
         "webmozart/assert": "^1.11"
-    },
-    "require-dev": {
-        "buggregator/trap": "^1.6"
     },
     "autoload": {
         "psr-4": {

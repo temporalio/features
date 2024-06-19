@@ -66,13 +66,10 @@ func (r *Runner) RunPhpExternal(ctx context.Context, run *cmd.Run) error {
 		args = append(args, "tls.key="+clientKeyPath)
 	}
 
-	// r.log.Debug("ARGS", "Args", args)
-	r.log.Debug("ARGS", "Args", strings.Join(args, " "))
-
 	// Run
 	cmd, err := r.program.NewCommand(ctx, args...)
 	if err == nil {
-		r.log.Debug("Running PHP separately", "Args", cmd.Args)
+		// r.log.Debug("Running PHP separately", "Args", cmd.Args)
 		err = cmd.Run()
 	}
 	if err != nil {

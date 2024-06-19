@@ -18,8 +18,14 @@ final class State
     /** @var non-empty-string */
     public string $address;
 
+    /**
+     * @param non-empty-string $sourceDir Dir with rr.yaml, composer.json, etc
+     * @param non-empty-string $workDir Dir where tests are run
+     */
     public function __construct(
         public readonly Command $command,
+        public readonly string $sourceDir,
+        public readonly string $workDir,
     ) {
         $this->namespace = $command->namespace ?? 'default';
         $this->address = $command->address ?? 'localhost:7233';

@@ -18,13 +18,6 @@ node_modules
 __pycache__
 pyrightconfig.json
 
-# PHP stuff
-vendor
-rr
-rr.exe
-composer.lock
-/harness/php/composer.json
-
 # Build stuff
 bin
 obj

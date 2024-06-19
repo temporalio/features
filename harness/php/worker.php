@@ -27,15 +27,15 @@ use Temporal\Worker\WorkerInterface;
 use Temporal\Worker\WorkerOptions;
 use Temporal\WorkerFactory;
 
-ini_set('display_errors', 'stderr');
-include "vendor/autoload.php";
+require_once __DIR__ . '/src/RuntimeBuilder.php';
+RuntimeBuilder::init();
 
 /** @var array<non-empty-string, WorkerInterface> $run */
 $workers = [];
 
 try {
     // Load runtime options
-    $runtime = RuntimeBuilder::createState($argv, \dirname(__DIR__, 2) . '/features/');
+    $runtime = RuntimeBuilder::createState($argv, \getcwd());
     $run = $runtime->command;
     // Init container
     $container = new Spiral\Core\Container();

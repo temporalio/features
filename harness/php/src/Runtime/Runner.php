@@ -26,20 +26,26 @@ final class Runner
 
         $run = $this->runtime->command;
         $rrCommand = [
-            './rr',
+            $this->runtime->workDir . DIRECTORY_SEPARATOR . 'rr',
             'serve',
+            '-w',
+            $this->runtime->workDir,
             '-o',
             "temporal.namespace={$this->runtime->namespace}",
             '-o',
             "temporal.address={$this->runtime->address}",
             '-o',
-            'server.command=php,worker.php,' . \implode(',', $run->toCommandLineArguments()),
+            'server.command=' . \implode(',', [
+                'php',
+                $this->runtime->sourceDir . DIRECTORY_SEPARATOR . 'worker.php',
+                ...$run->toCommandLineArguments(),
+            ]),
         ];
         $run->tlsKey === null or $rrCommand = [...$rrCommand, '-o', "tls.key={$run->tlsKey}"];
         $run->tlsCert === null or $rrCommand = [...$rrCommand, '-o', "tls.cert={$run->tlsCert}"];
         $command = \implode(' ', $rrCommand);
 
-        echo "\e[1;36mStart RoadRunner with command:\e[0m {$command}\n";
+        // echo "\e[1;36mStart RoadRunner with command:\e[0m {$command}\n";
         $this->environment->startRoadRunner($command);
         $this->started = true;
     }
@@ -50,7 +56,7 @@ final class Runner
             return;
         }
 
-        echo "\e[1;36mStop RoadRunner\e[0m\n";
+        // echo "\e[1;36mStop RoadRunner\e[0m\n";
         $this->environment->stop();
         $this->started = false;
     }

@@ -2,9 +2,7 @@ package cmd
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -18,29 +16,10 @@ import (
 func (p *Preparer) BuildPhpProgram(ctx context.Context) (sdkbuild.Program, error) {
 	p.log.Info("Building PHP project", "DirName", p.config.DirName)
 
-	if p.config.DirName == "" {
-		p.config.DirName = filepath.Join(p.config.DirName, "harness", "php")
-	}
-
-	// Get version from composer.json if not present
-	version := p.config.Version
-	if version == "" {
-		verStruct := struct {
-			Dependencies map[string]string `json:"require"`
-		}{}
-		if b, err := os.ReadFile(filepath.Join(p.rootDir, "composer.json")); err != nil {
-			return nil, fmt.Errorf("failed reading composer.json: %w", err)
-		} else if err := json.Unmarshal(b, &verStruct); err != nil {
-			return nil, fmt.Errorf("failed read top level composer.json: %w", err)
-		} else if version = verStruct.Dependencies["temporal/sdk"]; version == "" {
-			return nil, fmt.Errorf("version not found in composer.json")
-		}
-	}
-
 	prog, err := sdkbuild.BuildPhpProgram(ctx, sdkbuild.BuildPhpProgramOptions{
-		BaseDir: p.rootDir,
 		DirName: p.config.DirName,
-		Version: version,
+		Version: p.config.Version,
+		RootDir: p.rootDir,
 	})
 	if err != nil {
 		p.log.Error("failed preparing: %w", err)

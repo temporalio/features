@@ -32,11 +32,10 @@ use Temporal\DataConverter\NullConverter;
 use Temporal\DataConverter\ProtoConverter;
 use Temporal\DataConverter\ProtoJsonConverter;
 
-ini_set('display_errors', 'stderr');
-chdir(__DIR__);
-include "vendor/autoload.php";
+require_once __DIR__ . '/src/RuntimeBuilder.php';
+RuntimeBuilder::init();
 
-$runtime = RuntimeBuilder::createState($argv, \dirname(__DIR__, 2) . '/features/');
+$runtime = RuntimeBuilder::createState($argv, \getcwd());
 
 $runner = new Runner($runtime);
 
@@ -117,7 +116,7 @@ foreach ($runtime->checks() as $feature => $definition) {
                 $container->bindSingleton($class, $class);
                 echo "Running check \e[1;36m{$class}::{$method}\e[0m ";
                 $container->invoke($definition);
-                echo "\e[1;32mOK\e[0m\n";
+                echo "\e[1;32mSUCCESS\e[0m\n";
             },
         );
     } catch (\Throwable $e) {

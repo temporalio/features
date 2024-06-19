@@ -297,7 +297,10 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 		}
 	case "php":
 		if r.config.DirName != "" {
-			r.program, err = sdkbuild.PhpProgramFromDir(filepath.Join(r.rootDir, r.config.DirName))
+			r.program, err = sdkbuild.PhpProgramFromDir(
+				filepath.Join(r.rootDir, r.config.DirName),
+				r.rootDir,
+			)
 		}
 		if err == nil {
 			err = r.RunPhpExternal(ctx, run)

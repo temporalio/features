@@ -14,11 +14,12 @@ use Temporal\Workflow\WorkflowInterface;
 
 final class RuntimeBuilder
 {
-    public static function createState(array $argv, string $featuresDir): State
+    public static function createState(array $argv, string $workDir): State
     {
         $command = Command::fromCommandLine($argv);
-        $runtime = new State($command);
+        $runtime = new State($command, \dirname(__DIR__), $workDir);
 
+        $featuresDir = \dirname(__DIR__, 3) . '/features/';
         foreach (self::iterateClasses($featuresDir, $command) as $feature => $class) {
             # Register Workflow
             $class->getAttributes(WorkflowInterface::class) === [] or $runtime
@@ -40,6 +41,20 @@ final class RuntimeBuilder
         }
 
         return $runtime;
+    }
+
+    public static function init(): void
+    {
+        \ini_set('display_errors', 'stderr');
+        include 'vendor/autoload.php';
+
+        \spl_autoload_register(static function (string $class): void {
+            if (\str_starts_with($class, 'Harness\\')) {
+                $file = \str_replace('\\', '/', \substr($class, 8)) . '.php';
+                $path = __DIR__ . '/' . $file;
+                \is_file($path) and require $path;
+            }
+        });
     }
 
     /**

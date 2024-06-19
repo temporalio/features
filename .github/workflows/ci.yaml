@@ -18,6 +18,7 @@ jobs:
       typescript_latest: '1.9.3'
       java_latest: '1.23.0'
       python_latest: '1.6.0'
+      php_latest: '2.10'
       csharp_latest: '0.1.1'
     steps:
       - run: 'echo noop'
@@ -71,6 +72,23 @@ jobs:
       - run: python -m pip install --upgrade wheel poetry poethepoet
       - run: poetry install --no-root
       - run: poe lint
+
+  build-php:
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Print build information
+        run: 'echo head_ref: "$GITHUB_HEAD_REF", ref: "$GITHUB_REF", os: ${{ matrix.os }}'
+      - uses: actions/checkout@v4
+      - name: Setup PHP 8.2
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.2
+          tools: composer:v2
+          extensions: dom, sockets, grpc, curl, protobuf
 
   build-java:
     strategy:
@@ -132,6 +150,15 @@ jobs:
       features-repo-ref: ${{ github.head_ref }}
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
 
+  feature-tests-php:
+    needs: latest-sdk-versions
+    uses: ./.github/workflows/php.yaml
+    with:
+      version: ${{ needs.latest-sdk-versions.outputs.php_latest }}
+      version-is-repo-ref: false
+      features-repo-ref: ${{ github.head_ref }}
+      features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
+
   feature-tests-java:
     needs: latest-sdk-versions
     uses: ./.github/workflows/java.yaml
@@ -161,4 +188,5 @@ jobs:
       ts-ver: 'v${{ needs.latest-sdk-versions.outputs.typescript_latest }}'
       java-ver: 'v${{ needs.latest-sdk-versions.outputs.java_latest }}'
       py-ver: 'v${{ needs.latest-sdk-versions.outputs.python_latest }}'
+      php-ver: '${{ needs.latest-sdk-versions.outputs.php_latest }}'
       cs-ver: 'v${{ needs.latest-sdk-versions.outputs.csharp_latest }}'

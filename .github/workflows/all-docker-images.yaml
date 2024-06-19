@@ -13,6 +13,9 @@ on:
       py-ver:
         description: Python SDK ver to build. Skipped if not specified. Must start with v.
         type: string
+      php-ver:
+        description: PHP SDK ver to build. Skipped if not specified.
+        type: string
       ts-ver:
         description: TypeScript SDK ver to build. Skipped if not specified. Must start with v.
         type: string
@@ -42,6 +45,9 @@ on:
         type: string
       py-ver:
         description: Python SDK ver to build. Skipped if not specified. Must start with v.
+        type: string
+      php-ver:
+        description: PHP SDK ver to build. Skipped if not specified.
         type: string
       ts-ver:
         description: TypeScript SDK ver to build. Skipped if not specified. Must start with v.
@@ -103,6 +109,17 @@ jobs:
     with:
       lang: py
       sdk-version: ${{ inputs.py-ver }}
+      semver-latest: major
+      do-push: ${{ inputs.do-push }}
+      skip-cloud: ${{ inputs.skip-cloud }}
+
+  build-php-docker-images:
+    if: inputs.php-ver
+    uses: ./.github/workflows/docker-images.yaml
+    secrets: inherit
+    with:
+      lang: php
+      sdk-version: ${{ inputs.php-ver }}
       semver-latest: major
       do-push: ${{ inputs.do-push }}
       skip-cloud: ${{ inputs.skip-cloud }}

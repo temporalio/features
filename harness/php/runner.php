@@ -104,6 +104,7 @@ $container->bind(
 );
 
 // Run checks
+$errors = 0;
 foreach ($runtime->checks() as $feature => $definition) {
     try {
         $container->runScope(
@@ -120,12 +121,15 @@ foreach ($runtime->checks() as $feature => $definition) {
             },
         );
     } catch (\Throwable $e) {
-        \trap($e);
-
         echo "\e[1;31mFAILED\e[0m\n";
+
+        \trap($e);
+        ++$errors;
         Support::echoException($e);
         echo "\n";
     } finally {
         $runner->start();
     }
 }
+
+exit($errors === 0 ? 0 : 1);

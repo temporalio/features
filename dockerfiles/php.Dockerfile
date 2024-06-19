@@ -5,12 +5,12 @@ FROM php:8.2 as build
 RUN apt-get update \
  && DEBIAN_FRONTEND=noninteractive \
     apt-get install --no-install-recommends --assume-yes \
-      protobuf-compiler=3.12.4* libprotobuf-dev=3.12.4*
+      protobuf-compiler=3.* libprotobuf-dev=3.* wget=*
 
 # Get go compiler
 ARG PLATFORM=amd64
-RUN wget -q https://go.dev/dl/go1.19.1.linux-${PLATFORM}.tar.gz \
-    && tar -C /usr/local -xzf go1.19.1.linux-${PLATFORM}.tar.gz
+RUN wget -q https://go.dev/dl/go1.22.4.linux-${PLATFORM}.tar.gz \
+    && tar -C /usr/local -xzf go1.22.4.linux-${PLATFORM}.tar.gz
 # Install Rust for compiling the core bridge - only required for installation from a repo but is cheap enough to install
 # in the "build" container (-y is for non-interactive install)
 # hadolint ignore=DL4006

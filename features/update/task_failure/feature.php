@@ -63,14 +63,14 @@ class FeatureChecker
     ): void {
         try {
             $stub->update('do_update');
-            Assert::fail('Expected validation exception');
+            throw new \RuntimeException('Expected validation exception');
         } catch (WorkflowUpdateException $e) {
             Assert::contains($e->getPrevious()?->getMessage(), "I'll fail update");
         }
 
         try {
             $stub->update('throw_or_done', true);
-            Assert::fail('Expected validation exception');
+            throw new \RuntimeException('Expected validation exception');
         } catch (WorkflowUpdateException) {
             # Expected
         }

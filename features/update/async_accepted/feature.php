@@ -88,7 +88,7 @@ class FeatureChecker
                     ->withUpdateId($updateId),
                 false,
             );
-            Assert::fail('Expected ApplicationFailure.');
+            throw new \RuntimeException('Expected ApplicationFailure.');
         } catch (WorkflowUpdateException $e) {
             Assert::contains($e->getPrevious()->getMessage(), 'Dying on purpose');
             Assert::same($e->getUpdateId(), $updateId);
@@ -101,7 +101,7 @@ class FeatureChecker
         try {
             // Check there is no result
             $handle->getEncodedValues(1.5);
-            Assert::fail('Expected Timeout Exception.');
+            throw new \RuntimeException('Expected Timeout Exception.');
         } catch (TimeoutException) {
             // Expected
         }

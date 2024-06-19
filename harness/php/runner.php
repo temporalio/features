@@ -8,8 +8,14 @@ use Harness\Runtime\Runner;
 use Harness\Runtime\State;
 use Harness\RuntimeBuilder;
 use Harness\Support;
+use Psr\Container\ContainerInterface;
+use Spiral\Core\Attribute\Proxy;
 use Spiral\Core\Container;
 use Spiral\Core\Scope;
+use Spiral\Goridge\RPC\RPC;
+use Spiral\Goridge\RPC\RPCInterface;
+use Spiral\RoadRunner\KeyValue\Factory;
+use Spiral\RoadRunner\KeyValue\StorageInterface;
 use Temporal\Client\ClientOptions;
 use Temporal\Client\GRPC\ServiceClient;
 use Temporal\Client\GRPC\ServiceClientInterface;
@@ -92,6 +98,11 @@ $container->bindSingleton(WorkflowClientInterface::class, $workflowClient);
 $container->bindSingleton(ScheduleClientInterface::class, $scheduleClient);
 $container->bindInjector(WorkflowStubInterface::class, WorkflowStubInjector::class);
 $container->bindSingleton(DataConverterInterface::class, $converter);
+$container->bind(RPCInterface::class, static fn() => RPC::create('tcp://127.0.0.1:6001'));
+$container->bind(
+    StorageInterface::class,
+    fn (#[Proxy] ContainerInterface $c): StorageInterface => $c->get(Factory::class)->select('harness'),
+);
 
 // Run checks
 foreach ($runtime->checks() as $feature => $definition) {

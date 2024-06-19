@@ -50,7 +50,7 @@ class FeatureChecker
         for ($i = 0; $i < 5; $i++) {
             try {
                 $stub->update('my_update', -1);
-                Assert::fail('Expected exception');
+                throw new \RuntimeException('Expected exception');
             } catch (WorkflowUpdateException) {
                 # Expected
             }
@@ -62,7 +62,7 @@ class FeatureChecker
 
         # Verify no rejections were written to history since we failed in the validator
         foreach ($client->getWorkflowHistory($stub->getExecution()) as $event) {
-            $event->hasWorkflowExecutionUpdateRejectedEventAttributes() and Assert::fail('Unexpected rejection event');
+            $event->hasWorkflowExecutionUpdateRejectedEventAttributes() and throw new \RuntimeException('Unexpected rejection event');
         }
     }
 }

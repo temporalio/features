@@ -7,6 +7,7 @@ from temporalio.client import (
     RPCStatusCode,
     WorkflowHandle,
     WorkflowUpdateFailedError,
+    WorkflowUpdateRPCTimeoutOrCancelledError,
     WorkflowUpdateStage,
 )
 from temporalio.exceptions import ApplicationError
@@ -94,11 +95,8 @@ async def check_result(runner: Runner, handle: WorkflowHandle) -> None:
     try:
         await update_handle.result(rpc_timeout=timedelta(seconds=1))
         raise RuntimeError("Should have failed")
-    except RPCError as err:
-        assert (
-            err.status == RPCStatusCode.DEADLINE_EXCEEDED
-            or err.status == RPCStatusCode.CANCELLED
-        ), f"Status: {err.status}"
+    except WorkflowUpdateRPCTimeoutOrCancelledError:
+        pass
 
     await handle.signal(Workflow.finish)
     await handle.result()

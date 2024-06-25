@@ -12,7 +12,6 @@ import io.temporal.workflow.SignalMethod;
 import io.temporal.workflow.UpdateMethod;
 import io.temporal.workflow.UpdateValidatorMethod;
 import io.temporal.workflow.Workflow;
-
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Assertions;
@@ -86,7 +85,7 @@ public interface feature extends Feature, SimpleWorkflow {
         Assertions.assertEquals("Failure", ((ApplicationFailure) e.getCause()).getType());
         Assertions.assertEquals(
             "message='simulated 3', type='Failure', nonRetryable=false", e.getCause().getMessage());
-        }
+      }
 
       // Check an update handle validator will fail on any exception
       try {

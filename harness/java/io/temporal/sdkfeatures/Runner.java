@@ -15,8 +15,8 @@ import io.temporal.api.history.v1.History;
 import io.temporal.api.workflow.v1.WorkflowExecutionInfo;
 import io.temporal.api.workflowservice.v1.DescribeWorkflowExecutionRequest;
 import io.temporal.client.*;
-import io.temporal.internal.client.WorkflowClientHelper;
 import io.temporal.client.WorkflowUpdateStage;
+import io.temporal.internal.client.WorkflowClientHelper;
 import io.temporal.internal.common.WorkflowExecutionHistory;
 import io.temporal.serviceclient.WorkflowServiceStubs;
 import io.temporal.serviceclient.WorkflowServiceStubsOptions;
@@ -350,7 +350,9 @@ public class Runner implements Closeable {
 
   public void skipIfAsyncAcceptedUpdateNotSupported() {
     try {
-      client.newUntypedWorkflowStub("fake").startUpdate("also_fake", WorkflowUpdateStage.ACCEPTED,Void.class);
+      client
+          .newUntypedWorkflowStub("fake")
+          .startUpdate("also_fake", WorkflowUpdateStage.ACCEPTED, Void.class);
     } catch (WorkflowNotFoundException exception) {
       return;
     } catch (WorkflowServiceException exception) {

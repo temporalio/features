@@ -225,6 +225,7 @@ func scrubRunSpecificScalars(v interface{}) {
 	case *history.ActivityTaskStartedEventAttributes:
 		v.Identity = ""
 		v.RequestId = ""
+		v.LastFailure = nil
 		// Because binary checksum will show up in the stamp where it didn't before, ignore unless
 		// versioning was actually turned on.
 		if v.GetWorkerVersion() != nil && !v.GetWorkerVersion().GetUseVersioning() {

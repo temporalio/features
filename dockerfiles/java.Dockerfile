@@ -8,8 +8,8 @@ RUN apt-get update \
       protobuf-compiler=3.12.4* git=1:2.34.1-1ubuntu1
 
 ARG PLATFORM=amd64
-RUN wget -q https://go.dev/dl/go1.19.1.linux-${PLATFORM}.tar.gz \
-    && tar -C /usr/local -xzf go1.19.1.linux-${PLATFORM}.tar.gz
+RUN wget -q https://go.dev/dl/go1.21.11.linux-${PLATFORM}.tar.gz \
+    && tar -C /usr/local -xzf go1.21.11.linux-${PLATFORM}.tar.gz
 
 WORKDIR /app
 

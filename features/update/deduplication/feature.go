@@ -6,8 +6,6 @@ import (
 
 	"github.com/temporalio/features/features/update/updateutil"
 	"github.com/temporalio/features/harness/go/harness"
-	enumspb "go.temporal.io/api/enums/v1"
-	updatepb "go.temporal.io/api/update/v1"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/workflow"
 )
@@ -30,30 +28,26 @@ var Feature = harness.Feature{
 			return nil, err
 		}
 
-		handle1, err := runner.Client.UpdateWorkflowWithOptions(
+		handle1, err := runner.Client.UpdateWorkflow(
 			ctx,
-			&client.UpdateWorkflowWithOptionsRequest{
-				UpdateID:   reusedUpdateID,
-				WorkflowID: run.GetID(),
-				RunID:      run.GetRunID(),
-				UpdateName: incrementCount,
-				WaitPolicy: &updatepb.WaitPolicy{
-					LifecycleStage: enumspb.UPDATE_WORKFLOW_EXECUTION_LIFECYCLE_STAGE_ACCEPTED,
-				},
+			client.UpdateWorkflowOptions{
+				UpdateID:     reusedUpdateID,
+				WorkflowID:   run.GetID(),
+				RunID:        run.GetRunID(),
+				UpdateName:   incrementCount,
+				WaitForStage: client.WorkflowUpdateStageAccepted,
 			},
 		)
 		runner.Require.NoError(err)
 
-		handle2, err := runner.Client.UpdateWorkflowWithOptions(
+		handle2, err := runner.Client.UpdateWorkflow(
 			ctx,
-			&client.UpdateWorkflowWithOptionsRequest{
-				UpdateID:   reusedUpdateID,
-				WorkflowID: run.GetID(),
-				RunID:      run.GetRunID(),
-				UpdateName: incrementCount,
-				WaitPolicy: &updatepb.WaitPolicy{
-					LifecycleStage: enumspb.UPDATE_WORKFLOW_EXECUTION_LIFECYCLE_STAGE_ACCEPTED,
-				},
+			client.UpdateWorkflowOptions{
+				UpdateID:     reusedUpdateID,
+				WorkflowID:   run.GetID(),
+				RunID:        run.GetRunID(),
+				UpdateName:   incrementCount,
+				WaitForStage: client.WorkflowUpdateStageAccepted,
 			},
 		)
 		runner.Require.NoError(err)

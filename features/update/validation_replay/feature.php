@@ -33,7 +33,12 @@ class FeatureWorkflow
     {
         if (static::$validations === 0) {
             ++static::$validations;
-            throw new \RuntimeException("I'll fail task");
+            throw new class extends \Error {
+                public function __construct()
+                {
+                    parent::__construct("I'll fail task");
+                }
+            };
         }
 
         $this->done = true;

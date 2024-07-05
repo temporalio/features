@@ -36,7 +36,12 @@ class FeatureWorkflow
         # controlled number of times.
         if (static::$fails < 2) {
             ++static::$fails;
-            throw new \RuntimeException("I'll fail task");
+            throw new class extends \Error {
+                public function __construct()
+                {
+                    parent::__construct("I'll fail task");
+                }
+            };
         }
 
         throw new ApplicationFailure("I'll fail update", 'task-failure', true);
@@ -58,7 +63,7 @@ class FeatureWorkflow
 class FeatureChecker
 {
     #[Check]
-    public static function check(
+    public static function retryableException(
         #[Stub('Workflow')] WorkflowStubInterface $stub,
     ): void {
         try {
@@ -66,17 +71,26 @@ class FeatureChecker
             throw new \RuntimeException('Expected validation exception');
         } catch (WorkflowUpdateException $e) {
             Assert::contains($e->getPrevious()?->getMessage(), "I'll fail update");
+        } finally {
+            # Finish Workflow
+            $stub->update('throw_or_done', doThrow: false);
         }
 
+        Assert::same($stub->getResult(), 2);
+    }
+
+    #[Check]
+    public static function validationException(
+        #[Stub('Workflow')] WorkflowStubInterface $stub,
+    ): void {
         try {
             $stub->update('throw_or_done', true);
             throw new \RuntimeException('Expected validation exception');
         } catch (WorkflowUpdateException) {
             # Expected
+        } finally {
+            # Finish Workflow
+            $stub->update('throw_or_done', doThrow: false);
         }
-
-        $stub->update('throw_or_done', false);
-
-        Assert::same($stub->getResult(), 2);
     }
 }

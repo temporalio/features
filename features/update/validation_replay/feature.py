@@ -13,7 +13,8 @@ task_fails_counter = 0
 
 @workflow.defn
 class Workflow:
-    am_done = False
+    def __init__(self) -> None:
+        self.am_done = False
 
     @workflow.run
     async def run(self) -> str:

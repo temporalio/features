@@ -5,9 +5,7 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
-	enumspb "go.temporal.io/api/enums/v1"
 	"go.temporal.io/api/serviceerror"
-	updatepb "go.temporal.io/api/update/v1"
 	"go.temporal.io/sdk/client"
 )
 
@@ -24,7 +22,7 @@ func CheckServerSupportsUpdate(
 	return checkSupport(
 		ctx,
 		sdkclient,
-		enumspb.UPDATE_WORKFLOW_EXECUTION_LIFECYCLE_STAGE_COMPLETED,
+		client.WorkflowUpdateStageCompleted,
 		updateDisabledMsg,
 	)
 }
@@ -36,7 +34,7 @@ func CheckServerSupportsAsyncAcceptedUpdate(
 	return checkSupport(
 		ctx,
 		sdkclient,
-		enumspb.UPDATE_WORKFLOW_EXECUTION_LIFECYCLE_STAGE_ACCEPTED,
+		client.WorkflowUpdateStageAccepted,
 		asyncAcceptedDisabledMsg,
 	)
 }
@@ -44,7 +42,7 @@ func CheckServerSupportsAsyncAcceptedUpdate(
 func checkSupport(
 	ctx context.Context,
 	c client.Client,
-	stage enumspb.UpdateWorkflowExecutionLifecycleStage,
+	waitForStage client.WorkflowUpdateStage,
 	deniedMsg string,
 ) string {
 	var (
@@ -53,13 +51,13 @@ func checkSupport(
 		unimplemented *serviceerror.Unimplemented
 	)
 
-	handle, err := c.UpdateWorkflowWithOptions(
+	handle, err := c.UpdateWorkflow(
 		ctx,
-		&client.UpdateWorkflowWithOptionsRequest{
-			UpdateID:   uuid.NewString(),
-			WorkflowID: "__does_not_exist",
-			UpdateName: "__does_not_exist",
-			WaitPolicy: &updatepb.WaitPolicy{LifecycleStage: stage},
+		client.UpdateWorkflowOptions{
+			UpdateID:     uuid.NewString(),
+			WorkflowID:   "__does_not_exist",
+			UpdateName:   "__does_not_exist",
+			WaitForStage: waitForStage,
 		},
 	)
 

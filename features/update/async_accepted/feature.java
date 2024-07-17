@@ -3,8 +3,8 @@ package update.async_accepted;
 import io.temporal.activity.ActivityInterface;
 import io.temporal.client.UpdateHandle;
 import io.temporal.client.UpdateOptions;
-import io.temporal.client.UpdateWaitPolicy;
 import io.temporal.client.WorkflowUpdateException;
+import io.temporal.client.WorkflowUpdateStage;
 import io.temporal.failure.ApplicationFailure;
 import io.temporal.sdkfeatures.Feature;
 import io.temporal.sdkfeatures.Run;
@@ -77,6 +77,7 @@ public interface feature extends Feature, SimpleWorkflow {
                   .setUpdateName("update")
                   .setUpdateId(updateId)
                   .setFirstExecutionRunId(run.execution.getRunId())
+                  .setWaitForStage(WorkflowUpdateStage.ACCEPTED)
                   .build(),
               true);
 
@@ -93,6 +94,7 @@ public interface feature extends Feature, SimpleWorkflow {
                   .setUpdateName("update")
                   .setUpdateId(updateId)
                   .setFirstExecutionRunId(run.execution.getRunId())
+                  .setWaitForStage(WorkflowUpdateStage.ACCEPTED)
                   .build(),
               false);
       try {
@@ -115,7 +117,7 @@ public interface feature extends Feature, SimpleWorkflow {
                   .setUpdateName("update")
                   .setUpdateId(updateId)
                   .setFirstExecutionRunId(run.execution.getRunId())
-                  .setWaitPolicy(UpdateWaitPolicy.ACCEPTED)
+                  .setWaitForStage(WorkflowUpdateStage.ACCEPTED)
                   .build(),
               true);
       // Expect to get a timeout exception

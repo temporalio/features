@@ -7,9 +7,7 @@ import (
 
 	"github.com/temporalio/features/features/update/updateutil"
 	"github.com/temporalio/features/harness/go/harness"
-	enumspb "go.temporal.io/api/enums/v1"
 	"go.temporal.io/api/serviceerror"
-	updatepb "go.temporal.io/api/update/v1"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
@@ -41,17 +39,15 @@ var Feature = harness.Feature{
 
 		// Issue an async update that should succeed after `requestedSleep`
 		start := time.Now()
-		originalHandle, err := runner.Client.UpdateWorkflowWithOptions(
+		originalHandle, err := runner.Client.UpdateWorkflow(
 			ctx,
-			&client.UpdateWorkflowWithOptionsRequest{
-				UpdateID:   "update:1",
-				WorkflowID: run.GetID(),
-				RunID:      run.GetRunID(),
-				UpdateName: theUpdate,
-				Args:       []interface{}{requestedSleep, succeed},
-				WaitPolicy: &updatepb.WaitPolicy{
-					LifecycleStage: enumspb.UPDATE_WORKFLOW_EXECUTION_LIFECYCLE_STAGE_ACCEPTED,
-				},
+			client.UpdateWorkflowOptions{
+				UpdateID:     "update:1",
+				WorkflowID:   run.GetID(),
+				RunID:        run.GetRunID(),
+				UpdateName:   theUpdate,
+				Args:         []interface{}{requestedSleep, succeed},
+				WaitForStage: client.WorkflowUpdateStageAccepted,
 			})
 		dur := time.Since(start)
 		runner.Require.NoError(err)
@@ -79,17 +75,15 @@ var Feature = harness.Feature{
 		runner.Require.Equal(theUpdateResult, result)
 
 		// issue an async update that should return an error
-		errUpdate, err := runner.Client.UpdateWorkflowWithOptions(
+		errUpdate, err := runner.Client.UpdateWorkflow(
 			ctx,
-			&client.UpdateWorkflowWithOptionsRequest{
-				UpdateID:   "update:3",
-				WorkflowID: run.GetID(),
-				RunID:      run.GetRunID(),
-				UpdateName: theUpdate,
-				Args:       []interface{}{requestedSleep, failWithError},
-				WaitPolicy: &updatepb.WaitPolicy{
-					LifecycleStage: enumspb.UPDATE_WORKFLOW_EXECUTION_LIFECYCLE_STAGE_ACCEPTED,
-				},
+			client.UpdateWorkflowOptions{
+				UpdateID:     "update:3",
+				WorkflowID:   run.GetID(),
+				RunID:        run.GetRunID(),
+				UpdateName:   theUpdate,
+				Args:         []interface{}{requestedSleep, failWithError},
+				WaitForStage: client.WorkflowUpdateStageAccepted,
 			})
 		runner.Require.NoError(err)
 		err = errUpdate.Get(ctx, nil)
@@ -97,17 +91,15 @@ var Feature = harness.Feature{
 		runner.Require.ErrorAs(err, &errErr, "error type was %T", err)
 
 		// issue an update that will succeed after `requestedSleep`
-		lastUpdate, err := runner.Client.UpdateWorkflowWithOptions(
+		lastUpdate, err := runner.Client.UpdateWorkflow(
 			ctx,
-			&client.UpdateWorkflowWithOptionsRequest{
-				UpdateID:   "update:4",
-				WorkflowID: run.GetID(),
-				RunID:      run.GetRunID(),
-				UpdateName: theUpdate,
-				Args:       []interface{}{requestedSleep, succeed},
-				WaitPolicy: &updatepb.WaitPolicy{
-					LifecycleStage: enumspb.UPDATE_WORKFLOW_EXECUTION_LIFECYCLE_STAGE_ACCEPTED,
-				},
+			client.UpdateWorkflowOptions{
+				UpdateID:     "update:4",
+				WorkflowID:   run.GetID(),
+				RunID:        run.GetRunID(),
+				UpdateName:   theUpdate,
+				Args:         []interface{}{requestedSleep, succeed},
+				WaitForStage: client.WorkflowUpdateStageAccepted,
 			})
 		runner.Require.NoError(err)
 		timeoutctx, _ := context.WithTimeout(ctx, time.Duration(float64(requestedSleep)*0.1))

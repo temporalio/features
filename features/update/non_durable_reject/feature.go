@@ -31,10 +31,13 @@ var Feature = harness.Feature{
 
 		handle, err := runner.Client.UpdateWorkflow(
 			ctx,
-			run.GetID(),
-			run.GetRunID(),
-			updateAdd,
-			-1,
+			client.UpdateWorkflowOptions{
+				WorkflowID:   run.GetID(),
+				RunID:        run.GetRunID(),
+				UpdateName:   updateAdd,
+				Args:         []interface{}{-1},
+				WaitForStage: client.WorkflowUpdateStageCompleted,
+			},
 		)
 		runner.Require.NoError(err)
 		var result int
@@ -43,20 +46,26 @@ var Feature = harness.Feature{
 		for i := 0; i < count; i++ {
 			handle, err := runner.Client.UpdateWorkflow(
 				ctx,
-				run.GetID(),
-				run.GetRunID(),
-				updateAdd,
-				step,
+				client.UpdateWorkflowOptions{
+					WorkflowID:   run.GetID(),
+					RunID:        run.GetRunID(),
+					UpdateName:   updateAdd,
+					Args:         []interface{}{step},
+					WaitForStage: client.WorkflowUpdateStageCompleted,
+				},
 			)
 			runner.Require.NoError(err)
 			runner.Require.NoError(handle.Get(ctx, &result), "expected non-negative value to be accepted")
 
 			handle, err = runner.Client.UpdateWorkflow(
 				ctx,
-				run.GetID(),
-				run.GetRunID(),
-				updateAdd,
-				-1,
+				client.UpdateWorkflowOptions{
+					WorkflowID:   run.GetID(),
+					RunID:        run.GetRunID(),
+					UpdateName:   updateAdd,
+					Args:         []interface{}{-1},
+					WaitForStage: client.WorkflowUpdateStageCompleted,
+				},
 			)
 			runner.Require.NoError(err)
 			runner.Require.Error(handle.Get(ctx, &result), "expected negative value to be rejected")

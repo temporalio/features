@@ -42,7 +42,7 @@ func (p *Preparer) BuildDotNetProgram(ctx context.Context) (sdkbuild.Program, er
 		CsprojContents: `<Project Sdk="Microsoft.NET.Sdk">
 			<PropertyGroup>
 				<OutputType>Exe</OutputType>
-				<TargetFramework>net7.0</TargetFramework>
+				<TargetFramework>net8.0</TargetFramework>
 			</PropertyGroup>
 			<ItemGroup>
 				<ProjectReference Include="..\dotnet.csproj" />

@@ -1,5 +1,5 @@
 # Build in a full featured container
-FROM mcr.microsoft.com/dotnet/sdk:7.0-jammy as build
+FROM mcr.microsoft.com/dotnet/sdk:8.0-jammy as build
 
 # Install protobuf compiler and build tools
 RUN apt-get update \
@@ -43,7 +43,7 @@ COPY ./${REPO_DIR_OR_PLACEHOLDER} ./${REPO_DIR_OR_PLACEHOLDER}
 RUN CGO_ENABLED=0 ./temporal-features prepare --lang cs --dir prepared --version "$SDK_VERSION"
 
 # Copy the CLI and prepared feature to a distroless "run" container
-FROM mcr.microsoft.com/dotnet/sdk:7.0-jammy
+FROM mcr.microsoft.com/dotnet/sdk:8.0-jammy
 
 COPY --from=build /app/temporal-features /app/temporal-features
 COPY --from=build /app/features /app/features

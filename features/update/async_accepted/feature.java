@@ -3,6 +3,7 @@ package update.async_accepted;
 import io.temporal.activity.ActivityInterface;
 import io.temporal.client.UpdateHandle;
 import io.temporal.client.UpdateOptions;
+import io.temporal.client.WorkflowUpdateTimeoutOrCancelledException;
 import io.temporal.client.WorkflowUpdateException;
 import io.temporal.client.WorkflowUpdateStage;
 import io.temporal.failure.ApplicationFailure;
@@ -18,7 +19,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import org.junit.jupiter.api.Assertions;
 
 @ActivityInterface
@@ -125,7 +125,7 @@ public interface feature extends Feature, SimpleWorkflow {
         timeoutHandle.getResultAsync(1, TimeUnit.SECONDS).get();
         Assertions.fail("unreachable");
       } catch (Exception e) {
-        Assertions.assertTrue(e.getCause() instanceof TimeoutException);
+        Assertions.assertTrue(e.getCause() instanceof WorkflowUpdateTimeoutOrCancelledException);
       }
 
       stub.finish();

@@ -92,7 +92,7 @@ func BuildPythonProgram(ctx context.Context, options BuildPythonProgramOptions) 
 			cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 			err = cmd.Run()
 			if err != nil {
-				return nil, fmt.Errorf("problem installing deps when buildling sdk by path: %w", err)
+				return nil, fmt.Errorf("problem installing deps when building sdk by path: %w", err)
 			}
 			cmd = exec.CommandContext(ctx, "poetry", "build")
 			cmd.Dir = sdkPath

@@ -1,5 +1,6 @@
 package update.client_interceptor;
 
+import io.temporal.client.UpdateHandle;
 import io.temporal.client.WorkflowClientOptions;
 import io.temporal.common.interceptors.WorkflowClientCallsInterceptor;
 import io.temporal.common.interceptors.WorkflowClientCallsInterceptorBase;
@@ -53,7 +54,7 @@ public interface feature extends Feature {
                 WorkflowClientCallsInterceptor next) {
               return new WorkflowClientCallsInterceptorBase(next) {
                 @Override
-                public <R> StartUpdateOutput<R> startUpdate(StartUpdateInput<R> input) {
+                public <R> UpdateHandle<R> startUpdate(StartUpdateInput<R> input) {
                   if (input.getUpdateName() == "update") {
                     input.getArguments()[0] = ((int) input.getArguments()[0]) + 1;
                   }

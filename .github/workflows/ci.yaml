@@ -17,7 +17,7 @@ jobs:
       go_latest: '1.28.1'
       typescript_latest: '1.10.3'
       java_latest: '1.25.0'
-      python_latest: '1.6.0'
+      python_latest: '1.7.0'
       csharp_latest: '1.2.0'
     steps:
       - run: 'echo noop'

@@ -40,7 +40,8 @@ jobs:
       - name: Get the latest release version
         id: get_release
         run: |
-          go_latest=$(curl --silent "https://api.github.com/repos/temporalio/sdk-go/releases/latest" | jq -r .tag_name)
+          latest_version=$(curl --silent "https://api.github.com/repos/temporalio/sdk-go/releases/latest" | jq -r .tag_name)
+          go_latest=$(echo "$latest_version" | sed 's/^v//')
           if [ "${{ github.event.inputs.go_sdk_version }}" != "" ]; then
             go_latest="${{ github.event.inputs.go_sdk_version }}"
             echo "User-provided Go SDK version: $go_latest"
@@ -49,7 +50,8 @@ jobs:
           fi
           echo "go_latest=$go_latest" >> $GITHUB_ENV
 
-          typescript_latest=$(curl --silent "https://api.github.com/repos/temporalio/sdk-typescript/releases/latest" | jq -r .tag_name)
+          latest_version=$(curl --silent "https://api.github.com/repos/temporalio/sdk-typescript/releases/latest" | jq -r .tag_name)
+          typescript_latest=$(echo "$latest_version" | sed 's/^v//')
           if [ "${{ github.event.inputs.typescript_sdk_version }}" != "" ]; then
             typescript_latest="${{ github.event.inputs.typescript_sdk_version }}"
             echo "User-provided typescript SDK version: $typescript_latest"
@@ -58,7 +60,8 @@ jobs:
           fi
           echo "typescript_latest=$typescript_latest" >> $GITHUB_ENV
 
-          java_latest=$(curl --silent "https://api.github.com/repos/temporalio/sdk-java/releases/latest" | jq -r .tag_name)
+          latest_version=$(curl --silent "https://api.github.com/repos/temporalio/sdk-java/releases/latest" | jq -r .tag_name)
+          java_latest=$(echo "$latest_version" | sed 's/^v//')
           if [ "${{ github.event.inputs.java_sdk_version }}" != "" ]; then
             java_latest="${{ github.event.inputs.java_sdk_version }}"
             echo "User-provided java SDK version: $java_latest"
@@ -67,7 +70,8 @@ jobs:
           fi
           echo "java_latest=$java_latest" >> $GITHUB_ENV
 
-          python_latest=$(curl --silent "https://api.github.com/repos/temporalio/sdk-python/releases/latest" | jq -r .tag_name)
+          latest_version=$(curl --silent "https://api.github.com/repos/temporalio/sdk-python/releases/latest" | jq -r .tag_name)
+          python_latest=$(echo "$latest_version" | sed 's/^v//')
           if [ "${{ github.event.inputs.python_sdk_version }}" != "" ]; then
             python_latest="${{ github.event.inputs.python_sdk_version }}"
             echo "User-provided python SDK version: $python_latest"
@@ -76,7 +80,8 @@ jobs:
           fi
           echo "python_latest=$python_latest" >> $GITHUB_ENV
 
-          csharp_latest=$(curl --silent "https://api.github.com/repos/temporalio/sdk-dotnet/releases/latest" | jq -r .tag_name)
+          latest_version=$(curl --silent "https://api.github.com/repos/temporalio/sdk-dotnet/releases/latest" | jq -r .tag_name)
+          csharp_latest=$(echo "$latest_version" | sed 's/^v//')
           if [ "${{ github.event.inputs.typescript_sdk_version }}" != "" ]; then
             csharp_latest="${{ github.event.inputs.typescript_sdk_version }}"
             echo "User-provided typescript SDK version: $csharp_latest"

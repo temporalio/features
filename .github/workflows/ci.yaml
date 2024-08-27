@@ -14,13 +14,34 @@ jobs:
   latest-sdk-versions:
     runs-on: 'ubuntu-latest'
     outputs:
-      go_latest: '1.28.1'
-      typescript_latest: '1.10.3'
-      java_latest: '1.25.0'
-      python_latest: '1.7.0'
-      csharp_latest: '1.2.0'
+      go_latest: ${{ steps.get_release.go_latest }}
+      typescript_latest: ${{ steps.get_release.typescript_latest }}
+      java_latest: ${{ steps.get_release.java_latest }}
+      python_latest: ${{ steps.get_release.python_latest }}
+      csharp_latest: ${{ steps.get_release.csharp_latest }}
     steps:
-      - run: 'echo noop'
+      - name: Get the latest release version
+        id: get_release
+        run: |
+          go_latest=$(curl --silent "https://api.github.com/repos/temporalio/sdk-go/releases/latest" | jq -r .tag_name)
+          echo "Latest release version: $go_latest"
+          echo "go_latest=$go_latest" >> $GITHUB_ENV
+
+          typescript_latest=$(curl --silent "https://api.github.com/repos/temporalio/sdk-typescript/releases/latest" | jq -r .tag_name)
+          echo "Latest release version: $typescript_latest"
+          echo "typescript_latest=$typescript_latest" >> $GITHUB_ENV
+
+          java_latest=$(curl --silent "https://api.github.com/repos/temporalio/sdk-java/releases/latest" | jq -r .tag_name)
+          echo "Latest release version: $java_latest"
+          echo "java_latest=$java_latest" >> $GITHUB_ENV
+
+          python_latest=$(curl --silent "https://api.github.com/repos/temporalio/sdk-python/releases/latest" | jq -r .tag_name)
+          echo "Latest release version: $python_latest"
+          echo "python_latest=$python_latest" >> $GITHUB_ENV
+
+          csharp_latest=$(curl --silent "https://api.github.com/repos/temporalio/sdk-dotnet/releases/latest" | jq -r .tag_name)
+          echo "Latest release version: $csharp_latest"
+          echo "csharp_latest=$csharp_latest" >> $GITHUB_ENV
 
   # Build cli and harnesses
   build-go:

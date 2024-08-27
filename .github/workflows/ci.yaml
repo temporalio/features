@@ -5,6 +5,23 @@ on: # rebuild any PRs and main branch changes
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      go_sdk_version:
+        default: ''
+        type: string
+      typescript_sdk_version:
+        default: ''
+        type: string
+      java_sdk_version:
+        default: ''
+        type: string
+      python_sdk_version:
+        default: ''
+        type: string
+      dotnet_sdk_version:
+        default: ''
+        type: string
 
 concurrency:
   group: ${{ github.head_ref || github.run_id }}
@@ -24,23 +41,48 @@ jobs:
         id: get_release
         run: |
           go_latest=$(curl --silent "https://api.github.com/repos/temporalio/sdk-go/releases/latest" | jq -r .tag_name)
-          echo "Latest release version: $go_latest"
+          if [ "${{ github.event.inputs.go_sdk_version }}" != "" ]; then
+            go_latest="${{ github.event.inputs.go_sdk_version }}"
+            echo "User-provided Go SDK version: $go_latest"
+          else
+            echo "Latest Go SDK release version: $go_latest"
+          fi
           echo "go_latest=$go_latest" >> $GITHUB_ENV
 
           typescript_latest=$(curl --silent "https://api.github.com/repos/temporalio/sdk-typescript/releases/latest" | jq -r .tag_name)
-          echo "Latest release version: $typescript_latest"
+          if [ "${{ github.event.inputs.typescript_sdk_version }}" != "" ]; then
+            typescript_latest="${{ github.event.inputs.typescript_sdk_version }}"
+            echo "User-provided typescript SDK version: $typescript_latest"
+          else
+            echo "Latest typescript SDK release version: $typescript_latest"
+          fi
           echo "typescript_latest=$typescript_latest" >> $GITHUB_ENV
 
           java_latest=$(curl --silent "https://api.github.com/repos/temporalio/sdk-java/releases/latest" | jq -r .tag_name)
-          echo "Latest release version: $java_latest"
+          if [ "${{ github.event.inputs.java_sdk_version }}" != "" ]; then
+            java_latest="${{ github.event.inputs.java_sdk_version }}"
+            echo "User-provided java SDK version: $java_latest"
+          else
+            echo "Latest java SDK release version: $java_latest"
+          fi
           echo "java_latest=$java_latest" >> $GITHUB_ENV
 
           python_latest=$(curl --silent "https://api.github.com/repos/temporalio/sdk-python/releases/latest" | jq -r .tag_name)
-          echo "Latest release version: $python_latest"
+          if [ "${{ github.event.inputs.python_sdk_version }}" != "" ]; then
+            python_latest="${{ github.event.inputs.python_sdk_version }}"
+            echo "User-provided python SDK version: $python_latest"
+          else
+            echo "Latest python SDK release version: $python_latest"
+          fi
           echo "python_latest=$python_latest" >> $GITHUB_ENV
 
           csharp_latest=$(curl --silent "https://api.github.com/repos/temporalio/sdk-dotnet/releases/latest" | jq -r .tag_name)
-          echo "Latest release version: $csharp_latest"
+          if [ "${{ github.event.inputs.typescript_sdk_version }}" != "" ]; then
+            csharp_latest="${{ github.event.inputs.typescript_sdk_version }}"
+            echo "User-provided typescript SDK version: $csharp_latest"
+          else
+            echo "Latest typescript SDK release version: $csharp_latest"
+          fi
           echo "csharp_latest=$csharp_latest" >> $GITHUB_ENV
 
   # Build cli and harnesses

@@ -11,7 +11,9 @@ const requestedSleep = '2s';
 export const feature = new Feature({
   workflow,
   checkResult: async (_, handle) => {
-    const timeToAccept = await time(handle.startUpdate(myUpdate, { args: [requestedSleep, false], waitForStage: WorkflowUpdateStage.ACCEPTED }));
+    const timeToAccept = await time(
+      handle.startUpdate(myUpdate, { args: [requestedSleep, false], waitForStage: WorkflowUpdateStage.ACCEPTED })
+    );
     const timeToComplete = await time(handle.executeUpdate(myUpdate, { args: [requestedSleep, false] }));
     assert.equal(
       ms(timeToAccept) < ms(requestedSleep),

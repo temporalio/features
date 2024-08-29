@@ -28,75 +28,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  latest-sdk-versions:
-    runs-on: 'ubuntu-latest'
-    outputs:
-      go_latest: ${{ steps.get_release.go_latest }}
-      typescript_latest: ${{ steps.get_release.typescript_latest }}
-      java_latest: ${{ steps.get_release.java_latest }}
-      python_latest: ${{ steps.get_release.python_latest }}
-      csharp_latest: ${{ steps.get_release.csharp_latest }}
-    steps:
-      - name: Get the latest release version
-        id: get_release
-        run: |
-          latest_version=$(curl --silent "https://api.github.com/repos/temporalio/sdk-go/releases/latest" | jq -r .tag_name)
-          go_latest=$(echo "$latest_version" | sed 's/^v//')
-          if [ "${{ github.event.inputs.go_sdk_version }}" != "" ]; then
-            go_latest="${{ github.event.inputs.go_sdk_version }}"
-            echo "User-provided Go SDK version: $go_latest"
-          else
-            echo "Latest Go SDK release version: $go_latest"
-          fi
-          echo "go_latest=$go_latest" >> $GITHUB_ENV
-
-          latest_version=$(curl --silent "https://api.github.com/repos/temporalio/sdk-typescript/releases/latest" | jq -r .tag_name)
-          typescript_latest=$(echo "$latest_version" | sed 's/^v//')
-          if [ "${{ github.event.inputs.typescript_sdk_version }}" != "" ]; then
-            typescript_latest="${{ github.event.inputs.typescript_sdk_version }}"
-            echo "User-provided typescript SDK version: $typescript_latest"
-          else
-            echo "Latest typescript SDK release version: $typescript_latest"
-          fi
-          echo "typescript_latest=$typescript_latest" >> $GITHUB_ENV
-
-          latest_version=$(curl --silent "https://api.github.com/repos/temporalio/sdk-java/releases/latest" | jq -r .tag_name)
-          java_latest=$(echo "$latest_version" | sed 's/^v//')
-          if [ "${{ github.event.inputs.java_sdk_version }}" != "" ]; then
-            java_latest="${{ github.event.inputs.java_sdk_version }}"
-            echo "User-provided java SDK version: $java_latest"
-          else
-            echo "Latest java SDK release version: $java_latest"
-          fi
-          echo "java_latest=$java_latest" >> $GITHUB_ENV
-
-          latest_version=$(curl --silent "https://api.github.com/repos/temporalio/sdk-python/releases/latest" | jq -r .tag_name)
-          python_latest=$(echo "$latest_version" | sed 's/^v//')
-          if [ "${{ github.event.inputs.python_sdk_version }}" != "" ]; then
-            python_latest="${{ github.event.inputs.python_sdk_version }}"
-            echo "User-provided python SDK version: $python_latest"
-          else
-            echo "Latest python SDK release version: $python_latest"
-          fi
-          echo "python_latest=$python_latest" >> $GITHUB_ENV
-
-          latest_version=$(curl --silent "https://api.github.com/repos/temporalio/sdk-dotnet/releases/latest" | jq -r .tag_name)
-          csharp_latest=$(echo "$latest_version" | sed 's/^v//')
-          if [ "${{ github.event.inputs.typescript_sdk_version }}" != "" ]; then
-            csharp_latest="${{ github.event.inputs.typescript_sdk_version }}"
-            echo "User-provided typescript SDK version: $csharp_latest"
-          else
-            echo "Latest typescript SDK release version: $csharp_latest"
-          fi
-          echo "csharp_latest=$csharp_latest" >> $GITHUB_ENV
-
-  # Build cli and harnesses
+  # Build cli and harnesses and get the latest SDK versions
   build-go:
     strategy:
       fail-fast: true
       matrix:
         os: [ubuntu-latest] #  windows-latest - like 8x slower. Excluded for now since we're just building.
     runs-on: ${{ matrix.os }}
+    outputs:
+      go_latest: ${{ steps.get_release.go_latest }}
+      typescript_latest: ${{ steps.get_release.typescript_latest }}
+      java_latest: ${{ steps.get_release.java_latest }}
+      python_latest: ${{ steps.get_release.python_latest }}
+      csharp_latest: ${{ steps.get_release.csharp_latest }}
     steps:
       - name: Print build information
         run: 'echo head_ref: "$GITHUB_HEAD_REF", ref: "$GITHUB_REF", os: ${{ matrix.os }}'
@@ -106,6 +50,59 @@ jobs:
           go-version: '^1.21'
 
       - run: go build -o temporal-features
+
+      - name: Get the latest release version
+        id: get_release
+        run: |
+          latest_version=$(./temporal-features latest-sdk-version --lang go)
+          go_latest=$(echo "$latest_version" | sed 's/^v//')
+          if [ "${{ github.event.inputs.go_sdk_version }}" != "" ]; then
+            go_latest="${{ github.event.inputs.go_sdk_version }}"
+            echo "User-provided Go SDK version: $go_latest"
+          else
+            echo "Latest Go SDK release version: $go_latest"
+          fi
+          echo "go_latest=$go_latest" >> $GITHUB_ENV
+
+          latest_version=$(./temporal-features latest-sdk-version --lang ts)
+          typescript_latest=$(echo "$latest_version" | sed 's/^v//')
+          if [ "${{ github.event.inputs.typescript_sdk_version }}" != "" ]; then
+            typescript_latest="${{ github.event.inputs.typescript_sdk_version }}"
+            echo "User-provided typescript SDK version: $typescript_latest"
+          else
+            echo "Latest typescript SDK release version: $typescript_latest"
+          fi
+          echo "typescript_latest=$typescript_latest" >> $GITHUB_ENV
+
+          latest_version=$(./temporal-features latest-sdk-version --lang java)
+          java_latest=$(echo "$latest_version" | sed 's/^v//')
+          if [ "${{ github.event.inputs.java_sdk_version }}" != "" ]; then
+            java_latest="${{ github.event.inputs.java_sdk_version }}"
+            echo "User-provided java SDK version: $java_latest"
+          else
+            echo "Latest java SDK release version: $java_latest"
+          fi
+          echo "java_latest=$java_latest" >> $GITHUB_ENV
+
+          latest_version=$(./temporal-features latest-sdk-version --lang py)
+          python_latest=$(echo "$latest_version" | sed 's/^v//')
+          if [ "${{ github.event.inputs.python_sdk_version }}" != "" ]; then
+            python_latest="${{ github.event.inputs.python_sdk_version }}"
+            echo "User-provided python SDK version: $python_latest"
+          else
+            echo "Latest python SDK release version: $python_latest"
+          fi
+          echo "python_latest=$python_latest" >> $GITHUB_ENV
+
+          latest_version=$(./temporal-features latest-sdk-version --lang cs)
+          csharp_latest=$(echo "$latest_version" | sed 's/^v//')
+          if [ "${{ github.event.inputs.dotnet_sdk_version }}" != "" ]; then
+            csharp_latest="${{ github.event.inputs.dotnet_sdk_version }}"
+            echo "User-provided dotnet SDK version: $csharp_latest"
+          else
+            echo "Latest dotnet SDK release version: $csharp_latest"
+          fi
+          echo "csharp_latest=$csharp_latest" >> $GITHUB_ENV
 
   build-ts:
     strategy:
@@ -174,59 +171,59 @@ jobs:
       - run: dotnet test
 
   feature-tests-ts:
-    needs: latest-sdk-versions
+    needs: build-go
     uses: ./.github/workflows/typescript.yaml
     with:
-      version: ${{ needs.latest-sdk-versions.outputs.typescript_latest }}
+      version: ${{ needs.build-go.outputs.typescript_latest }}
       version-is-repo-ref: false
       features-repo-ref: ${{ github.head_ref }}
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
 
   feature-tests-go:
-    needs: latest-sdk-versions
+    needs: build-go
     uses: ./.github/workflows/go.yaml
     with:
-      version: ${{ needs.latest-sdk-versions.outputs.go_latest }}
+      version: ${{ needs.build-go.outputs.go_latest }}
       version-is-repo-ref: false
       features-repo-ref: ${{ github.head_ref }}
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
 
   feature-tests-python:
-    needs: latest-sdk-versions
+    needs: build-go
     uses: ./.github/workflows/python.yaml
     with:
-      version: ${{ needs.latest-sdk-versions.outputs.python_latest }}
+      version: ${{ needs.build-go.outputs.python_latest }}
       version-is-repo-ref: false
       features-repo-ref: ${{ github.head_ref }}
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
 
   feature-tests-java:
-    needs: latest-sdk-versions
+    needs: build-go
     uses: ./.github/workflows/java.yaml
     with:
-      version: 'v${{ needs.latest-sdk-versions.outputs.java_latest }}'
+      version: 'v${{ needs.build-go.outputs.java_latest }}'
       version-is-repo-ref: false
       features-repo-ref: ${{ github.head_ref }}
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
 
   feature-tests-dotnet:
-    needs: latest-sdk-versions
+    needs: build-go
     uses: ./.github/workflows/dotnet.yaml
     with:
-      version: ${{ needs.latest-sdk-versions.outputs.csharp_latest }}
+      version: ${{ needs.build-go.outputs.csharp_latest }}
       version-is-repo-ref: false
       features-repo-ref: ${{ github.head_ref }}
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
 
   build-docker-images:
-    needs: latest-sdk-versions
+    needs: build-go
     uses: ./.github/workflows/all-docker-images.yaml
     secrets: inherit
     # TODO: Find some way to automatically upgrade to "latest"
     with:
       do-push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-      go-ver: 'v${{ needs.latest-sdk-versions.outputs.go_latest }}'
-      ts-ver: 'v${{ needs.latest-sdk-versions.outputs.typescript_latest }}'
-      java-ver: 'v${{ needs.latest-sdk-versions.outputs.java_latest }}'
-      py-ver: 'v${{ needs.latest-sdk-versions.outputs.python_latest }}'
-      cs-ver: 'v${{ needs.latest-sdk-versions.outputs.csharp_latest }}'
+      go-ver: 'v${{ needs.build-go.outputs.go_latest }}'
+      ts-ver: 'v${{ needs.build-go.outputs.typescript_latest }}'
+      java-ver: 'v${{ needs.build-go.outputs.java_latest }}'
+      py-ver: 'v${{ needs.build-go.outputs.python_latest }}'
+      cs-ver: 'v${{ needs.build-go.outputs.csharp_latest }}'

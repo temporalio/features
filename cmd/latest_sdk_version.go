@@ -32,10 +32,6 @@ func (p *LatestSdkVersionConfig) flags() []cli.Flag {
 	}
 }
 
-type GitHubApiVersion struct {
-	TagName string `json:"tag_name"`
-}
-
 func getLatestSdkVersion(config LatestSdkVersionConfig) error {
 	var sdk string
 	sdk, err := expandLangName(config.Lang)

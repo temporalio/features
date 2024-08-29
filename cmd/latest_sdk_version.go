@@ -33,7 +33,7 @@ func (p *LatestSdkVersionConfig) flags() []cli.Flag {
 }
 
 type GitHubApiVersion struct {
-	Name string `json:"name"`
+	TagName string `json:"tag_name"`
 }
 
 func getLatestSdkVersion(config LatestSdkVersionConfig) error {
@@ -55,13 +55,15 @@ func getLatestSdkVersion(config LatestSdkVersionConfig) error {
 		return fmt.Errorf("failed to read body of GitHub Get request: %w", err)
 	}
 
-	var version GitHubApiVersion
+	var version struct {
+		TagName string `json:"tag_name"`
+	}
 	err = json.Unmarshal(body, &version)
 	if err != nil {
 		return fmt.Errorf("failed to decode json response: %w", err)
 	}
 
-	fmt.Println(strings.TrimPrefix(version.Name, "v"))
+	fmt.Println(strings.TrimPrefix(version.TagName, "v"))
 
 	return nil
 }

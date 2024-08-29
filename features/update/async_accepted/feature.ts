@@ -3,6 +3,7 @@ import { Feature } from '@temporalio/harness';
 import * as assert from 'assert';
 import ms from 'ms';
 import { Duration, StringValue } from '@temporalio/common';
+import { WorkflowUpdateStage } from '@temporalio/client';
 
 const myUpdate = wf.defineUpdate<void, [Duration, boolean]>('myUpdate');
 const requestedSleep = '2s';
@@ -10,7 +11,7 @@ const requestedSleep = '2s';
 export const feature = new Feature({
   workflow,
   checkResult: async (_, handle) => {
-    const timeToAccept = await time(handle.startUpdate(myUpdate, { args: [requestedSleep, false] }));
+    const timeToAccept = await time(handle.startUpdate(myUpdate, { args: [requestedSleep, false], waitForStage: WorkflowUpdateStage.ACCEPTED }));
     const timeToComplete = await time(handle.executeUpdate(myUpdate, { args: [requestedSleep, false] }));
     assert.equal(
       ms(timeToAccept) < ms(requestedSleep),

@@ -1,4 +1,4 @@
-import { WorkflowUpdateFailedError } from '@temporalio/client';
+import { WorkflowUpdateFailedError, WorkflowUpdateStage } from '@temporalio/client';
 import { Feature } from '@temporalio/harness';
 import * as wf from '@temporalio/workflow';
 import * as assert from 'assert';
@@ -29,7 +29,7 @@ export async function workflow(): Promise<string> {
 export const feature = new Feature({
   workflow,
   checkResult: async (runner, handle) => {
-    const badUpdateHandle = await handle.startUpdate(myUpdate, { args: ['invalid-arg'] });
+    const badUpdateHandle = await handle.startUpdate(myUpdate, { args: ['invalid-arg'], waitForStage: WorkflowUpdateStage.ACCEPTED });
     try {
       await badUpdateHandle.result();
       throw 'Expected update to fail';
@@ -39,7 +39,7 @@ export const feature = new Feature({
       }
     }
 
-    const updateHandle = await handle.startUpdate(myUpdate, { args: ['update-arg'] });
+    const updateHandle = await handle.startUpdate(myUpdate, { args: ['update-arg'], waitForStage: WorkflowUpdateStage.ACCEPTED });
     const updateResult = await updateHandle.result();
     assert.equal(updateResult, 'update-result');
     const workflowResult = await runner.waitForRunResult(handle);

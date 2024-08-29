@@ -36,11 +36,11 @@ jobs:
         os: [ubuntu-latest] #  windows-latest - like 8x slower. Excluded for now since we're just building.
     runs-on: ${{ matrix.os }}
     outputs:
-      go_latest: ${{ steps.latest_version.go_latest }}
-      typescript_latest: ${{ steps.latest_version.typescript_latest }}
-      java_latest: ${{ steps.latest_version.java_latest }}
-      python_latest: ${{ steps.latest_version.python_latest }}
-      csharp_latest: ${{ steps.latest_version.csharp_latest }}
+      go_latest: ${{ steps.latest_version.outputs.go_latest }}
+      typescript_latest: ${{ steps.latest_version.outputs.typescript_latest }}
+      java_latest: ${{ steps.latest_version.outputs.java_latest }}
+      python_latest: ${{ steps.latest_version.outputs.python_latest }}
+      csharp_latest: ${{ steps.latest_version.outputs.csharp_latest }}
     steps:
       - name: Print build information
         run: 'echo head_ref: "$GITHUB_HEAD_REF", ref: "$GITHUB_REF", os: ${{ matrix.os }}'

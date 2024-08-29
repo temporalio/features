@@ -35,6 +35,12 @@ jobs:
       matrix:
         os: [ubuntu-latest] #  windows-latest - like 8x slower. Excluded for now since we're just building.
     runs-on: ${{ matrix.os }}
+    outputs:
+      go_latest: ${{ steps.latest_version.go_latest }}
+      typescript_latest: ${{ steps.latest_version.typescript_latest }}
+      java_latest: ${{ steps.latest_version.java_latest }}
+      python_latest: ${{ steps.latest_version.python_latest }}
+      csharp_latest: ${{ steps.latest_version.csharp_latest }}
     steps:
       - name: Print build information
         run: 'echo head_ref: "$GITHUB_HEAD_REF", ref: "$GITHUB_REF", os: ${{ matrix.os }}'
@@ -56,7 +62,7 @@ jobs:
           else
             echo "Latest Go SDK release version: $go_latest"
           fi
-          echo "go_latest=$go_latest" >> $GITHUB_ENV
+          echo "go_latest=$go_latest" >> $GITHUB_OUTPUT
 
           latest_version=$(./temporal-features latest-sdk-version --lang ts)
           typescript_latest=$(echo "$latest_version" | sed 's/^v//')
@@ -66,7 +72,7 @@ jobs:
           else
             echo "Latest typescript SDK release version: $typescript_latest"
           fi
-          echo "typescript_latest=$typescript_latest" >> $GITHUB_ENV
+          echo "typescript_latest=$typescript_latest" >> $GITHUB_OUTPUT
 
           latest_version=$(./temporal-features latest-sdk-version --lang java)
           java_latest=$(echo "$latest_version" | sed 's/^v//')
@@ -76,7 +82,7 @@ jobs:
           else
             echo "Latest java SDK release version: $java_latest"
           fi
-          echo "java_latest=$java_latest" >> $GITHUB_ENV
+          echo "java_latest=$java_latest" >> $GITHUB_OUTPUT
 
           latest_version=$(./temporal-features latest-sdk-version --lang py)
           python_latest=$(echo "$latest_version" | sed 's/^v//')
@@ -86,7 +92,7 @@ jobs:
           else
             echo "Latest python SDK release version: $python_latest"
           fi
-          echo "python_latest=$python_latest" >> $GITHUB_ENV
+          echo "python_latest=$python_latest" >> $GITHUB_OUTPUT
 
           latest_version=$(./temporal-features latest-sdk-version --lang cs)
           csharp_latest=$(echo "$latest_version" | sed 's/^v//')
@@ -96,7 +102,7 @@ jobs:
           else
             echo "Latest dotnet SDK release version: $csharp_latest"
           fi
-          echo "csharp_latest=$csharp_latest" >> $GITHUB_ENV
+          echo "csharp_latest=$csharp_latest" >> $GITHUB_OUTPUT
 
   build-ts:
     strategy:
@@ -168,7 +174,7 @@ jobs:
     needs: build-go
     uses: ./.github/workflows/typescript.yaml
     with:
-      version: ${{ needs.build-go.latest_version.typescript_latest }}
+      version: ${{ needs.build-go.outputs.typescript_latest }}
       version-is-repo-ref: false
       features-repo-ref: ${{ github.head_ref }}
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
@@ -177,7 +183,7 @@ jobs:
     needs: build-go
     uses: ./.github/workflows/go.yaml
     with:
-      version: ${{ needs.build-go.latest_version.go_latest }}
+      version: ${{ needs.build-go.outputs.go_latest }}
       version-is-repo-ref: false
       features-repo-ref: ${{ github.head_ref }}
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
@@ -186,7 +192,7 @@ jobs:
     needs: build-go
     uses: ./.github/workflows/python.yaml
     with:
-      version: ${{ needs.build-go.latest_version.python_latest }}
+      version: ${{ needs.build-go.outputs.python_latest }}
       version-is-repo-ref: false
       features-repo-ref: ${{ github.head_ref }}
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
@@ -195,7 +201,7 @@ jobs:
     needs: build-go
     uses: ./.github/workflows/java.yaml
     with:
-      version: 'v${{ needs.build-go.latest_version.java_latest }}'
+      version: 'v${{ needs.build-go.outputs.java_latest }}'
       version-is-repo-ref: false
       features-repo-ref: ${{ github.head_ref }}
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
@@ -204,7 +210,7 @@ jobs:
     needs: build-go
     uses: ./.github/workflows/dotnet.yaml
     with:
-      version: ${{ needs.build-go.latest_version.csharp_latest }}
+      version: ${{ needs.build-go.outputs.csharp_latest }}
       version-is-repo-ref: false
       features-repo-ref: ${{ github.head_ref }}
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
@@ -216,8 +222,8 @@ jobs:
     # TODO: Find some way to automatically upgrade to "latest"
     with:
       do-push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-      go-ver: 'v${{ needs.build-go.latest_version.go_latest }}'
-      ts-ver: 'v${{ needs.build-go.latest_version.typescript_latest }}'
-      java-ver: 'v${{ needs.build-go.latest_version.java_latest }}'
-      py-ver: 'v${{ needs.build-go.latest_version.python_latest }}'
-      cs-ver: 'v${{ needs.build-go.latest_version.csharp_latest }}'
+      go-ver: 'v${{ needs.build-go.outputs.go_latest }}'
+      ts-ver: 'v${{ needs.build-go.outputs.typescript_latest }}'
+      java-ver: 'v${{ needs.build-go.outputs.java_latest }}'
+      py-ver: 'v${{ needs.build-go.outputs.python_latest }}'
+      cs-ver: 'v${{ needs.build-go.outputs.csharp_latest }}'

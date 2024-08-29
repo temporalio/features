@@ -3,7 +3,8 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"os/exec"
+	"io"
+	"net/http"
 	"strings"
 
 	"github.com/urfave/cli/v2"
@@ -31,40 +32,36 @@ func (p *LatestSdkVersionConfig) flags() []cli.Flag {
 	}
 }
 
-type Version struct {
+type GitHubApiVersion struct {
 	Name string `json:"name"`
 }
 
 func getLatestSdkVersion(config LatestSdkVersionConfig) error {
 	var sdk string
-	switch config.Lang {
-	case "go":
-		sdk = "go"
-	case "java":
-		sdk = "java"
-	case "ts":
-		sdk = "typescript"
-	case "py":
-		sdk = "python"
-	case "cs":
-		sdk = "dotnet"
-	default:
-		return fmt.Errorf("unrecognized language")
+	sdk, err := expandLangName(config.Lang)
+	if err != nil {
+		return err
 	}
+
 	url := fmt.Sprintf("https://api.github.com/repos/temporalio/sdk-%s/releases/latest", sdk)
-	curl := exec.Command("curl", url)
-	out, err := curl.Output()
+	resp, err := http.Get(url)
 	if err != nil {
 		return fmt.Errorf("failed to query the GH API for SDK version: %w", err)
 	}
-	var version Version
-	err = json.Unmarshal(out, &version)
 
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read body of GitHub Get request: %w", err)
+	}
+
+	var version GitHubApiVersion
+	err = json.Unmarshal(body, &version)
 	if err != nil {
 		return fmt.Errorf("failed to decode json response: %w", err)
 	}
 
-	fmt.Println(strings.Replace(version.Name, "v", "", 1))
+	fmt.Println(strings.TrimPrefix(version.Name, "v"))
 
 	return nil
 }

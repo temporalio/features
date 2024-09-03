@@ -1,9 +1,9 @@
 package update.async_accepted;
 
 import io.temporal.activity.ActivityInterface;
-import io.temporal.client.UpdateHandle;
 import io.temporal.client.UpdateOptions;
 import io.temporal.client.WorkflowUpdateException;
+import io.temporal.client.WorkflowUpdateHandle;
 import io.temporal.client.WorkflowUpdateStage;
 import io.temporal.client.WorkflowUpdateTimeoutOrCancelledException;
 import io.temporal.failure.ApplicationFailure;
@@ -71,7 +71,7 @@ public interface feature extends Feature, SimpleWorkflow {
 
       // Issue an async update that should succeed after SLEEP_TIMEOUT
       var updateId = UUID.randomUUID().toString();
-      UpdateHandle<Integer> handle =
+      WorkflowUpdateHandle<Integer> handle =
           untypedStub.startUpdate(
               UpdateOptions.newBuilder(Integer.class)
                   .setUpdateName("update")
@@ -82,13 +82,13 @@ public interface feature extends Feature, SimpleWorkflow {
               true);
 
       // Create a separate handle to the same update
-      UpdateHandle<Integer> otherHandle = untypedStub.getUpdateHandle(updateId, Integer.class);
+      WorkflowUpdateHandle<Integer> otherHandle = untypedStub.getUpdateHandle(updateId, Integer.class);
       // should block on in-flight update
       Assertions.assertEquals(UPDATE_RESULT, otherHandle.getResultAsync().get());
       Assertions.assertEquals(UPDATE_RESULT, handle.getResultAsync().get());
       // issue an async update that should throw
       updateId = UUID.randomUUID().toString();
-      UpdateHandle<Integer> errorHandle =
+      WorkflowUpdateHandle<Integer> errorHandle =
           untypedStub.startUpdate(
               UpdateOptions.newBuilder(Integer.class)
                   .setUpdateName("update")
@@ -111,7 +111,7 @@ public interface feature extends Feature, SimpleWorkflow {
       }
       // issue an update that will succeed after `requestedSleep`
       updateId = UUID.randomUUID().toString();
-      UpdateHandle<Integer> timeoutHandle =
+      WorkflowUpdateHandle<Integer> timeoutHandle =
           untypedStub.startUpdate(
               UpdateOptions.newBuilder(Integer.class)
                   .setUpdateName("update")

@@ -53,7 +53,7 @@ jobs:
 
       - name: Get the latest release version for each SDK
         id: latest_version
-        run: .github/workflows/scripts/latest_version.sh
+        run: .github/workflows/scripts/latest-version.sh
 
   build-ts:
     strategy:
@@ -170,7 +170,6 @@ jobs:
     needs: build-go
     uses: ./.github/workflows/all-docker-images.yaml
     secrets: inherit
-    # TODO: Find some way to automatically upgrade to "latest"
     with:
       do-push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
       go-ver: 'v${{ needs.build-go.outputs.go_latest }}'

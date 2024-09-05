@@ -108,8 +108,8 @@ public interface feature extends Feature, SimpleWorkflow {
         if (e instanceof ExecutionException) {
           e = e.getCause();
         }
-        Assertions.assertTrue(e.getCause() instanceof WorkflowUpdateException);
-        WorkflowUpdateException wue = (WorkflowUpdateException) e.getCause();
+        Assertions.assertTrue(e instanceof WorkflowUpdateException);
+        WorkflowUpdateException wue = (WorkflowUpdateException) e;
         Assertions.assertTrue(wue.getCause() instanceof ApplicationFailure);
         Assertions.assertEquals("Failure", ((ApplicationFailure) wue.getCause()).getType());
         Assertions.assertEquals(

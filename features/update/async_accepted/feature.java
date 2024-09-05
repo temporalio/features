@@ -88,19 +88,26 @@ public interface feature extends Feature, SimpleWorkflow {
       Assertions.assertEquals(UPDATE_RESULT, handle.getResultAsync().get());
       // issue an async update that should throw
       updateId = UUID.randomUUID().toString();
-      UpdateHandle<Integer> errorHandle =
-          untypedStub.startUpdate(
-              UpdateOptions.newBuilder(Integer.class)
-                  .setUpdateName("update")
-                  .setUpdateId(updateId)
-                  .setFirstExecutionRunId(run.execution.getRunId())
-                  .setWaitForStage(WorkflowUpdateStage.ACCEPTED)
-                  .build(),
-              false);
       try {
+        // If the worker accepts the update, but fails it in the same workflow task
+        // the update will be marked as failed and the exception may be thrown
+        // from startUpdate. This is not consistent with the behavior of the
+        // other SDKs.
+        UpdateHandle<Integer> errorHandle =
+            untypedStub.startUpdate(
+                UpdateOptions.newBuilder(Integer.class)
+                    .setUpdateName("update")
+                    .setUpdateId(updateId)
+                    .setFirstExecutionRunId(run.execution.getRunId())
+                    .setWaitForStage(WorkflowUpdateStage.ACCEPTED)
+                    .build(),
+                false);
         errorHandle.getResultAsync().get();
         Assertions.fail("unreachable");
-      } catch (ExecutionException e) {
+      } catch (Throwable e) {
+        if (e instanceof ExecutionException) {
+          e = e.getCause();
+        }
         Assertions.assertTrue(e.getCause() instanceof WorkflowUpdateException);
         WorkflowUpdateException wue = (WorkflowUpdateException) e.getCause();
         Assertions.assertTrue(wue.getCause() instanceof ApplicationFailure);

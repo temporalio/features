@@ -13,7 +13,7 @@ func publishImageCmd() *cli.Command {
 	var config PublishImageConfig
 	return &cli.Command{
 		Name:  "push-images",
-		Usage: "Push docker image(s) to our test repository. Used by CI.",
+		Usage: "Push docker image(s) to our test repository. Used by CI",
 		Flags: config.flags(),
 		Action: func(ctx *cli.Context) error {
 			return publishImages(config)

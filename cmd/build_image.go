@@ -21,7 +21,7 @@ func buildImageCmd() *cli.Command {
 	var config ImageBuildConfig
 	return &cli.Command{
 		Name:  "build-image",
-		Usage: "build a 'prepared' single language docker image",
+		Usage: "Build a 'prepared' single language docker image",
 		Flags: config.flags(),
 		Action: func(ctx *cli.Context) error {
 			return NewImageBuilder(config).BuildImage(ctx.Context)

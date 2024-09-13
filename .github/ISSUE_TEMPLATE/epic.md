@@ -27,5 +27,6 @@ assignees: ''
 - [ ] TypeScript - 
 - [ ] Python - 
 - [ ] .NET - 
+- [ ] Ruby - 
 - [ ] PHP - 
 - [ ] Temporal CLI - 

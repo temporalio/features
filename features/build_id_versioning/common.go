@@ -3,6 +3,8 @@ package build_id_versioning
 import (
 	"context"
 	"fmt"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/temporalio/features/harness/go/harness"
@@ -40,6 +42,14 @@ func AddSomeVersions(ctx context.Context, c client.Client, tq string) error {
 }
 
 func ServerSupportsBuildIDVersioning(ctx context.Context, r *harness.Runner) (bool, error) {
+	// Force to explicitly enable these old tests since they fail in Server 1.25+.
+	// This versioning API has been deprecated, and tests need to be rewritten for
+	// the new API.
+	enable, present := os.LookupEnv("ENABLE_VERSIONING_TESTS")
+	if !present || strings.ToLower(enable) != "true" {
+		return false, nil
+	}
+
 	capabilities, err := r.Client.WorkflowService().GetSystemInfo(ctx, &workflowservice.GetSystemInfoRequest{})
 	if err != nil {
 		return false, err

@@ -22,7 +22,7 @@ class FeatureWorkflow
 {
     private bool $done = false;
 
-    #[WorkflowMethod('Workflow')]
+    #[WorkflowMethod('Harness_Update_Self')]
     public function run()
     {
         yield Workflow::executeActivity(
@@ -63,8 +63,8 @@ class FeatureChecker
 {
     #[Check]
     public static function check(
-        #[Stub('Workflow')] WorkflowStubInterface $stub,
+        #[Stub('Harness_Update_Self')] WorkflowStubInterface $stub,
     ): void {
-        Assert::same($stub->getResult(), 'Hello, world!');
+        Assert::same($stub->getResult(timeout: 10), 'Hello, world!');
     }
 }

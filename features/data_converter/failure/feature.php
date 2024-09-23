@@ -66,7 +66,7 @@ class FeatureChecker
         try {
             $stub->getResult();
             throw new \Exception('Expected WorkflowFailedException');
-        } catch (WorkflowFailedException $e) {
+        } catch (WorkflowFailedException) {
             // do nothing
         }
 

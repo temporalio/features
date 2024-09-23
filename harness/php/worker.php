@@ -33,6 +33,8 @@ RuntimeBuilder::init();
 /** @var array<non-empty-string, WorkerInterface> $run */
 $workers = [];
 
+\Temporal\FeatureFlags::$workflowDeferredHandlerStart = true;
+
 try {
     // Load runtime options
     $runtime = RuntimeBuilder::createState($argv, \getcwd());

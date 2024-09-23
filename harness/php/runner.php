@@ -68,14 +68,7 @@ try {
 // TODO if authKey is set
 // $serviceClient->withAuthKey($authKey)
 
-// todo: replace with DataConverter::createDefault() after https://github.com/temporalio/sdk-php/issues/455
-$converter = new DataConverter(
-    new NullConverter(),
-    new BinaryConverter(),
-    new ProtoJsonConverter(),
-    new ProtoConverter(),
-    new JsonConverter(),
-);
+$converter = DataConverter::createDefault();
 
 $workflowClient = WorkflowClient::create(
     serviceClient: $serviceClient,

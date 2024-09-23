@@ -43,7 +43,7 @@ class FeatureWorkflow
         $scope = Workflow::async(static fn () => $activity->cancellableActivity());
 
         # Sleep for short time (force task turnover)
-        yield Workflow::timer(1);
+        yield Workflow::timer(2);
 
         try {
             $scope->cancel();
@@ -53,7 +53,7 @@ class FeatureWorkflow
         }
 
         # Wait for activity result
-        yield Workflow::awaitWithTimeout('5 seconds', fn () => $this->result !== '');
+        yield Workflow::awaitWithTimeout('5 seconds', fn() => $this->result !== '');
 
         return $this->result;
     }

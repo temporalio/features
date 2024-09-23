@@ -72,13 +72,14 @@ class FeatureChecker
         );
 
         $this->assertHandleIsBlocked($handle);
-        // todo: Create a separate handle to the same update
-        // $otherHandle = $stub->getUpdateHandle($updateId)
-        // $this->assertHandleIsBlocked($otherHandle);
+        // Create a separate handle to the same update
+        $otherHandle = $stub->getUpdateHandle($updateId);
+        $this->assertHandleIsBlocked($otherHandle);
+
         # Unblock last update
         $stub->signal('unblock');
         Assert::same($handle->getResult(), 123);
-        // Assert::same($otherHandle->getResult(), 123);
+        Assert::same($otherHandle->getResult(), 123);
 
         # issue an async update that should throw
         $updateId = Uuid::uuid4()->toString();

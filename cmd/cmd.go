@@ -30,6 +30,7 @@ func NewApp() *cli.App {
 			runCmd(),
 			buildImageCmd(),
 			publishImageCmd(),
+			latestSdkVersionCmd(),
 		},
 	}
 }

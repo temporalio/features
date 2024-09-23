@@ -27,6 +27,10 @@ public static class App
         name: "--client-key-path",
         description: "Path to a client key for TLS");
 
+    private static readonly Option<string?> httpProxyUrlOption = new(
+        name: "--http-proxy-url",
+        description: "HTTP proxy URL");
+
     private static readonly Argument<List<(string, string)>> featuresArgument = new(
         name: "features",
         parse: result => result.Tokens.Select(token =>
@@ -56,6 +60,7 @@ public static class App
         cmd.AddOption(namespaceOption);
         cmd.AddOption(clientCertPathOption);
         cmd.AddOption(clientKeyPathOption);
+        cmd.AddOption(httpProxyUrlOption);
         cmd.AddArgument(featuresArgument);
         cmd.SetHandler(RunCommandAsync);
         return cmd;
@@ -98,8 +103,13 @@ public static class App
                 throw new InvalidOperationException($"Unable to find feature for dir {dir}");
             try
             {
-                await new Runner(clientOptions, taskQueue, feature, loggerFactory).RunAsync(
-                    ctx.GetCancellationToken());
+                await new Runner(
+                    clientOptions,
+                    taskQueue,
+                    feature,
+                    loggerFactory,
+                    ctx.ParseResult.GetValueForOption(httpProxyUrlOption)
+                ).RunAsync(ctx.GetCancellationToken());
             }
             catch (TestSkippedException e)
             {

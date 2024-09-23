@@ -14,12 +14,12 @@ jobs:
   latest-sdk-versions:
     runs-on: 'ubuntu-latest'
     outputs:
-      go_latest: '1.27.0'
-      typescript_latest: '1.10.0'
+      go_latest: '1.28.1'
+      typescript_latest: '1.10.3'
       java_latest: '1.24.0'
       python_latest: '1.6.0'
       php_latest: '2.10'
-      csharp_latest: '1.1.2'
+      csharp_latest: '1.2.0'
     steps:
       - run: 'echo noop'
 

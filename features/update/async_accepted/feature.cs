@@ -86,7 +86,7 @@ class Feature : IFeature
         // Wait for result only for 100ms
         using var tokenSource = new CancellationTokenSource();
         tokenSource.CancelAfter(TimeSpan.FromMilliseconds(100));
-        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+        await Assert.ThrowsAsync<WorkflowUpdateRpcTimeoutOrCanceledException>(() =>
             updateHandle3.GetResultAsync(new() { CancellationToken = tokenSource.Token }));
 
         await handle.SignalAsync(wf => wf.ShutdownAsync());

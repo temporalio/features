@@ -115,10 +115,15 @@ public static class App
 
         if (failures.Count > 0)
         {
-            throw new InvalidOperationException(
-                $"{failures.Count} feature(s) failed: {string.Join(", ", failures)}");
+            Environment.ExitCode = 1;
+            logger.LogError(
+                "{FailureCount} feature(s) failed: {Features}",
+                failures.Count,
+                string.Join(", ", failures));
         }
-
-        logger.LogInformation("All features passed");
+        else
+        {
+            logger.LogInformation("All features passed");
+        }
     }
 }

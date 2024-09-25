@@ -37,7 +37,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     outputs:
       go_latest: ${{ steps.latest_version.outputs.go_latest }}
-      typescript_latest: ${{ steps.latest_version.outputs.typescript_latest }}
+      typescript_latest: '1.11.2'
       java_latest: ${{ steps.latest_version.outputs.java_latest }}
       python_latest: ${{ steps.latest_version.outputs.python_latest }}
       csharp_latest: ${{ steps.latest_version.outputs.csharp_latest }}

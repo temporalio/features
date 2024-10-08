@@ -38,7 +38,7 @@ func runCmd() *cli.Command {
 	var config RunConfig
 	return &cli.Command{
 		Name:  "run",
-		Usage: "run a test or set of tests",
+		Usage: "Run a test or set of tests",
 		Flags: config.flags(),
 		Action: func(ctx *cli.Context) error {
 			return NewRunner(config).Run(ctx.Context, ctx.Args().Slice())

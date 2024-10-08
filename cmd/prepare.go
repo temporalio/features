@@ -16,7 +16,7 @@ func prepareCmd() *cli.Command {
 	var config PrepareConfig
 	return &cli.Command{
 		Name:  "prepare",
-		Usage: "prepare an SDK for execution",
+		Usage: "Prepare an SDK for execution",
 		Flags: config.flags(),
 		Action: func(ctx *cli.Context) error {
 			return NewPreparer(config).Prepare(ctx.Context)

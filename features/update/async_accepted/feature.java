@@ -5,6 +5,7 @@ import io.temporal.client.UpdateHandle;
 import io.temporal.client.UpdateOptions;
 import io.temporal.client.WorkflowUpdateException;
 import io.temporal.client.WorkflowUpdateStage;
+import io.temporal.client.WorkflowUpdateTimeoutOrCancelledException;
 import io.temporal.failure.ApplicationFailure;
 import io.temporal.sdkfeatures.Feature;
 import io.temporal.sdkfeatures.Run;
@@ -18,7 +19,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import org.junit.jupiter.api.Assertions;
 
 @ActivityInterface
@@ -88,21 +88,28 @@ public interface feature extends Feature, SimpleWorkflow {
       Assertions.assertEquals(UPDATE_RESULT, handle.getResultAsync().get());
       // issue an async update that should throw
       updateId = UUID.randomUUID().toString();
-      UpdateHandle<Integer> errorHandle =
-          untypedStub.startUpdate(
-              UpdateOptions.newBuilder(Integer.class)
-                  .setUpdateName("update")
-                  .setUpdateId(updateId)
-                  .setFirstExecutionRunId(run.execution.getRunId())
-                  .setWaitForStage(WorkflowUpdateStage.ACCEPTED)
-                  .build(),
-              false);
       try {
+        // If the worker accepts the update, but fails it in the same workflow task
+        // the update will be marked as failed and the exception may be thrown
+        // from startUpdate. This is not consistent with the behavior of the
+        // other SDKs.
+        UpdateHandle<Integer> errorHandle =
+            untypedStub.startUpdate(
+                UpdateOptions.newBuilder(Integer.class)
+                    .setUpdateName("update")
+                    .setUpdateId(updateId)
+                    .setFirstExecutionRunId(run.execution.getRunId())
+                    .setWaitForStage(WorkflowUpdateStage.ACCEPTED)
+                    .build(),
+                false);
         errorHandle.getResultAsync().get();
         Assertions.fail("unreachable");
-      } catch (ExecutionException e) {
-        Assertions.assertTrue(e.getCause() instanceof WorkflowUpdateException);
-        WorkflowUpdateException wue = (WorkflowUpdateException) e.getCause();
+      } catch (Throwable e) {
+        if (e instanceof ExecutionException) {
+          e = e.getCause();
+        }
+        Assertions.assertTrue(e instanceof WorkflowUpdateException);
+        WorkflowUpdateException wue = (WorkflowUpdateException) e;
         Assertions.assertTrue(wue.getCause() instanceof ApplicationFailure);
         Assertions.assertEquals("Failure", ((ApplicationFailure) wue.getCause()).getType());
         Assertions.assertEquals(
@@ -125,7 +132,7 @@ public interface feature extends Feature, SimpleWorkflow {
         timeoutHandle.getResultAsync(1, TimeUnit.SECONDS).get();
         Assertions.fail("unreachable");
       } catch (Exception e) {
-        Assertions.assertTrue(e.getCause() instanceof TimeoutException);
+        Assertions.assertTrue(e.getCause() instanceof WorkflowUpdateTimeoutOrCancelledException);
       }
 
       stub.finish();

@@ -48,11 +48,13 @@ public class Runner
         TemporalClientConnectOptions clientConnectOptions,
         string taskQueue,
         PreparedFeature feature,
-        ILoggerFactory loggerFactory)
+        ILoggerFactory loggerFactory,
+        string? httpProxyUrl)
     {
         PreparedFeature = feature;
         Logger = loggerFactory.CreateLogger(PreparedFeature.FeatureType);
         Feature = (IFeature)Activator.CreateInstance(PreparedFeature.FeatureType, true)!;
+        HttpProxyUrl = httpProxyUrl;
 
         ClientOptions = (TemporalClientConnectOptions)clientConnectOptions.Clone();
         Feature.ConfigureClient(this, ClientOptions);
@@ -70,6 +72,8 @@ public class Runner
     public TemporalClientConnectOptions ClientOptions { get; private init; }
 
     public TemporalWorkerOptions WorkerOptions { get; private init; }
+
+    public string? HttpProxyUrl { get; private init; }
 
     /// <summary>
     /// Run the feature with the given cancellation token.

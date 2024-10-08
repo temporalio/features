@@ -24,13 +24,8 @@ use Temporal\Client\ScheduleClientInterface;
 use Temporal\Client\WorkflowClient;
 use Temporal\Client\WorkflowClientInterface;
 use Temporal\Client\WorkflowStubInterface;
-use Temporal\DataConverter\BinaryConverter;
 use Temporal\DataConverter\DataConverter;
 use Temporal\DataConverter\DataConverterInterface;
-use Temporal\DataConverter\JsonConverter;
-use Temporal\DataConverter\NullConverter;
-use Temporal\DataConverter\ProtoConverter;
-use Temporal\DataConverter\ProtoJsonConverter;
 
 require_once __DIR__ . '/src/RuntimeBuilder.php';
 RuntimeBuilder::init();

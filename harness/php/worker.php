@@ -23,6 +23,7 @@ use Temporal\DataConverter\JsonConverter;
 use Temporal\DataConverter\NullConverter;
 use Temporal\DataConverter\ProtoConverter;
 use Temporal\DataConverter\ProtoJsonConverter;
+use Temporal\Worker\FeatureFlags;
 use Temporal\Worker\WorkerInterface;
 use Temporal\Worker\WorkerOptions;
 use Temporal\WorkerFactory;
@@ -33,7 +34,7 @@ RuntimeBuilder::init();
 /** @var array<non-empty-string, WorkerInterface> $run */
 $workers = [];
 
-\Temporal\FeatureFlags::$workflowDeferredHandlerStart = true;
+FeatureFlags::$workflowDeferredHandlerStart = true;
 
 try {
     // Load runtime options

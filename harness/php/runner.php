@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Harness\Exception\SkipTest;
 use Harness\Feature\WorkflowStubInjector;
 use Harness\Runtime\Feature;
 use Harness\Runtime\Runner;
@@ -108,6 +109,9 @@ foreach ($runtime->checks() as $feature => $definition) {
                 echo "\e[1;32mSUCCESS\e[0m\n";
             },
         );
+    } catch (SkipTest $e) {
+        echo "\e[1;33mSKIPPED\e[0m\n";
+        echo "\e[35m{$e->reason}\e[0m\n";
     } catch (\Throwable $e) {
         echo "\e[1;31mFAILED\e[0m\n";
 

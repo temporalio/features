@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Harness\Feature\EagerActivity\NonRemoteActivitiesWorker;
 
+use Harness\Attribute\Check;
 use Harness\Attribute\Stub;
+use Harness\Exception\SkipTest;
 use Temporal\Activity\ActivityInterface;
 use Temporal\Activity\ActivityMethod;
 use Temporal\Activity\ActivityOptions;
@@ -41,11 +43,12 @@ class EmptyActivity
 
 class FeatureChecker
 {
-    // todo worker with no_remote_activities=True
-    // #[Check]
+    #[Check]
     public static function check(
         #[Stub('Workflow')] WorkflowStubInterface $stub
     ): void {
+        throw new SkipTest('Need to run worker with no_remote_activities=True');
+
         try {
             $stub->getResult();
         } catch (WorkflowFailedException $e) {

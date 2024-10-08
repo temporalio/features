@@ -65,6 +65,8 @@ jobs:
 
       # This step will set the FEATURES_BUILT_IMAGE_TAG env key
       - name: Build docker image
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           go run . build-image --lang ${{ inputs.lang }} \
           ${{ inputs.sdk-repo-ref && format('--repo-ref {0}', inputs.sdk-repo-ref) || '' }} \

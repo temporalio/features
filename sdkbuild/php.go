@@ -84,7 +84,7 @@ func BuildPhpProgram(ctx context.Context, options BuildPhpProgramOptions) (*PhpP
 	}
 
 	// Install dependencies via composer
-	cmd = exec.CommandContext(ctx, "composer", "i", "-n", "-o", "-q", "--no-scripts")
+	cmd = exec.CommandContext(ctx, "composer", "i", "-n", "-o", "-q", "--no-scripts", "--ignore-platform-reqs")
 	cmd.Dir = dir
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	if err := cmd.Run(); err != nil {

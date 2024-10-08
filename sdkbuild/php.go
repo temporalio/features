@@ -75,7 +75,7 @@ func BuildPhpProgram(ctx context.Context, options BuildPhpProgramOptions) (*PhpP
 	var cmd *exec.Cmd
 	// Setup required SDK version if specified
 	if options.Version != "" {
-		cmd = exec.CommandContext(ctx, "composer", "req", "temporal/sdk", options.Version, "-W", "--no-install")
+		cmd = exec.CommandContext(ctx, "composer", "req", "temporal/sdk", options.Version, "-W", "--no-install", "--ignore-platform-reqs")
 		cmd.Dir = dir
 		cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 		if err := cmd.Run(); err != nil {

@@ -295,6 +295,16 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 		if err == nil {
 			err = r.RunTypeScriptExternal(ctx, run)
 		}
+	case "php":
+		if r.config.DirName != "" {
+			r.program, err = sdkbuild.PhpProgramFromDir(
+				filepath.Join(r.rootDir, r.config.DirName),
+				r.rootDir,
+			)
+		}
+		if err == nil {
+			err = r.RunPhpExternal(ctx, run)
+		}
 	case "py":
 		if r.config.DirName != "" {
 			r.program, err = sdkbuild.PythonProgramFromDir(filepath.Join(r.rootDir, r.config.DirName))
@@ -545,7 +555,7 @@ func (r *Runner) destroyTempDir() {
 func normalizeLangName(lang string) (string, error) {
 	// Normalize to file extension
 	switch lang {
-	case "go", "java", "ts", "py", "cs":
+	case "go", "java", "ts", "php", "py", "cs":
 	case "typescript":
 		lang = "ts"
 	case "python":
@@ -561,7 +571,7 @@ func normalizeLangName(lang string) (string, error) {
 func expandLangName(lang string) (string, error) {
 	// Expand to lang name
 	switch lang {
-	case "go", "java", "typescript", "python":
+	case "go", "java", "php", "typescript", "python":
 	case "ts":
 		lang = "typescript"
 	case "py":

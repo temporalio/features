@@ -81,7 +81,7 @@ jobs:
 
           php_latest="${{ github.event.inputs.php_sdk_version }}"
           if [ -z "$php_latest" ]; then
-            php_latest=$(./temporal-features latest-sdk-version --lang py)
+            php_latest=$(./temporal-features latest-sdk-version --lang php)
             echo "Derived latest PHP SDK release version: $php_latest"
           fi
           echo "php_latest=$php_latest" >> $GITHUB_OUTPUT

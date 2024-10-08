@@ -1,0 +1,24 @@
+{
+  "name": "temporal/harness",
+  "type": "project",
+  "description": "Temporal SDK Harness",
+  "keywords": ["temporal", "sdk", "harness"],
+  "license": "MIT",
+  "require": {
+    "buggregator/trap": "^1.9",
+    "spiral/core": "^3.13",
+    "symfony/process": ">=6.4",
+    "temporal/sdk": "^2.11.0",
+    "webmozart/assert": "^1.11"
+  },
+  "autoload": {
+    "psr-4": {
+      "Harness\\": "src/"
+    }
+  },
+  "scripts": {
+    "rr-get": "rr get"
+  },
+  "prefer-stable": true,
+  "minimum-stability": "dev"
+}

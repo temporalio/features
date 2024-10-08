@@ -16,6 +16,9 @@ on: # rebuild any PRs and main branch changes
       java_sdk_version:
         default: ''
         type: string
+      php_sdk_version:
+        default: ''
+        type: string
       python_sdk_version:
         default: ''
         type: string
@@ -39,6 +42,7 @@ jobs:
       go_latest: ${{ steps.latest_version.outputs.go_latest }}
       typescript_latest: ${{ steps.latest_version.outputs.typescript_latest }}
       java_latest: ${{ steps.latest_version.outputs.java_latest }}
+      php_latest: ${{ steps.latest_version.outputs.php_latest }}
       python_latest: ${{ steps.latest_version.outputs.python_latest }}
       csharp_latest: ${{ steps.latest_version.outputs.csharp_latest }}
     steps:
@@ -74,6 +78,13 @@ jobs:
             echo "Derived latest Java SDK release version: $java_latest"
           fi
           echo "java_latest=$java_latest" >> $GITHUB_OUTPUT
+
+          php_latest="${{ github.event.inputs.php_sdk_version }}"
+          if [ -z "$php_latest" ]; then
+            php_latest=$(./temporal-features latest-sdk-version --lang py)
+            echo "Derived latest PHP SDK release version: $php_latest"
+          fi
+          echo "php_latest=$php_latest" >> $GITHUB_OUTPUT
 
           python_latest="${{ github.event.inputs.python_sdk_version }}"
           if [ -z "$python_latest" ]; then

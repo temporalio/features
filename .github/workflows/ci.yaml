@@ -209,5 +209,6 @@ jobs:
       go-ver: 'v${{ needs.build-go.outputs.go_latest }}'
       ts-ver: 'v${{ needs.build-go.outputs.typescript_latest }}'
       java-ver: 'v${{ needs.build-go.outputs.java_latest }}'
+      php-ver: '${{ needs.build-go.outputs.php_latest }}'
       py-ver: 'v${{ needs.build-go.outputs.python_latest }}'
       cs-ver: 'v${{ needs.build-go.outputs.csharp_latest }}'

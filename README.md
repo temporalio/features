@@ -17,7 +17,7 @@ These features serve several purposes:
 With latest [Go](https://golang.org/) installed, run:
 
 ```
-go build -o temporal-features # or temporal-features.exec on Windows
+go build -o temporal-features # or temporal-features.exe on Windows
 ```
 
 ## Running
@@ -31,6 +31,8 @@ Prerequisites:
   - [Poetry](https://python-poetry.org/): `poetry install`
   - `setuptools`: `python -m pip install -U setuptools`
 - [.NET](https://dotnet.microsoft.com) 7+
+- [PHP](https://www.php.net/) 8.1+
+  - [Composer](https://getcomposer.org/)
 
 Command:
 
@@ -38,7 +40,7 @@ Command:
 
 Note, `go run .` can be used in place of `go build` + `temporal-features` to save on the build step.
 
-`LANG` can be `go`, `java`, `ts`, `py`, or `cs`. `VERSION` is per SDK and if left off, uses the latest version set for
+`LANG` can be `go`, `java`, `ts`, `php`, `py`, or `cs`. `VERSION` is per SDK and if left off, uses the latest version set for
 the language in this repository.
 
 `PATTERN` must match either the features relative directory _or_ the relative directory + `/feature.<ext>` via

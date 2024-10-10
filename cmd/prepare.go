@@ -90,6 +90,8 @@ func (p *Preparer) Prepare(ctx context.Context) error {
 		_, err = p.BuildJavaProgram(ctx, true)
 	case "ts":
 		_, err = p.BuildTypeScriptProgram(ctx)
+	case "php":
+		_, err = p.BuildPhpProgram(ctx)
 	case "py":
 		_, err = p.BuildPythonProgram(ctx)
 	case "cs":

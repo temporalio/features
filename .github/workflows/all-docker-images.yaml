@@ -14,7 +14,7 @@ on:
         description: Python SDK ver to build. Skipped if not specified. Must start with v.
         type: string
       php-ver:
-        description: PHP SDK ver to build. Skipped if not specified.
+        description: PHP SDK ver to build. Skipped if not specified. Must start with v.
         type: string
       ts-ver:
         description: TypeScript SDK ver to build. Skipped if not specified. Must start with v.

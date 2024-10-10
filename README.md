@@ -171,6 +171,10 @@ Publishing docker images of the features runner/suites is also supported. It may
 [manually](https://github.com/temporalio/features/actions/workflows/all-docker-images.yaml),
 but is also triggered by default on each push to main.
 
+The dynamic configuration file located at `dockerfiles/dynamicconfig/docker.yaml` defines the dynamic configuration
+settings needed for features to run, and should be used as part of or all of the dynamic config settings for any
+external server not using the basic docker-compose setup.
+
 ## TODO
 
 - Add support for replaying testing of all versions _inside_ each SDKs harness as part of the run

@@ -27,6 +27,7 @@ import (
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/log"
 	"go.temporal.io/sdk/testsuite"
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -200,17 +201,33 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 
 	// If the server is not set, start it ourselves
 	if r.config.Server == "" {
+		// Load up dynamic config values.
+		// Probably the CLI could support passing a dynamic config file as well, but it also likes to set some default
+		// values for certain things, so it's easier to just load the file here and pass those values explicitly.
+		cfgPath := filepath.Join(r.rootDir, "dockerfiles", "dynamicconfig", "docker.yaml")
+		yamlBytes, err := os.ReadFile(cfgPath)
+		var yamlValues map[string][]struct {
+			Constraints map[string]any
+			Value       any
+		}
+		if err = yaml.Unmarshal(yamlBytes, &yamlValues); err != nil {
+			return fmt.Errorf("unable to decode dynamic config: %w", err)
+		}
+		dynamicConfigArgs := make([]string, 0, len(yamlValues))
+		for key, values := range yamlValues {
+			for _, value := range values {
+				asJsonStr, err := json.Marshal(value)
+				if err != nil {
+					return fmt.Errorf("unable to marshal dynamic config value %s: %w", key, err)
+				}
+				dynamicConfigArgs = append(dynamicConfigArgs, "--dynamic-config-value", fmt.Sprintf("%s=%s", key, asJsonStr))
+			}
+		}
+
 		server, err := testsuite.StartDevServer(ctx, testsuite.DevServerOptions{
-			// TODO(cretz): Configurable?
 			LogLevel:      "error",
 			ClientOptions: &client.Options{Namespace: r.config.Namespace},
-			ExtraArgs: []string{
-				"--dynamic-config-value", "system.forceSearchAttributesCacheRefreshOnRead=true",
-				"--dynamic-config-value", "system.enableActivityEagerExecution=true",
-				"--dynamic-config-value", "system.enableEagerWorkflowStart=true",
-				"--dynamic-config-value", "frontend.enableUpdateWorkflowExecution=true",
-				"--dynamic-config-value", "frontend.enableUpdateWorkflowExecutionAsyncAccepted=true",
-			},
+			ExtraArgs:     dynamicConfigArgs,
 		})
 		if err != nil {
 			return fmt.Errorf("failed starting devserver: %w", err)

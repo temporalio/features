@@ -57,7 +57,7 @@ class FeatureChecker
 
     #[Check]
     public function check(
-        #[Stub('Workflow', eagerStart: true, )]
+        #[Stub('Workflow', eagerStart: true)]
         #[Client(timeout:30, pipelineProvider: [FeatureChecker::class, 'pipelineProvider'])]
         WorkflowStubInterface $stub,
     ): void {

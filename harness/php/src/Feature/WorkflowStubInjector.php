@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Harness\Feature;
 
 use Harness\Attribute\Stub;
+use Harness\Exception\SkipTest;
 use Harness\Runtime\Feature;
 use Psr\Container\ContainerInterface;
 use Spiral\Core\Attribute\Proxy;
@@ -38,6 +39,13 @@ final class WorkflowStubInjector implements InjectorInterface
         }
 
         $client = $this->clientFactory->workflowClient($context);
+
+        if ($attribute->eagerStart) {
+            // If the server does not support eager start, skip the test
+            $client->getServiceClient()->getServerCapabilities()->eagerWorkflowStart or throw new SkipTest(
+                'Eager workflow start is not supported by the server.'
+            );
+        }
 
         /** @var Feature $feature */
         $feature = $this->container->get(Feature::class);

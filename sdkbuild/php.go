@@ -11,9 +11,7 @@ import (
 
 // BuildPhpProgramOptions are options for BuildPhpProgram.
 type BuildPhpProgramOptions struct {
-	// Required version. If it contains a slash it is assumed to be a path with
-	// a single wheel in the dist directory. Otherwise it is a specific version
-	// (with leading "v" is trimmed if present).
+	// If not set, the default version from composer.json is used.
 	Version string
 	// If present, this directory is expected to exist beneath base dir. Otherwise
 	// a temporary dir is created.

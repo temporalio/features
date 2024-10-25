@@ -1,6 +1,5 @@
 package update.deduplication;
 
-import io.temporal.client.UpdateHandle;
 import io.temporal.client.UpdateOptions;
 import io.temporal.client.WorkflowUpdateStage;
 import io.temporal.sdkfeatures.Feature;
@@ -76,8 +75,8 @@ public interface feature extends Feature {
               .setFirstExecutionRunId(run.execution.getRunId())
               .build();
 
-      UpdateHandle<Integer> handle1 = untypedStub.startUpdate(updateOptions);
-      UpdateHandle<Integer> handle2 = untypedStub.startUpdate(updateOptions);
+      WorkflowUpdateHandle<Integer> handle1 = untypedStub.startUpdate(updateOptions);
+      WorkflowUpdateHandle<Integer> handle2 = untypedStub.startUpdate(updateOptions);
 
       Assertions.assertEquals(1, handle1.getResultAsync().get());
       Assertions.assertEquals(1, handle2.getResultAsync().get());

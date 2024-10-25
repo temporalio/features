@@ -1,6 +1,7 @@
 package update.deduplication;
 
 import io.temporal.client.UpdateOptions;
+import io.temporal.client.WorkflowUpdateHandle;
 import io.temporal.client.WorkflowUpdateStage;
 import io.temporal.sdkfeatures.Feature;
 import io.temporal.sdkfeatures.Run;

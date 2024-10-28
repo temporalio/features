@@ -1,10 +1,10 @@
-frontend.forceSearchAttributesCacheRefreshOnRead:
+system.forceSearchAttributesCacheRefreshOnRead:
   - value: true
     constraints: {}
-frontend.enableActivityEagerExecution:
+system.enableActivityEagerExecution:
   - value: true
     constraints: {}
-frontend.enableEagerWorkflowStart:
+system.enableEagerWorkflowStart:
   - value: true
     constraints: {}
 frontend.enableUpdateWorkflowExecution:

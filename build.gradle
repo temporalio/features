@@ -37,7 +37,9 @@ ext {
         // Use a regular expression to find the tag_name value
         def matcher = (response =~ /"tag_name"\s*:\s*"(.*?)"/)
         if (matcher.find()) {
-            return matcher.group(1).replaceFirst("^v", "")
+            def version = matcher.group(1).replaceFirst("^v", "")
+            println "Fetched latest SDK version: ${version}"
+            return version
         } else {
             throw new Exception("Failed to extract tag_name from GitHub response")
         }

@@ -216,7 +216,7 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 		dynamicConfigArgs := make([]string, 0, len(yamlValues))
 		for key, values := range yamlValues {
 			for _, value := range values {
-				asJsonStr, err := json.Marshal(value)
+				asJsonStr, err := json.Marshal(value.Value)
 				if err != nil {
 					return fmt.Errorf("unable to marshal dynamic config value %s: %w", key, err)
 				}

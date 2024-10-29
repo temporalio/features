@@ -1,20 +1,16 @@
 # Build in a full featured container
-FROM php:8.2 as build
+FROM php:8.2-cli as build
 
 # Install protobuf compiler
 RUN apt-get update \
  && DEBIAN_FRONTEND=noninteractive \
     apt-get install --no-install-recommends --assume-yes \
-      protobuf-compiler=3.* libprotobuf-dev=3.* wget=*
+      protobuf-compiler=3.* libprotobuf-dev=3.* wget=* git=*
 
 # Get go compiler
 ARG PLATFORM=amd64
-RUN wget -q https://go.dev/dl/go1.22.4.linux-${PLATFORM}.tar.gz \
-    && tar -C /usr/local -xzf go1.22.4.linux-${PLATFORM}.tar.gz
-# Install Rust for compiling the core bridge - only required for installation from a repo but is cheap enough to install
-# in the "build" container (-y is for non-interactive install)
-# hadolint ignore=DL4006
-RUN wget -q -O - https://sh.rustup.rs | sh -s -- -y
+RUN wget -q https://go.dev/dl/go1.22.5.linux-${PLATFORM}.tar.gz \
+    && tar -C /usr/local -xzf go1.22.5.linux-${PLATFORM}.tar.gz
 
 # Install composer
 COPY --from=composer:2.3 /usr/bin/composer /usr/bin/composer
@@ -22,6 +18,7 @@ COPY --from=composer:2.3 /usr/bin/composer /usr/bin/composer
 WORKDIR /app
 
 # Copy CLI build dependencies
+COPY dockerfiles/dynamicconfig ./dockerfiles/dynamicconfig
 COPY features ./features
 COPY harness ./harness
 COPY sdkbuild ./sdkbuild
@@ -45,6 +42,7 @@ RUN CGO_ENABLED=0 ./temporal-features prepare --lang php --dir prepared --versio
 # Copy the CLI and prepared feature to a smaller container for running
 FROM spiralscout/php-grpc:8.2
 
+COPY --from=build /app/dockerfiles/dynamicconfig /app/dockerfiles/dynamicconfig
 COPY --from=build /app/temporal-features /app/temporal-features
 COPY --from=build /app/features /app/features
 COPY --from=build /app/prepared /app/prepared

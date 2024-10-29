@@ -69,3 +69,13 @@ services:
       - temporal-server
     networks:
       - temporal-dev-network
+
+  features-tests-php:
+    image: temporaliotest/features:php
+    environment:
+      - WAIT_EXTRA_FOR_NAMESPACE
+    command: ['--server', 'temporal-server:7233', '--namespace', 'default']
+    depends_on:
+      - temporal-server
+    networks:
+      - temporal-dev-network

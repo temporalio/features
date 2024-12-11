@@ -126,7 +126,7 @@ description = "Temporal SDK Python Test"
 authors = ["Temporal Technologies Inc <sdk@temporal.io>"]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.9"
 temporalio = ` + versionStr + `
 ` + options.DependencyName + ` = { path = "../" }
 

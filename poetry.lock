@@ -217,17 +217,17 @@ files = [
 
 [[package]]
 name = "temporalio"
-version = "1.7.0"
+version = "1.9.0"
 description = "Temporal.io Python SDK"
 optional = false
 python-versions = "<4.0,>=3.8"
 files = [
-    {file = "temporalio-1.7.0-cp38-abi3-macosx_10_9_x86_64.whl", hash = "sha256:92ec0a1af8d4b41245df339a422f1f87367742d9638d2dba7bb7d3ab934e7f5d"},
-    {file = "temporalio-1.7.0-cp38-abi3-macosx_11_0_arm64.whl", hash = "sha256:8b4bb77d766a2ac1d85f3e9b682658fee67d77e87f73bd256d46cd79ecf767f6"},
-    {file = "temporalio-1.7.0-cp38-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:a38dd43061666700500d5808c18ec0b0f569504a2f22b99d7c38dc4dc50b21fd"},
-    {file = "temporalio-1.7.0-cp38-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:e0087fb6cdb9e9b8aa62c1705526947cb00a91159435d294f3da0d92b501ed56"},
-    {file = "temporalio-1.7.0-cp38-abi3-win_amd64.whl", hash = "sha256:eb45b751c6f7946dccba29260922f0e7192b28b8fb9e2aa5afc2aaf5157891d9"},
-    {file = "temporalio-1.7.0.tar.gz", hash = "sha256:5057b74df644bd4f5f4eb0e95e730a0a36a16f7ee926d36fcd479c223a7c63cd"},
+    {file = "temporalio-1.9.0-cp38-abi3-macosx_10_9_x86_64.whl", hash = "sha256:ee941702e8925e2c018b5c2d7b296f811205043654d7f9c4564d7fa6597f1989"},
+    {file = "temporalio-1.9.0-cp38-abi3-macosx_11_0_arm64.whl", hash = "sha256:101040090238d97b61d769e009f732409894d8f26596a3827662f2dde2862097"},
+    {file = "temporalio-1.9.0-cp38-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:91f49b81823f8f44819cc48da0b730175acd793dc428e451e1824b48a4e41465"},
+    {file = "temporalio-1.9.0-cp38-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:f516ae152935ec16afb65b7555486f161b427eaa4b411e945063e31da1a644eb"},
+    {file = "temporalio-1.9.0-cp38-abi3-win_amd64.whl", hash = "sha256:254267109e8e5cb3fa35b4719fdde5ec114b264f3b030ab5be6a69f697acdc5e"},
+    {file = "temporalio-1.9.0.tar.gz", hash = "sha256:932b56720a20401f333ffdaea157cc64d0f9d615a2fd16358bee56d9491bff77"},
 ]
 
 [package.dependencies]
@@ -276,4 +276,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "0760467644f53355d803d932556d4cc925805910e8bcba026d76963b6224d364"
+content-hash = "99b8f14bad2cffea2a7424a760063a51274fc29c6c16bdecf50aada118053979"

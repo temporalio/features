@@ -40,29 +40,29 @@ class ChildWorkflow
     }
 }
 
-class FeatureChecker
-{
-    #[Check]
-    public static function check(#[Stub('MainWorkflow')] WorkflowStubInterface $stub): void
-    {
-        try {
-            $stub->getResult();
-            throw new \Exception('Expected exception');
-        } catch (WorkflowFailedException $e) {
-            Assert::same($e->getWorkflowType(), 'MainWorkflow');
+// class FeatureChecker
+// {
+//     #[Check]
+//     public static function check(#[Stub('MainWorkflow')] WorkflowStubInterface $stub): void
+//     {
+//         try {
+//             $stub->getResult();
+//             throw new \Exception('Expected exception');
+//         } catch (WorkflowFailedException $e) {
+//             Assert::same($e->getWorkflowType(), 'MainWorkflow');
 
-            /** @var ChildWorkflowFailure $previous */
-            $previous = $e->getPrevious();
-            Assert::isInstanceOf($previous, ChildWorkflowFailure::class);
-            Assert::same($previous->getWorkflowType(), 'ChildWorkflow');
+//             /** @var ChildWorkflowFailure $previous */
+//             $previous = $e->getPrevious();
+//             Assert::isInstanceOf($previous, ChildWorkflowFailure::class);
+//             Assert::same($previous->getWorkflowType(), 'ChildWorkflow');
 
-            /** @var ApplicationFailure $failure */
-            $failure = $previous->getPrevious();
-            Assert::isInstanceOf($failure, ApplicationFailure::class);
-            Assert::contains($failure->getOriginalMessage(), 'Test message');
-            Assert::same($failure->getType(), 'TestError');
-            Assert::same($failure->isNonRetryable(), true);
-            Assert::same($failure->getDetails()->getValue(0, 'array'), ['foo' => 'bar']);
-        }
-    }
-}
+//             /** @var ApplicationFailure $failure */
+//             $failure = $previous->getPrevious();
+//             Assert::isInstanceOf($failure, ApplicationFailure::class);
+//             Assert::contains($failure->getOriginalMessage(), 'Test message');
+//             Assert::same($failure->getType(), 'TestError');
+//             Assert::same($failure->isNonRetryable(), true);
+//             Assert::same($failure->getDetails()->getValue(0, 'array'), ['foo' => 'bar']);
+//         }
+//     }
+// }

@@ -52,7 +52,7 @@ async def run():
     )
 
     # Run each feature
-    failure_count = 0
+    failed_features = []
     for rel_dir_and_task_queue in cast(List[str], args.features):
         # Split rel dir and task queue
         rel_dir, _, task_queue = rel_dir_and_task_queue.partition(":")
@@ -75,10 +75,12 @@ async def run():
             ).run()
         except Exception:
             logger.exception("Feature %s failed", rel_dir)
-            failure_count += 1
+            failed_features.append(rel_dir)
 
-    if failure_count:
-        raise RuntimeError(f"{failure_count} feature(s) failed")
+    if failed_features:
+        raise RuntimeError(
+            f"{len(failed_features)} feature(s) failed:\n" + "\n".join(failed_features)
+        )
     logger.info("All features passed")
 
 

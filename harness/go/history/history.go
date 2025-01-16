@@ -201,6 +201,8 @@ func scrubRunSpecificScalars(v interface{}) {
 		v.SdkMetadata = nil
 		// Definitely unimportant for correctness purposes
 		v.MeteringMetadata = nil
+		// Only relevant for new versioning tests, but always created with Build ID
+		v.Deployment = nil
 		// Because binary checksum will show up in the stamp where it didn't before, ignore unless
 		// versioning was actually turned on.
 		if v.GetWorkerVersion() != nil && !v.GetWorkerVersion().GetUseVersioning() {

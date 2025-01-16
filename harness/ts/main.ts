@@ -28,8 +28,7 @@ async function run() {
 
   console.log('Running TypeScript SDK version ' + pkg.version, 'against', opts.server);
 
-  // Set logging to debug
-  Runtime.install({ logger: new DefaultLogger('DEBUG') });
+  Runtime.install({ logger: new DefaultLogger('WARN') });
 
   // Collect all feature sources
   const featureRootDir = path.join(__dirname, '../../features');

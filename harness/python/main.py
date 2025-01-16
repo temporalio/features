@@ -21,7 +21,7 @@ async def run():
         "--client-cert-path", help="Path to a client certificate for TLS"
     )
     parser.add_argument("--client-key-path", help="Path to a client key for TLS")
-    parser.add_argument("--log-level", help="Log level", default="INFO")
+    parser.add_argument("--log-level", help="Log level", default="WARNING")
     parser.add_argument("--http-proxy-url", help="HTTP proxy URL")
     parser.add_argument(
         "features", help="Features as dir + ':' + task queue", nargs="+"

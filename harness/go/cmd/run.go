@@ -139,8 +139,9 @@ type Runner struct {
 
 // NewRunner creates a new runner from the given config.
 func NewRunner(config RunConfig) *Runner {
-	// TODO(cretz): Configurable logger
-	logger, err := zap.NewDevelopment(zap.AddCaller(), zap.AddCallerSkip(1))
+	logConfig := zap.NewDevelopmentConfig()
+	logConfig.Level = zap.NewAtomicLevelAt(zap.WarnLevel)
+	logger, err := logConfig.Build(zap.AddCaller(), zap.AddCallerSkip(1))
 	if err != nil {
 		panic(err)
 	}

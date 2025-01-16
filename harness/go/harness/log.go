@@ -77,7 +77,7 @@ func buildCLIZapLogger() *zap.Logger {
 	}
 
 	config := zap.Config{
-		Level:             zap.NewAtomicLevelAt(zap.DebugLevel),
+		Level:             zap.NewAtomicLevelAt(zap.WarnLevel),
 		Development:       false,
 		DisableStacktrace: os.Getenv("TEMPORAL_CLI_SHOW_STACKS") == "",
 		Sampling:          nil,

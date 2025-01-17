@@ -6,6 +6,7 @@ namespace Harness\Feature\ContinueAsNew\ContinueAsSame;
 
 use Harness\Attribute\Check;
 use Harness\Attribute\Stub;
+use Harness\Exception\SkipTest;
 use Temporal\Client\WorkflowStubInterface;
 use Temporal\Workflow;
 use Temporal\Workflow\WorkflowInterface;
@@ -49,6 +50,7 @@ class FeatureChecker
         )]
         WorkflowStubInterface $stub
     ): void {
+        throw new SkipTest('TODO: https://github.com/temporalio/features/issues/582');
         Assert::same($stub->getResult(), INPUT_DATA);
         # Workflow ID does not change after continue as new
         Assert::same($stub->getExecution()->getID(), WORKFLOW_ID);

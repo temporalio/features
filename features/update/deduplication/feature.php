@@ -25,6 +25,7 @@ class FeatureWorkflow
     public function run()
     {
         yield Workflow::await(fn(): bool => $this->counter >= 2);
+        yield Workflow::await(fn(): bool => Workflow::allHandlersFinished());
         return $this->counter;
     }
 

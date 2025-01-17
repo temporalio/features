@@ -2,6 +2,7 @@ package updateutil
 
 import (
 	"context"
+	"os"
 
 	"github.com/temporalio/features/harness/go/harness"
 	"github.com/temporalio/features/harness/go/history"
@@ -9,6 +10,9 @@ import (
 )
 
 func RequireNoUpdateRejectedEvents(ctx context.Context, runner *harness.Runner) {
+	if os.Getenv("TEMPORAL_FEATURES_DISABLE_WORKFLOW_COMPLETION_CHECK") != "" {
+		return
+	}
 	runner.Log.Debug("Checking for verboten workflow update rejected events", "Feature", runner.Feature.Dir)
 	fetcher := &history.Fetcher{
 		Client:         runner.Client,

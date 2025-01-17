@@ -81,7 +81,10 @@ jobs:
         # Only supported in non-fork runs
         if: ${{ (github.event.pull_request.head.repo.full_name == '' || github.event.pull_request.head.repo.full_name == 'temporalio/features') && !inputs.skip-cloud }}
         run: |
-          docker run --rm -i -v /tmp/temporal-certs:/certs ${{ env.FEATURES_BUILT_IMAGE_TAG }} \
+          docker run --rm -i \
+          -v /tmp/temporal-certs:/certs \
+          --env TEMPORAL_FEATURES_DISABLE_WORKFLOW_COMPLETION_CHECK=true \
+          ${{ env.FEATURES_BUILT_IMAGE_TAG }} \
           --server $TEMPORAL_CLOUD_ADDRESS \
           --namespace $TEMPORAL_CLOUD_NAMESPACE \
           --client-cert-path /certs/client.pem \

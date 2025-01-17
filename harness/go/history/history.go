@@ -208,6 +208,7 @@ func scrubRunSpecificScalars(v interface{}) {
 		if v.GetWorkerVersion() != nil && !v.GetWorkerVersion().GetUseVersioning() {
 			v.WorkerVersion = nil
 		}
+		v.Deployment = nil
 	case *history.WorkflowTaskTimedOutEventAttributes:
 	case *history.WorkflowTaskFailedEventAttributes:
 		v.Identity = ""

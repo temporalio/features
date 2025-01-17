@@ -6,10 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"google.golang.org/protobuf/types/known/timestamppb"
-
 	"go.temporal.io/api/enums/v1"
-	"go.temporal.io/api/filter/v1"
 	"go.temporal.io/api/history/v1"
 	"go.temporal.io/api/workflow/v1"
 	"go.temporal.io/api/workflowservice/v1"
@@ -90,45 +87,27 @@ func (f *Fetcher) Fetch(ctx context.Context) (Histories, error) {
 
 // GetExecutions returns all open/closed executions.
 func (f *Fetcher) GetExecutions(ctx context.Context) ([]*workflow.WorkflowExecutionInfo, error) {
-	// Get open and closed workflows within a minute of when the runner started
+	// Get all workflows started shortly before the runner started
 	earliest := f.FeatureStarted.Add(-5 * time.Minute)
 	var execs []*workflow.WorkflowExecutionInfo
 	seenExecs := map[string]bool{}
 	var nextPageToken []byte
+
+	query := fmt.Sprintf("StartTime >= '%s' and TaskQueue = '%s'", earliest.Format(time.RFC3339), f.TaskQueue)
+
 	for {
-		resp, err := f.Client.ListOpenWorkflow(ctx, &workflowservice.ListOpenWorkflowExecutionsRequest{
-			Namespace:       f.Namespace,
-			MaximumPageSize: 1000,
-			NextPageToken:   nextPageToken,
-			StartTimeFilter: &filter.StartTimeFilter{EarliestTime: timestamppb.New(earliest)},
+		resp, err := f.Client.ListWorkflow(ctx, &workflowservice.ListWorkflowExecutionsRequest{
+			Namespace:     f.Namespace,
+			PageSize:      1000,
+			NextPageToken: nextPageToken,
+			Query:         query,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed listing workflows: %w", err)
 		}
 		for _, exec := range resp.Executions {
 			seenKey := exec.Execution.WorkflowId + "_||_" + exec.Execution.RunId
-			if exec.TaskQueue == f.TaskQueue && !seenExecs[seenKey] {
-				execs = append(execs, exec)
-				seenExecs[seenKey] = true
-			}
-		}
-		if nextPageToken = resp.NextPageToken; len(nextPageToken) == 0 {
-			break
-		}
-	}
-	for {
-		resp, err := f.Client.ListClosedWorkflow(ctx, &workflowservice.ListClosedWorkflowExecutionsRequest{
-			Namespace:       f.Namespace,
-			MaximumPageSize: 1000,
-			NextPageToken:   nextPageToken,
-			StartTimeFilter: &filter.StartTimeFilter{EarliestTime: timestamppb.New(earliest)},
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed listing workflows: %w", err)
-		}
-		for _, exec := range resp.Executions {
-			seenKey := exec.Execution.WorkflowId + "_||_" + exec.Execution.RunId
-			if exec.TaskQueue == f.TaskQueue && !seenExecs[seenKey] {
+			if !seenExecs[seenKey] {
 				execs = append(execs, exec)
 				seenExecs[seenKey] = true
 			}

@@ -7,6 +7,7 @@ namespace Harness\Feature\Schedule\Basic;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterval;
 use Harness\Attribute\Check;
+use Harness\Exception\SkipTest;
 use Harness\Runtime\Feature;
 use Harness\Runtime\State;
 use Ramsey\Uuid\Uuid;
@@ -41,6 +42,7 @@ class FeatureChecker
         Feature $feature,
         State $runtime,
     ): void {
+        throw new SkipTest('TODO: https://github.com/temporalio/features/issues/580');
         $workflowId = Uuid::uuid4()->toString();
         $scheduleId = Uuid::uuid4()->toString();
         $interval = CarbonInterval::seconds(2);

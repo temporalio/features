@@ -41,8 +41,8 @@ final class Runner
                 ...$run->toCommandLineArguments(),
             ]),
         ];
-        $run->tlsKey === null or $rrCommand = [...$rrCommand, '-o', "tls.key={$run->tlsKey}"];
-        $run->tlsCert === null or $rrCommand = [...$rrCommand, '-o', "tls.cert={$run->tlsCert}"];
+        $run->tlsKey === null or $rrCommand = [...$rrCommand, '-o', "temporal.tls.key={$run->tlsKey}"];
+        $run->tlsCert === null or $rrCommand = [...$rrCommand, '-o', "temporal.tls.cert={$run->tlsCert}"];
         $command = \implode(' ', $rrCommand);
 
         // echo "\e[1;36mStart RoadRunner with command:\e[0m {$command}\n";

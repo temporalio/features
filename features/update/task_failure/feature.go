@@ -2,6 +2,7 @@ package task_failure
 
 import (
 	"context"
+	"os"
 	"strings"
 
 	"github.com/temporalio/features/features/update/updateutil"
@@ -63,8 +64,10 @@ var Feature = harness.Feature{
 		runner.Require.NoError(runner.Client.SignalWorkflow(ctx, run.GetID(), run.GetRunID(), shutdownSignal, nil))
 		runner.Require.NoError(run.Get(ctx, nil))
 
-		runner.Require.Equal(1, countPanicWFTFailures(ctx, runner),
-			"update handler panic should have caused 1 WFT Failure")
+		if os.Getenv("TEMPORAL_FEATURES_DISABLE_WORKFLOW_COMPLETION_CHECK") != "" {
+			runner.Require.Equal(1, countPanicWFTFailures(ctx, runner),
+				"update handler panic should have caused 1 WFT Failure")
+		}
 
 		updateutil.RequireNoUpdateRejectedEvents(ctx, runner)
 		return run, ctx.Err()

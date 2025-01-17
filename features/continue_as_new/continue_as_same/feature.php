@@ -20,10 +20,13 @@ use Webmozart\Assert\Assert;
 #[WorkflowInterface]
 class FeatureWorkflow
 {
+    private bool $done = false;
+
     #[WorkflowMethod('Workflow')]
     public function run(string $input)
     {
         if (!empty(Workflow::getInfo()->continuedExecutionRunId)) {
+            yield Workflow::await(fn(): bool => $this->done);
             return $input;
         }
 
@@ -35,6 +38,13 @@ class FeatureWorkflow
                 ->withTaskQueue(Workflow::getInfo()->taskQueue)
         );
     }
+
+    #[SignalMethod('done_signal')]
+    public function doneSignal(bool $done)
+    {
+        $this->done = $done;
+    }
+
 }
 
 class FeatureChecker
@@ -55,5 +65,6 @@ class FeatureChecker
         # Memos do not change after continue as new
         $description = $stub->describe();
         Assert::same($description->info->memo->getValues(), [MEMO_KEY => MEMO_VALUE]);
+        $stub->signal('done_signal', true);
     }
 }

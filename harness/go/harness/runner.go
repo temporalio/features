@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -204,6 +205,9 @@ func (r *Runner) CheckResultDefault(ctx context.Context, run client.WorkflowRun)
 // and replays it to confirm it succeeds. It also replays all other histories
 // for versions <= the current SDK version.
 func (r *Runner) CheckHistoryDefault(ctx context.Context, _ client.WorkflowRun) error {
+	if os.Getenv("TEMPORAL_FEATURES_DISABLE_WORKFLOW_COMPLETION_CHECK") != "" {
+		return nil
+	}
 	// First check our own history
 	r.Log.Debug("Checking current execution replay", "Feature", r.Feature.Dir)
 	fetcher := &history.Fetcher{

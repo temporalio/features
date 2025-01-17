@@ -15,7 +15,7 @@ use Webmozart\Assert\Assert;
 \define('INPUT_DATA', 'InputData');
 \define('MEMO_KEY', 'MemoKey');
 \define('MEMO_VALUE', 'MemoValue');
-\define('WORKFLOW_ID', 'TestID');
+\define('WORKFLOW_ID', 'ContinueAsNewContinueAsSameTestID');
 
 #[WorkflowInterface]
 class FeatureWorkflow

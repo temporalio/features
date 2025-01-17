@@ -138,7 +138,7 @@ build-backend = "poetry.core.masonry.api"`
 	}
 
 	// Install
-	cmd := exec.CommandContext(ctx, "poetry", "install", "--no-dev", "--no-root", "-v")
+	cmd := exec.CommandContext(ctx, "poetry", "install", "--no-root", "-v")
 	cmd.Dir = dir
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	if options.ApplyToCommand != nil {

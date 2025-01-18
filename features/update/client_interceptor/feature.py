@@ -63,5 +63,5 @@ register_feature(
     workflows=[Workflow],
     check_result=check_result,
     start=start,
-    additional_client_config=ClientConfig(interceptors=[MyClientInterceptor()]),
+    additional_client_config=ClientConfig(interceptors=[MyClientInterceptor()]),  # type: ignore
 )

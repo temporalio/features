@@ -135,8 +135,8 @@ func CheckResult(ctx context.Context, r *harness.Runner, run client.WorkflowRun)
 	if err != nil {
 		return err
 	}
-	r.Assert.Equal(1, len(resp.GetExecutions()))
-	r.Assert.Equal(enums.WORKFLOW_EXECUTION_STATUS_TERMINATED, resp.GetExecutions()[0].Status)
+	r.Require.Equal(1, len(resp.GetExecutions()))
+	r.Require.Equal(enums.WORKFLOW_EXECUTION_STATUS_TERMINATED, resp.GetExecutions()[0].Status)
 
 	return err
 }

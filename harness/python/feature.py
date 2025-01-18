@@ -42,7 +42,7 @@ def register_feature(
     check_result: Optional[Callable[[Runner, WorkflowHandle], Awaitable[None]]] = None,
     worker_config: WorkerConfig = WorkerConfig(),
     data_converter: DataConverter = DataConverter.default,
-    additional_client_config: ClientConfig = ClientConfig(),
+    additional_client_config=ClientConfig(),  # type: ignore
 ) -> None:
     # No need to register in a sandbox
     if workflow.unsafe.in_sandbox():

@@ -90,7 +90,7 @@ async def check_result(runner: Runner, handle: WorkflowHandle) -> None:
             and update_run_id != handle.first_execution_run_id
         ), "Expected update to be handled on post-CAN run"
 
-    await asyncio.to_thread(asyncio.run, _check_result())
+    await asyncio.to_thread(lambda: asyncio.run(_check_result()))
 
 
 register_feature(

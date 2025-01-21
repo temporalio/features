@@ -6,9 +6,9 @@ never be used in real workflows. The synchronization must be threading-based as 
 asyncio-based, since the point is to not allow the workflow to yield while it is waiting
 for notification from the client. In order for the workflow and client to share the same
 module namespace, we use UnsandboxedWorkflowRunner. But this means that the workflow and
-client code execute in the same thread. Therefore we create a new thread for the client
-code to execute in, so that the two can use thread-blocking waits on the shared
-threading.Event object.
+client code execute in the same thread. Therefore we do the client's thread-blocking
+synchronization calls in a new thread, via asyncio.to_thread, so that both client and
+workflow can use thread-blocking waits on the shared threading.Event object.
 """
 
 import asyncio
@@ -71,26 +71,23 @@ async def start(runner: Runner) -> WorkflowHandle:
 
 
 async def check_result(runner: Runner, handle: WorkflowHandle) -> None:
-    async def _check_result() -> None:
-        # See docstring at top of file.
-        # Cause an update to be admitted while the first WFT is in progress
-        first_run_wft_is_in_progress.wait()
-        # The workflow is now blocking its thread waiting for the update to be admitted
-        update_task = await admitted_update_task(
-            runner.client, handle, Workflow.update, "update-id"
-        )
-        # Unblock the workflow so that it responds to the WFT with a CAN command.
-        update_has_been_admitted.set()
-        # The workflow will now CAN. Wait for the update result
-        update_run_id = await update_task
-        # The update should have been handled on the post-CAN run.
-        assert (
-            handle.first_execution_run_id
-            and update_run_id
-            and update_run_id != handle.first_execution_run_id
-        ), "Expected update to be handled on post-CAN run"
-
-    await asyncio.to_thread(lambda: asyncio.run(_check_result()))
+    # See docstring at top of file.
+    # Cause an update to be admitted while the first WFT is in progress
+    await asyncio.to_thread(first_run_wft_is_in_progress.wait)
+    # The workflow is now blocking its thread waiting for the update to be admitted
+    update_task = await admitted_update_task(
+        runner.client, handle, Workflow.update, "update-id"
+    )
+    # Unblock the workflow so that it responds to the WFT with a CAN command.
+    update_has_been_admitted.set()
+    # The workflow will now CAN. Wait for the update result
+    update_run_id = await update_task
+    # The update should have been handled on the post-CAN run.
+    assert (
+        handle.first_execution_run_id
+        and update_run_id
+        and update_run_id != handle.first_execution_run_id
+    ), "Expected update to be handled on post-CAN run"
 
 
 register_feature(

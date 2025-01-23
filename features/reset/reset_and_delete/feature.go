@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/temporalio/features/harness/go/harness"
 	"go.temporal.io/api/common/v1"
 	"go.temporal.io/api/enums/v1"
@@ -104,10 +105,7 @@ func CheckResult(ctx context.Context, r *harness.Runner, run client.WorkflowRun)
 	err = r.DoUntilEventually(ctx, 1*time.Second, 3*time.Minute, func() bool {
 		_, err := r.Client.DescribeWorkflowExecution(ctx, run.GetID(), run.GetRunID())
 		var notFoundErr *serviceerror.NotFound
-		if errors.As(err, &notFoundErr) {
-			return true
-		}
-		return false
+		return errors.As(err, &notFoundErr)
 	})
 	if err != nil {
 		return err
@@ -127,18 +125,24 @@ func CheckResult(ctx context.Context, r *harness.Runner, run client.WorkflowRun)
 	if next.GetEventType() != enums.EVENT_TYPE_WORKFLOW_EXECUTION_TERMINATED {
 		return errors.New("expected last event to be terminated")
 	}
-	// Ensure original run is findable via visibility & has correct status
-	resp, err := r.Client.ListWorkflow(ctx, &workflowservice.ListWorkflowExecutionsRequest{
-		Namespace: r.Namespace,
-		Query:     "WorkflowId = '" + origRun.GetID() + "'",
-	})
-	if err != nil {
-		return err
-	}
-	r.Require.Equal(1, len(resp.GetExecutions()))
-	r.Require.Equal(enums.WORKFLOW_EXECUTION_STATUS_TERMINATED, resp.GetExecutions()[0].Status)
-
-	return err
+	// Use eventually since visibility is eventually consistent.
+	r.Require.EventuallyWithT(func(t *assert.CollectT) {
+		// Ensure original run is findable via visibility & has correct status
+		resp, err := r.Client.ListWorkflow(ctx, &workflowservice.ListWorkflowExecutionsRequest{
+			Namespace: r.Namespace,
+			Query:     "WorkflowId = '" + origRun.GetID() + "'",
+		})
+		assert.NoError(t, err)
+		if err != nil {
+			return
+		}
+		assert.Len(t, resp.GetExecutions(), 1)
+		if len(resp.GetExecutions()) != 1 {
+			return
+		}
+		assert.Equal(t, enums.WORKFLOW_EXECUTION_STATUS_TERMINATED, resp.GetExecutions()[0].Status)
+	}, 1*time.Second, 1*time.Minute)
+	return nil
 }
 
 // Workflow waits for a single signal and returns the data contained therein

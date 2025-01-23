@@ -17,6 +17,7 @@ from datetime import timedelta
 from uuid import uuid4
 
 from temporalio import workflow
+from temporalio.api.enums.v1 import EventType
 from temporalio.client import WorkflowHandle
 from temporalio.worker import UnsandboxedWorkflowRunner, WorkerConfig
 
@@ -82,12 +83,36 @@ async def check_result(runner: Runner, handle: WorkflowHandle) -> None:
     update_has_been_admitted.set()
     # The workflow will now CAN. Wait for the update result
     update_run_id = await update_task
+
     # The update should have been handled on the post-CAN run.
     assert (
         handle.first_execution_run_id
         and update_run_id
         and update_run_id != handle.first_execution_run_id
     ), "Expected update to be handled on post-CAN run"
+
+    update_event_types = {
+        EventType.EVENT_TYPE_WORKFLOW_EXECUTION_UPDATE_ACCEPTED,
+        EventType.EVENT_TYPE_WORKFLOW_EXECUTION_UPDATE_COMPLETED,
+    }
+
+    async def get_event_types(run_id: str) -> set[EventType.ValueType]:
+        return {
+            event.event_type
+            for event in (
+                await runner.client.get_workflow_handle(
+                    handle.id, run_id=run_id
+                ).fetch_history()
+            ).events
+        }
+
+    assert not (
+        update_event_types & await get_event_types(handle.first_execution_run_id)
+    ), "Update should not appear in pre-CAN history"
+
+    assert update_event_types <= await get_event_types(
+        update_run_id
+    ), "Update events should appear in post-CAN history"
 
 
 register_feature(

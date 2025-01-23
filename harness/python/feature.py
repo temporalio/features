@@ -126,6 +126,7 @@ class Runner:
         if tls_config is not None:
             self.tls_config = tls_config
         self.http_proxy_url = http_proxy_url
+        self.client: Client
 
     async def run(self) -> None:
         logger.info("Executing feature %s", self.feature.rel_dir)

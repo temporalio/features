@@ -141,7 +141,7 @@ func CheckResult(ctx context.Context, r *harness.Runner, run client.WorkflowRun)
 			return
 		}
 		assert.Equal(t, enums.WORKFLOW_EXECUTION_STATUS_TERMINATED, resp.GetExecutions()[0].Status)
-	}, 1*time.Second, 1*time.Minute)
+	}, 200*time.Millisecond, 10*time.Second)
 	return nil
 }
 

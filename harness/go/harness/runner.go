@@ -37,7 +37,9 @@ type Runner struct {
 	Feature    *PreparedFeature
 	CreateTime time.Time
 
-	Assert        *assert.Assertions
+	// SoftAssert provides useful assertion methods. Note that SoftAssert method failures will **not** fail the
+	// feature test. To get the last assertion error, use [Runner.CheckAssertion].
+	SoftAssert    *assert.Assertions
 	LastAssertErr error
 	Require       *require.Assertions
 }
@@ -65,7 +67,7 @@ func NewRunner(config RunnerConfig, feature *PreparedFeature) (*Runner, error) {
 		config.Log = DefaultLogger
 	}
 	r := &Runner{RunnerConfig: config, Feature: feature}
-	r.Assert = assert.New(assertTestingFunc(func(format string, args ...interface{}) {
+	r.SoftAssert = assert.New(assertTestingFunc(func(format string, args ...interface{}) {
 		r.LastAssertErr = fmt.Errorf(format, args...)
 	}))
 	r.Require = require.New(&requireTestingPanic{})
@@ -183,7 +185,7 @@ func (r *Runner) CheckResultDefault(ctx context.Context, run client.WorkflowRun)
 		var actErr *temporal.ActivityError
 		if !errors.As(err, &actErr) {
 			return fmt.Errorf("expected activity error, got: %w", err)
-		} else if !r.Assert.EqualError(actErr.Unwrap(), r.Feature.ExpectActivityError) {
+		} else if !r.SoftAssert.EqualError(actErr.Unwrap(), r.Feature.ExpectActivityError) {
 			return fmt.Errorf("activity error string mismatch, error: %w", err)
 		}
 	} else if err != nil {
@@ -192,7 +194,7 @@ func (r *Runner) CheckResultDefault(ctx context.Context, run client.WorkflowRun)
 
 	// If result is expected, check it
 	if actualPtr != nil {
-		err = r.CheckAssertion(r.Assert.Equal(r.Feature.ExpectRunResult, reflect.ValueOf(actualPtr).Elem().Interface()))
+		err = r.CheckAssertion(r.SoftAssert.Equal(r.Feature.ExpectRunResult, reflect.ValueOf(actualPtr).Elem().Interface()))
 		if err != nil {
 			return err
 		}
@@ -324,7 +326,7 @@ func (r *Runner) QueryUntilEventually(
 				return fmt.Errorf("failed converting result of query %v: %w", query, err)
 			}
 			actual := reflect.ValueOf(actualPtr).Elem().Interface()
-			if lastErr = r.CheckAssertion(r.Assert.Equal(expected, actual)); lastErr == nil {
+			if lastErr = r.CheckAssertion(r.SoftAssert.Equal(expected, actual)); lastErr == nil {
 				return nil
 			}
 		}

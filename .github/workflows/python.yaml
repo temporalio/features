@@ -92,6 +92,7 @@ jobs:
         if: ${{ inputs.version-is-repo-ref }}
         with:
           workspaces: sdk-python/temporalio/bridge
+      - uses: astral-sh/setup-uv@v5
       - run: poetry install --no-root
         if: ${{ inputs.version-is-repo-ref }}
         working-directory: sdk-python

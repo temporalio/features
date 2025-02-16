@@ -87,7 +87,7 @@ func BuildPythonProgram(ctx context.Context, options BuildPythonProgramOptions) 
 		} else if len(wheels) == 0 && !triedBuilding {
 			triedBuilding = true
 			// Try to build the project
-			cmd := exec.CommandContext(ctx, "poetry", "install", "--no-root")
+			cmd := exec.CommandContext(ctx, "uv", "sync", "--no-install-project")
 			cmd.Dir = sdkPath
 			cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 			err = cmd.Run()
@@ -119,14 +119,14 @@ func BuildPythonProgram(ctx context.Context, options BuildPythonProgramOptions) 
 		versionStr = "{ path = " + strconv.Quote(absWheel) + " }"
 	}
 	pyProjectTOML := `
-[tool.poetry]
+[project]
 name = "python-program-` + filepath.Base(dir) + `"
 version = "0.1.0"
 description = "Temporal SDK Python Test"
-authors = ["Temporal Technologies Inc <sdk@temporal.io>"]
+authors = [{ name = "Temporal Technologies Inc", email = "sdk@temporal.io" }]
+requires-python = "~=3.9"
 
-[tool.poetry.dependencies]
-python = "^3.9"
+[dependencies]
 temporalio = ` + versionStr + `
 ` + options.DependencyName + ` = { path = "../" }
 
@@ -138,7 +138,7 @@ build-backend = "poetry.core.masonry.api"`
 	}
 
 	// Install
-	cmd := exec.CommandContext(ctx, "poetry", "install", "--no-root", "-v")
+	cmd := exec.CommandContext(ctx, "uv", "sync", "--no-install-project", "-v")
 	cmd.Dir = dir
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	if options.ApplyToCommand != nil {
@@ -170,11 +170,11 @@ func PythonProgramFromDir(dir string) (*PythonProgram, error) {
 // Dir is the directory to run in.
 func (p *PythonProgram) Dir() string { return p.dir }
 
-// NewCommand makes a new Poetry command. The first argument needs to be the
+// NewCommand makes a new uv command. The first argument needs to be the
 // name of the module.
 func (p *PythonProgram) NewCommand(ctx context.Context, args ...string) (*exec.Cmd, error) {
 	args = append([]string{"run", "python", "-m"}, args...)
-	cmd := exec.CommandContext(ctx, "poetry", args...)
+	cmd := exec.CommandContext(ctx, "uv", args...)
 	cmd.Dir = p.dir
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	return cmd, nil

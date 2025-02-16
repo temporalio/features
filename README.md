@@ -28,8 +28,7 @@ Prerequisites:
 - [JDK](https://adoptium.net/?variant=openjdk11&jvmVariant=hotspot) 11+
 - [Node](https://nodejs.org) 16+
 - [Python](https://www.python.org/) 3.10+
-  - [Poetry](https://python-poetry.org/): `poetry install`
-  - `setuptools`: `python -m pip install -U setuptools`
+  - [uv](https://docs.astral.sh/uv/)
 - [.NET](https://dotnet.microsoft.com) 7+
 - [PHP](https://www.php.net/) 8.1+
   - [Composer](https://getcomposer.org/)

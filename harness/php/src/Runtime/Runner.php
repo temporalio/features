@@ -45,7 +45,7 @@ final class Runner
         $run->tlsCert === null or $rrCommand = [...$rrCommand, '-o', "temporal.tls.cert={$run->tlsCert}"];
         $command = \implode(' ', $rrCommand);
 
-        // echo "\e[1;36mStart RoadRunner with command:\e[0m {$command}\n";
+        echo "\e[1;36mStart RoadRunner with command:\e[0m {$command}\n";
         $this->environment->startRoadRunner($command);
         $this->started = true;
     }

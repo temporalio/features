@@ -10,8 +10,7 @@ dependencies = ["temporalio>=1.9.0,<2"]
 [dependency-groups]
 dev = [
     "mypy>=0.961,<0.962",
-    "black>=22.3.0,<23",
-    "isort>=5.10.1,<6",
+    "ruff>=0.9.6",
 ]
 
 [tool.hatch.build.targets.sdist]
@@ -31,14 +30,10 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.poe.tasks]
-format = [{cmd = "black ."}, {cmd = "isort ."}]
+format = [{cmd = "uv run ruff check --select I --fix"}, {cmd = "uv run ruff format"}, ]
 lint = [
-  {cmd = "black --check ."},
-  {cmd = "isort --check-only ."},
+  {cmd = "uv run ruff check --select I"},
+  {cmd = "uv run ruff format --check"},
   {ref = "lint-types"},
 ]
 lint-types = "mypy --explicit-package-bases --namespace-packages ."
-
-[tool.isort]
-profile = "black"
-skip_gitignore = true

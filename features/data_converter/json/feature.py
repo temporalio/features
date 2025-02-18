@@ -15,6 +15,7 @@ Result = Dict[str, bool]
 
 EXPECTED_RESULT: Result = {"spec": True}
 
+
 # An echo workflow
 @workflow.defn
 class Workflow:

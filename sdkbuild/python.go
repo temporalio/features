@@ -89,11 +89,7 @@ authors = ["Temporal Technologies Inc <sdk@temporal.io>"]
 [tool.poetry.dependencies]
 python = "^3.9"
 temporalio = ` + versionStr + `
-` + options.DependencyName + ` = { path = "../" }
-
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"`
+` + options.DependencyName + ` = { path = "../" }`
 	if err := os.WriteFile(filepath.Join(dir, "pyproject.toml"), []byte(pyProjectTOML), 0644); err != nil {
 		return nil, fmt.Errorf("failed writing pyproject.toml: %w", err)
 	}

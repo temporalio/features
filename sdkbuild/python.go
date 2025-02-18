@@ -73,50 +73,11 @@ func BuildPythonProgram(ctx context.Context, options BuildPythonProgramOptions) 
 	// Use semantic version or path if it's a path
 	versionStr := strconv.Quote(strings.TrimPrefix(options.Version, "v"))
 	if strings.ContainsAny(options.Version, `/\`) {
-		// We expect a dist/ directory with a single whl file present
-		sdkPath, err := filepath.Abs(options.Version)
+		wheel, err := getWheel(ctx, options.Version)
 		if err != nil {
-			return nil, fmt.Errorf("unable to make sdk path absolute: %w", err)
+			return nil, err
 		}
-		triedBuilding := false
-
-	getWheels:
-		wheels, err := filepath.Glob(filepath.Join(sdkPath, "dist/*.whl"))
-		if err != nil {
-			return nil, fmt.Errorf("failed glob wheel lookup: %w", err)
-		} else if len(wheels) == 0 && !triedBuilding {
-			triedBuilding = true
-			// Try to build the project
-			cmd := exec.CommandContext(ctx, "poetry", "install", "--no-root")
-			cmd.Dir = sdkPath
-			cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
-			err = cmd.Run()
-			if err != nil {
-				return nil, fmt.Errorf("problem installing deps when building sdk by path: %w", err)
-			}
-			cmd = exec.CommandContext(ctx, "poetry", "build")
-			cmd.Dir = sdkPath
-			cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
-			err = cmd.Run()
-			if err != nil {
-				return nil, fmt.Errorf("problem buildling sdk by path: %w", err)
-			}
-			// This constitutes a legitimate use of goto, fight me.
-			goto getWheels
-		} else if len(wheels) != 1 {
-			return nil, fmt.Errorf("expected single dist wheel, found %v - consider cleaning dist dir", wheels)
-		}
-
-		absWheel, err := filepath.Abs(wheels[0])
-		if err != nil {
-			return nil, fmt.Errorf("unable to make wheel path absolute: %w", err)
-		}
-		// There's a strange bug in Poetry or somewhere deeper where, on Windows,
-		// the single drive letter has to be capitalized
-		if runtime.GOOS == "windows" && absWheel[1] == ':' {
-			absWheel = strings.ToUpper(absWheel[:1]) + absWheel[1:]
-		}
-		versionStr = "{ path = " + strconv.Quote(absWheel) + " }"
+		versionStr = "{ path = " + strconv.Quote(wheel) + " }"
 	}
 	pyProjectTOML := `
 [tool.poetry]
@@ -152,6 +113,53 @@ build-backend = "poetry.core.masonry.api"`
 
 	success = true
 	return &PythonProgram{dir}, nil
+}
+
+func getWheel(ctx context.Context, version string) (string, error) {
+	// We expect a dist/ directory with a single whl file present
+	sdkPath, err := filepath.Abs(version)
+	if err != nil {
+		return "", fmt.Errorf("unable to make sdk path absolute: %w", err)
+	}
+	triedBuilding := false
+
+getWheels:
+	wheels, err := filepath.Glob(filepath.Join(sdkPath, "dist/*.whl"))
+	if err != nil {
+		return "", fmt.Errorf("failed glob wheel lookup: %w", err)
+	} else if len(wheels) == 0 && !triedBuilding {
+		triedBuilding = true
+		// Try to build the project
+		cmd := exec.CommandContext(ctx, "poetry", "install", "--no-root")
+		cmd.Dir = sdkPath
+		cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+		err = cmd.Run()
+		if err != nil {
+			return "", fmt.Errorf("problem installing deps when buildling sdk by path: %w", err)
+		}
+		cmd = exec.CommandContext(ctx, "poetry", "build")
+		cmd.Dir = sdkPath
+		cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+		err = cmd.Run()
+		if err != nil {
+			return "", fmt.Errorf("problem buildling sdk by path: %w", err)
+		}
+		// This constitutes a legitimate use of goto, fight me.
+		goto getWheels
+	} else if len(wheels) != 1 {
+		return "", fmt.Errorf("expected single dist wheel, found %v - consider cleaning dist dir", wheels)
+	}
+
+	absWheel, err := filepath.Abs(wheels[0])
+	if err != nil {
+		return "", fmt.Errorf("unable to make wheel path absolute: %w", err)
+	}
+	// There's a strange bug in Poetry or somewhere deeper where, on Windows,
+	// the single drive letter has to be capitalized
+	if runtime.GOOS == "windows" && absWheel[1] == ':' {
+		absWheel = strings.ToUpper(absWheel[:1]) + absWheel[1:]
+	}
+	return absWheel, nil
 }
 
 // PythonProgramFromDir recreates the Python program from a Dir() result of a

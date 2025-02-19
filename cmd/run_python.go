@@ -37,10 +37,9 @@ func (p *Preparer) BuildPythonProgram(ctx context.Context) (sdkbuild.Program, er
 	}
 
 	prog, err := sdkbuild.BuildPythonProgram(ctx, sdkbuild.BuildPythonProgramOptions{
-		BaseDir:        p.rootDir,
-		DirName:        p.config.DirName,
-		Version:        version,
-		DependencyName: "features",
+		BaseDir: p.rootDir,
+		DirName: p.config.DirName,
+		Version: version,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed preparing: %w", err)

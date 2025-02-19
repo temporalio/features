@@ -38,7 +38,7 @@ jobs:
 
       - name: Download docker artifacts
         if: ${{ inputs.docker-image-artifact-name }}
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ${{ inputs.docker-image-artifact-name }}
           path: /tmp/server-docker

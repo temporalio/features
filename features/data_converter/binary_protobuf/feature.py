@@ -19,6 +19,7 @@ from harness.python.feature import (
 
 EXPECTED_RESULT = DataBlob(data=bytes.fromhex("deadbeef"))
 
+
 # An echo workflow
 @workflow.defn
 class Workflow:

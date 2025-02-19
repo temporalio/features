@@ -15,7 +15,7 @@ use Webmozart\Assert\Assert;
 \define('INPUT_DATA', 'InputData');
 \define('MEMO_KEY', 'MemoKey');
 \define('MEMO_VALUE', 'MemoValue');
-\define('WORKFLOW_ID', 'TestID');
+\define('WORKFLOW_ID', 'PHP-ContinueAsNew-ContinueAsSame-TestID');
 
 #[WorkflowInterface]
 class FeatureWorkflow
@@ -30,9 +30,6 @@ class FeatureWorkflow
         return yield Workflow::continueAsNew(
             'Workflow',
             args: [$input],
-            options: Workflow\ContinueAsNewOptions::new()
-                // todo might be removed with https://github.com/temporalio/sdk-php/issues/453
-                ->withTaskQueue(Workflow::getInfo()->taskQueue)
         );
     }
 }

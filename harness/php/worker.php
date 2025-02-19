@@ -28,6 +28,7 @@ use Temporal\Worker\WorkerInterface;
 use Temporal\Worker\WorkerOptions;
 use Temporal\WorkerFactory;
 
+require_once __DIR__ . '/src/Debug/DateInterval.php';
 require_once __DIR__ . '/src/RuntimeBuilder.php';
 RuntimeBuilder::init();
 

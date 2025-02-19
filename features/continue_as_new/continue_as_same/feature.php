@@ -47,7 +47,7 @@ class FeatureChecker
         WorkflowStubInterface $stub
     ): void {
         Assert::same($stub->getResult(), INPUT_DATA);
-        # Workflow ID does not change after continue as new
+        # Workflow ID was not changed after continue as new
         Assert::same($stub->getExecution()->getID(), WORKFLOW_ID);
         # Memos do not change after continue as new
         $description = $stub->describe();

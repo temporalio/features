@@ -28,7 +28,6 @@ use Temporal\Client\WorkflowStubInterface;
 use Temporal\DataConverter\DataConverter;
 use Temporal\DataConverter\DataConverterInterface;
 
-require_once __DIR__ . '/src/Debug/DateInterval.php';
 require_once __DIR__ . '/src/RuntimeBuilder.php';
 RuntimeBuilder::init();
 

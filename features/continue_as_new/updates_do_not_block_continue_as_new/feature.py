@@ -110,9 +110,9 @@ async def check_result(runner: Runner, handle: WorkflowHandle) -> None:
         update_event_types & await get_event_types(handle.first_execution_run_id)
     ), "Update should not appear in pre-CAN history"
 
-    assert update_event_types <= await get_event_types(
-        update_run_id
-    ), "Update events should appear in post-CAN history"
+    assert update_event_types <= await get_event_types(update_run_id), (
+        "Update events should appear in post-CAN history"
+    )
 
 
 register_feature(

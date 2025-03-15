@@ -140,9 +140,7 @@ func SetRamp(r *harness.Runner, ctx context.Context, deploymentName string, vers
 
 func ServerSupportsDeployments(ctx context.Context, r *harness.Runner) bool {
 	// No system capability, only dynamic config in namespace, need to just try...
-	iter, err := r.Client.WorkerDeploymentClient().List(ctx, client.WorkerDeploymentListOptions{
-		PageSize: 1,
-	})
+	iter, err := r.Client.WorkerDeploymentClient().List(ctx, client.WorkerDeploymentListOptions{})
 	if err != nil {
 		return false
 	}

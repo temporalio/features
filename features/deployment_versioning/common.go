@@ -137,3 +137,21 @@ func SetRamp(r *harness.Runner, ctx context.Context, deploymentName string, vers
 
 	return err
 }
+
+func ServerSupportsDeployments(ctx context.Context, r *harness.Runner) bool {
+	// No system capability, only dynamic config in namespace, need to just try...
+	iter, err := r.Client.WorkerDeploymentClient().List(ctx, client.WorkerDeploymentListOptions{
+		PageSize: 1,
+	})
+	if err != nil {
+		return false
+	}
+	// Need to call `HasNext` to contact the server
+	for iter.HasNext() {
+		_, err := iter.Next()
+		if err != nil {
+			return false
+		}
+	}
+	return true
+}

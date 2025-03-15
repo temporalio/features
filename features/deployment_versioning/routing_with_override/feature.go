@@ -2,6 +2,7 @@ package routing_with_override
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -42,6 +43,10 @@ var Feature = harness.Feature{
 var worker2 worker.Worker
 
 func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error) {
+	if supported := deployment_versioning.ServerSupportsDeployments(ctx, r); !supported {
+		return nil, r.Skip(fmt.Sprintf("server does not support deployment versioning"))
+	}
+
 	worker2 = deployment_versioning.StartWorker(ctx, r, deploymentName+".2.0",
 		workflow.VersioningBehaviorAutoUpgrade)
 	if err := worker2.Start(); err != nil {

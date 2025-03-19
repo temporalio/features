@@ -7,9 +7,18 @@ system.enableActivityEagerExecution:
 system.enableEagerWorkflowStart:
   - value: true
     constraints: {}
+system.enableDeployments:
+  - value: true
+    constraints: {}
+system.enableDeploymentVersions:
+  - value: true
+    constraints: {}    
 frontend.enableUpdateWorkflowExecution:
   - value: true
     constraints: {}
 frontend.enableUpdateWorkflowExecutionAsyncAccepted:
+  - value: true
+    constraints: {}
+frontend.workerVersioningWorkflowAPIs:
   - value: true
     constraints: {}

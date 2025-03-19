@@ -24,6 +24,10 @@ import (
 	data_converter_failure "github.com/temporalio/features/features/data_converter/failure"
 	data_converter_json "github.com/temporalio/features/features/data_converter/json"
 	data_converter_json_protobuf "github.com/temporalio/features/features/data_converter/json_protobuf"
+	deployment_versioning_routing_auto_upgrade "github.com/temporalio/features/features/deployment_versioning/routing_auto_upgrade"
+	deployment_versioning_routing_pinned "github.com/temporalio/features/features/deployment_versioning/routing_pinned"
+	deployment_versioning_routing_with_override "github.com/temporalio/features/features/deployment_versioning/routing_with_override"
+	deployment_versioning_routing_with_ramp "github.com/temporalio/features/features/deployment_versioning/routing_with_ramp"
 	eager_activity_non_remote_activities_worker "github.com/temporalio/features/features/eager_activity/non_remote_activities_worker"
 	eager_workflow_successful_start "github.com/temporalio/features/features/eager_workflow/successful_start"
 	query_successful_query "github.com/temporalio/features/features/query/successful_query"
@@ -78,6 +82,10 @@ func init() {
 		data_converter_failure.Feature,
 		data_converter_json_protobuf.Feature,
 		data_converter_json.Feature,
+		deployment_versioning_routing_auto_upgrade.Feature,
+		deployment_versioning_routing_pinned.Feature,
+		deployment_versioning_routing_with_override.Feature,
+		deployment_versioning_routing_with_ramp.Feature,
 		eager_activity_non_remote_activities_worker.Feature,
 		eager_workflow_successful_start.Feature,
 		query_successful_query.Feature,

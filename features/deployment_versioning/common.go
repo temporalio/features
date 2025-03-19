@@ -61,15 +61,6 @@ func WaitForWorkflowRunning(r *harness.Runner, ctx context.Context, handle clien
 		})
 }
 
-func SignalAll(r *harness.Runner, ctx context.Context, handles []client.WorkflowRun) error {
-	for _, handle := range handles {
-		if err := r.Client.SignalWorkflow(ctx, handle.GetID(), handle.GetRunID(), "start-signal", "prefix"); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func SetCurrent(r *harness.Runner, ctx context.Context, deploymentName string, version string) error {
 	dHandle := r.Client.WorkerDeploymentClient().GetHandle(deploymentName)
 

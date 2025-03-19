@@ -82,7 +82,7 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 		return nil, err
 	}
 
-	if err := deployment_versioning.SignalAll(r, ctx, []client.WorkflowRun{run}); err != nil {
+	if err := r.Client.SignalWorkflow(ctx, run.GetID(), run.GetRunID(), "start-signal", "prefix"); err != nil {
 		return nil, err
 	}
 

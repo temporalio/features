@@ -2,7 +2,6 @@ package deployment_versioning
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	"github.com/temporalio/features/harness/go/harness"
@@ -12,19 +11,7 @@ import (
 	"go.temporal.io/sdk/workflow"
 )
 
-func WaitForSignalOne(ctx workflow.Context) (string, error) {
-	var value string
-	workflow.GetSignalChannel(ctx, "start-signal").Receive(ctx, &value)
-	return value + "_v1", nil
-}
-
-func WaitForSignalTwo(ctx workflow.Context) (string, error) {
-	var value string
-	workflow.GetSignalChannel(ctx, "start-signal").Receive(ctx, &value)
-	return value + "_v2", nil
-}
-
-func StartWorker(ctx context.Context, r *harness.Runner, version string, versioningBehavior workflow.VersioningBehavior) worker.Worker {
+func StartWorker(ctx context.Context, r *harness.Runner, version string, versioningBehavior workflow.VersioningBehavior, waitForSignal func(workflow.Context) (string, error)) worker.Worker {
 	w := worker.New(r.Client, r.TaskQueue, worker.Options{
 		DeploymentOptions: worker.DeploymentOptions{
 			UseVersioning:             true,
@@ -32,15 +19,9 @@ func StartWorker(ctx context.Context, r *harness.Runner, version string, version
 			DefaultVersioningBehavior: versioningBehavior,
 		},
 	})
-	if strings.HasSuffix(version, "1.0") {
-		w.RegisterWorkflowWithOptions(WaitForSignalOne, workflow.RegisterOptions{
-			Name: "WaitForSignal",
-		})
-	} else {
-		w.RegisterWorkflowWithOptions(WaitForSignalTwo, workflow.RegisterOptions{
-			Name: "WaitForSignal",
-		})
-	}
+	w.RegisterWorkflowWithOptions(waitForSignal, workflow.RegisterOptions{
+		Name: "WaitForSignal",
+	})
 	return w
 }
 

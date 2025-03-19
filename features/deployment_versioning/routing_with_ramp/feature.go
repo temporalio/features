@@ -15,9 +15,16 @@ import (
 
 var deploymentName = uuid.NewString()
 
-// Wrap for correct Feature.Path
 func WaitForSignalOne(ctx workflow.Context) (string, error) {
-	return deployment_versioning.WaitForSignalOne(ctx)
+	var value string
+	workflow.GetSignalChannel(ctx, "start-signal").Receive(ctx, &value)
+	return value + "_v1", nil
+}
+
+func WaitForSignalTwo(ctx workflow.Context) (string, error) {
+	var value string
+	workflow.GetSignalChannel(ctx, "start-signal").Receive(ctx, &value)
+	return value + "_v2", nil
 }
 
 var Feature = harness.Feature{
@@ -48,7 +55,7 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 	}
 
 	worker2 = deployment_versioning.StartWorker(ctx, r, deploymentName+".2.0",
-		workflow.VersioningBehaviorAutoUpgrade)
+		workflow.VersioningBehaviorAutoUpgrade, WaitForSignalTwo)
 	if err := worker2.Start(); err != nil {
 		return nil, err
 	}

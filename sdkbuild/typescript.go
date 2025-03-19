@@ -144,6 +144,9 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
     "@types/uuid": "^8.3.4",
     "tsconfig-paths": "^3.12.0",
     "typescript": "^4.4.2"
+  },
+  "overrides": {
+        "@grpc/grpc-js" : "1.10.10"
   }
 }`
 	if err := os.WriteFile(filepath.Join(dir, "package.json"), []byte(packageJSON), 0644); err != nil {

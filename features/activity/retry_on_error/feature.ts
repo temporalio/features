@@ -1,6 +1,7 @@
 import { Context } from '@temporalio/activity';
 import * as wf from '@temporalio/workflow';
 import { WorkflowFailedError } from '@temporalio/client';
+import { TemporalFailure } from '@temporalio/common';
 import { Feature } from '@temporalio/harness';
 import * as assert from 'assert';
 
@@ -37,7 +38,8 @@ export const feature = new Feature({
         err instanceof WorkflowFailedError,
         `expected WorkflowFailedError, got ${typeof err}, message: ${(err as any).message}`
       );
-      assert.equal(err.cause?.cause?.message, 'activity attempt 5 failed');
+      assert.ok(err.cause instanceof TemporalFailure);
+      assert.equal(err.cause.cause?.message, 'activity attempt 5 failed');
       return true;
     });
   },

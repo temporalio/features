@@ -95,12 +95,19 @@ requires-python = "~=3.9"
 		if err != nil {
 			return nil, err
 		}
-		executeCommand("uv", "add", wheel)
+		if err := executeCommand("uv", "add", wheel); err != nil {
+			return nil, fmt.Errorf("`uv add %s` failed: %w", wheel, err)
+		}
 	} else {
-		executeCommand("uv", "add", fmt.Sprintf("temporalio==%s", strings.TrimPrefix(options.Version, "v")))
+		name := fmt.Sprintf("temporalio==%s", strings.TrimPrefix(options.Version, "v"))
+		if err := executeCommand("uv", "add", name); err != nil {
+			return nil, fmt.Errorf("`uv add %s` failed: %w", name, err)
+		}
 	}
 	// Add the `features` python package
-	executeCommand("uv", "add", "--editable", "../")
+	if err := executeCommand("uv", "add", "--editable", "../"); err != nil {
+		return nil, fmt.Errorf("`uv add --editable ../` failed: %w", err)
+	}
 
 	if err := executeCommand("uv", "sync"); err != nil {
 		return nil, fmt.Errorf("failed installing: %w", err)

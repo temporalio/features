@@ -15,6 +15,7 @@
     "@temporalio/proto": "^1.11.1",
     "@temporalio/worker": "^1.11.1",
     "@temporalio/workflow": "^1.11.1",
+    "protobufjs": "7.5.1",
     "commander": "^8.3.0",
     "ms": "^3.0.0-canary.1",
     "proto3-json-serializer": "^1.1.1"

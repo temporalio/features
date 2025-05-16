@@ -105,8 +105,7 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 		if err != nil {
 			return nil, fmt.Errorf("cannot get absolute path from version path: %w", err)
 		}
-		pkgs := []string{"activity", "client", "common", "internal-workflow-common",
-			"internal-non-workflow-common", "proto", "worker", "workflow"}
+		pkgs := []string{"activity", "client", "common", "proto", "worker", "workflow"}
 		for _, pkg := range pkgs {
 			pkgPath := "file:" + filepath.Join(localPath, "packages", pkg)
 			packageJSONDepStr += fmt.Sprintf(`"@temporalio/%v": %q,`, pkg, pkgPath)
@@ -146,7 +145,8 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
     "typescript": "^4.4.2"
   },
   "overrides": {
-        "@grpc/grpc-js" : "1.10.10"
+        "@grpc/grpc-js" : "1.10.10",
+		"protobufjs": "7.5.1"
   }
 }`
 	if err := os.WriteFile(filepath.Join(dir, "package.json"), []byte(packageJSON), 0644); err != nil {

@@ -22,8 +22,7 @@ encounter a hard timeout.
 * It must be possible for the user to determine whether the activity context cancel was the result of worker shutdown,
   or issued by server
   * TODO: Java - need to add a way for Activities to know when the worker is being shutdown.
-  * TODO: Typescript - figure out what happens in TS
 * Activities may handle the cancel however they like (including continuing running)
-* Heartbeating is possible while the shutdown process is ongoing
+* Heartbeating is possible while the shutdown process is ongoing, both during and after the graceful shutdown period
 * If all activities complete, shutdown can complete (assuming WFT work is complete too)
 * If an activity runs indefinitely and ignores the cancelation, then worker shutdown will hang indefinitely.

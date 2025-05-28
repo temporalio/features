@@ -10,12 +10,15 @@ complete with failure, and ignore the cancel. The one which ignores the cancel s
 encounter a hard timeout.
 
 # Detailed spec
-* If a worker is told to begin shutdown, activities are immediately notified via
-  a cancel. It must be possible for the user to determine if this cancel was issued
-  by server, or is the result of worker shutdown
+* When a worker shutdown is initiated, the activity context isn't canceled until shutdown
+  has succeeded or the shutdown timeout has elapsed
+* It must be possible for the user to determine if this cancel was issued by server,
+  or is the result of worker shutdown
+  * TODO: Java - need to add a way for Activities to know when the worker is being shutdown.
+  * TODO: Typescript - figure out what happens in TS
 * Activities may handle the cancel however they like (including continuing running)
 * Heartbeating is possible while the shutdown process is ongoing
 * If all activities complete, shutdown can complete (assuming WFT work is complete too)
-* SDKs should provide a timeout parameter which, if elapsed, shutdown completes even if
-  there are still running activities. If such activities complete later their response
-  is ignored
+* For Core based SDKs, if an activity runs indefinitely and ignores the cancelation, then worker shutdown will
+  hang indefinitely.
+  * TODO: verify Java

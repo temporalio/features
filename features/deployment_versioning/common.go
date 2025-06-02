@@ -11,7 +11,11 @@ import (
 	"go.temporal.io/sdk/workflow"
 )
 
-func StartWorker(ctx context.Context, r *harness.Runner, version string, versioningBehavior workflow.VersioningBehavior, waitForSignal func(workflow.Context) (string, error)) worker.Worker {
+func StartWorker(ctx context.Context, r *harness.Runner,
+	version worker.WorkerDeploymentVersion,
+	versioningBehavior workflow.VersioningBehavior,
+	waitForSignal func(workflow.Context) (string, error),
+) worker.Worker {
 	w := worker.New(r.Client, r.TaskQueue, worker.Options{
 		DeploymentOptions: worker.DeploymentOptions{
 			UseVersioning:             true,
@@ -25,7 +29,11 @@ func StartWorker(ctx context.Context, r *harness.Runner, version string, version
 	return w
 }
 
-func WaitForDeploymentVersion(r *harness.Runner, ctx context.Context, dHandle client.WorkerDeploymentHandle, version string) error {
+func WaitForDeploymentVersion(
+	r *harness.Runner,
+	ctx context.Context, dHandle client.WorkerDeploymentHandle,
+	version worker.WorkerDeploymentVersion,
+) error {
 	return r.DoUntilEventually(ctx, 300*time.Millisecond, 10*time.Second,
 		func() bool {
 			d, err := dHandle.Describe(ctx, client.WorkerDeploymentDescribeOptions{})
@@ -61,7 +69,7 @@ func WaitForWorkflowRunning(r *harness.Runner, ctx context.Context, handle clien
 		})
 }
 
-func SetCurrent(r *harness.Runner, ctx context.Context, deploymentName string, version string) error {
+func SetCurrent(r *harness.Runner, ctx context.Context, deploymentName string, version worker.WorkerDeploymentVersion) error {
 	dHandle := r.Client.WorkerDeploymentClient().GetHandle(deploymentName)
 
 	if err := WaitForDeployment(r, ctx, dHandle); err != nil {
@@ -78,14 +86,14 @@ func SetCurrent(r *harness.Runner, ctx context.Context, deploymentName string, v
 	}
 
 	_, err = dHandle.SetCurrentVersion(ctx, client.WorkerDeploymentSetCurrentVersionOptions{
-		Version:       version,
+		BuildID:       version.BuildId,
 		ConflictToken: response1.ConflictToken,
 	})
 
 	return err
 }
 
-func SetRamp(r *harness.Runner, ctx context.Context, deploymentName string, version string, percentage float32) error {
+func SetRamp(r *harness.Runner, ctx context.Context, deploymentName string, version worker.WorkerDeploymentVersion, percentage float32) error {
 	dHandle := r.Client.WorkerDeploymentClient().GetHandle(deploymentName)
 
 	if err := WaitForDeployment(r, ctx, dHandle); err != nil {
@@ -102,7 +110,7 @@ func SetRamp(r *harness.Runner, ctx context.Context, deploymentName string, vers
 	}
 
 	_, err = dHandle.SetRampingVersion(ctx, client.WorkerDeploymentSetRampingVersionOptions{
-		Version:       version,
+		BuildID:       version.BuildId,
 		ConflictToken: response1.ConflictToken,
 		Percentage:    float32(100.0),
 	})

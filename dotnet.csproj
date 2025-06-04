@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk" InitialTargets="CheckCommandLineProperties">
 
   <PropertyGroup>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -14,23 +14,35 @@
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
 
+  <!-- Default SDK version if not specified in command line -->
+  <PropertyGroup Condition="'$(TemporalioVersion)' == '' And '$(TemporalioProjectReference)' == ''">
+    <TemporalioVersion>1.6.0</TemporalioVersion>
+  </PropertyGroup>
+
+  <Target Name="CheckCommandLineProperties">
+    <Error
+      Condition="'$(TemporalioVersion)' != '' And '$(TemporalioProjectReference)' != ''"
+      Text="TemporalioVersion and TemporalioProjectReference properties are mutually exclusive." />
+  </Target>
+
   <ItemGroup>
     <Compile Include="features\**\*.cs" />
     <Compile Include="harness\**\*.cs" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.1" />
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
-    <PackageReference Include="Temporalio" Version="1.3.1">
-      <!--
-        We have to make sure this isn't included transitively so it can be
-        overridden.
-      -->
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-    <PackageReference Include="XUnit.Assert" Version="2.5.3" />
+    <PackageReference Include="XUnit.Assert" Version="2.6.6" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TemporalioVersion)' != ''">
+    <PackageReference Include="Temporalio" Version="$(TemporalioVersion)" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TemporalioProjectReference)' != ''">
+    <ProjectReference Include="$(TemporalioProjectReference)" />
   </ItemGroup>
 
   <ItemGroup>

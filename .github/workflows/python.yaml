@@ -91,7 +91,6 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         if: ${{ inputs.version-is-repo-ref }}
         with:
-          prefix-key: "new-cache-key"
           workspaces: sdk-python/temporalio/bridge
       - uses: astral-sh/setup-uv@v5
       - run: uv sync

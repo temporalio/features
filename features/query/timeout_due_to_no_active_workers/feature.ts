@@ -1,3 +1,4 @@
+import { status } from '@grpc/grpc-js';
 import * as wf from '@temporalio/workflow';
 import { Feature } from '@temporalio/harness';
 import { ServiceError } from '@temporalio/client';
@@ -30,8 +31,9 @@ export const feature = new Feature({
     } catch (e) {
       assert.ok(e instanceof ServiceError);
       const reAnyd = e as any;
-      // 4 is deadline exceeded. TS grpc impl returns this, not CANCELLED.
-      assert.equal(reAnyd.cause?.code, 4);
+      // Can be cancelled or deadline exceeded depending on whether client or
+      // server hit timeout first in a racy way
+      assert.ok(reAnyd.cause?.code === status.DEADLINE_EXCEEDED || reAnyd.cause?.code === status.CANCELLED);
     }
     // Restart worker to finish the workflow
     await runner.restartWorker();

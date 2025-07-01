@@ -8,6 +8,7 @@
     "start": "ts-node -r tsconfig-paths/register harness/ts/main.ts"
   },
   "dependencies": {
+    "@grpc/grpc-js": "^1.12.4",
     "@protobuf-ts/protoc": "^2.8.1",
     "@temporalio/activity": "^1.11.8",
     "@temporalio/client": "^1.11.8",

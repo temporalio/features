@@ -132,6 +132,7 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
   "dependencies": {
     ` + packageJSONDepStr + `
 	` + moreDeps + `
+    "@grpc/grpc-js": "^1.12.4",
     "commander": "^8.3.0",
     "ms": "^3.0.0-canary.1",
     "proto3-json-serializer": "^1.1.1",

@@ -88,6 +88,7 @@ jobs:
           # TODO: Upgrade proto once https://github.com/arduino/setup-protoc/issues/99 is fixed
           version: '23.x'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         if: ${{ inputs.version-is-repo-ref }}
         with:

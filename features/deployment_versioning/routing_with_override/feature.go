@@ -14,6 +14,14 @@ import (
 )
 
 var deploymentName = uuid.NewString()
+var v1 = worker.WorkerDeploymentVersion{
+	DeploymentName: deploymentName,
+	BuildId:        "1.0",
+}
+var v2 = worker.WorkerDeploymentVersion{
+	DeploymentName: deploymentName,
+	BuildId:        "2.0",
+}
 
 func WaitForSignalOne(ctx workflow.Context) (string, error) {
 	var value string
@@ -41,7 +49,7 @@ var Feature = harness.Feature{
 	WorkerOptions: worker.Options{
 		DeploymentOptions: worker.DeploymentOptions{
 			UseVersioning: true,
-			Version:       deploymentName + ".1.0",
+			Version:       v1,
 		},
 	},
 	CheckHistory:    CheckHistory,
@@ -54,13 +62,13 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 		return nil, r.Skip(fmt.Sprintf("server does not support deployment versioning"))
 	}
 
-	worker2 = deployment_versioning.StartWorker(ctx, r, deploymentName+".2.0",
+	worker2 = deployment_versioning.StartWorker(ctx, r, v2,
 		workflow.VersioningBehaviorAutoUpgrade, WaitForSignalTwo)
 	if err := worker2.Start(); err != nil {
 		return nil, err
 	}
 
-	if err := deployment_versioning.SetCurrent(r, ctx, deploymentName, deploymentName+".2.0"); err != nil {
+	if err := deployment_versioning.SetCurrent(r, ctx, deploymentName, v2); err != nil {
 		return nil, err
 	}
 
@@ -68,9 +76,8 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 		TaskQueue:                r.TaskQueue,
 		ID:                       "workflow_1",
 		WorkflowExecutionTimeout: 1 * time.Minute,
-		VersioningOverride: client.VersioningOverride{
-			Behavior:      workflow.VersioningBehaviorPinned,
-			PinnedVersion: deploymentName + ".1.0",
+		VersioningOverride: &client.PinnedVersioningOverride{
+			Version: v1,
 		},
 	}, "WaitForSignal")
 

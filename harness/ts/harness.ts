@@ -163,6 +163,7 @@ export class Runner<W extends Workflow, A extends UntypedActivities> {
             },
           };
         },
+        ignoreModules: ['@grpc/grpc-js'],
       },
       interceptors: {
         activityInbound: [() => new ConnectionInjectorInterceptor(connection, client)],

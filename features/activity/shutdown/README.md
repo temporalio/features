@@ -13,7 +13,9 @@ encounter a hard timeout.
 * When a worker shutdown is initiated, the activity context isn't canceled until the
   graceful shutdown timeout has elapsed
 * Graceful shutdown language behavior
-  * Core based SDKs - when graceful shutdown timeout isn't specified, that is treated as no-timeout
+  * Core based SDKs - when graceful shutdown timeout isn't specified, this is treated as a 0 second timeout
+    * Note: Core itself treats no graceful shutdown timeout meaning no-timeout, but every lang has logic to
+      set a 0 second timeout when lang-side timeout not specified
   * Go - when graceful shutdown timeout isn't specified, this is treated as a 0 second timeout
   * Java - there is no timeout parameter set like Go or Core, but instead after calling `shutdown()` 
     a user can call `workerFactory.awaitTermination(timeout, unit)` and `isTerminated()` to see if the timeout

@@ -132,6 +132,7 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
   "dependencies": {
     ` + packageJSONDepStr + `
 	` + moreDeps + `
+    "@grpc/grpc-js": "^1.12.4",
     "commander": "^8.3.0",
     "ms": "^3.0.0-canary.1",
     "proto3-json-serializer": "^1.1.1",
@@ -142,10 +143,9 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
     "@types/node": "^16.11.59",
     "@types/uuid": "^8.3.4",
     "tsconfig-paths": "^3.12.0",
-    "typescript": "^4.4.2"
+    "typescript": "^5.8.3"
   },
   "overrides": {
-        "@grpc/grpc-js" : "1.10.10",
 		"protobufjs": "7.5.1"
   }
 }`
@@ -186,7 +186,7 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 	}
 	tsConfig := `{
   "extends": "@tsconfig/node16/tsconfig.json",
-  "version": "4.4.2",
+  "version": "5.8.3",
   "compilerOptions": {
     "baseUrl": ".",
     "outDir": "./tslib",

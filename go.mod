@@ -10,7 +10,7 @@ require (
 	github.com/temporalio/features/features v0.0.0-00010101000000-000000000000
 	github.com/temporalio/features/harness/go v0.0.0-00010101000000-000000000000
 	github.com/urfave/cli/v2 v2.25.7
-	go.temporal.io/sdk v1.34.1-0.20250602190910-480f71da0c75
+	go.temporal.io/sdk v1.35.0
 	golang.org/x/mod v0.17.0
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -31,7 +31,7 @@ require (
 	github.com/twmb/murmur3 v1.1.8 // indirect
 	github.com/uber-go/tally/v4 v4.1.7 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
-	go.temporal.io/api v1.49.1 // indirect
+	go.temporal.io/api v1.50.0 // indirect
 	go.temporal.io/sdk/contrib/tally v0.2.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect

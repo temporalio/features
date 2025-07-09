@@ -21,9 +21,10 @@ encounter a hard timeout.
     a user can call `workerFactory.awaitTermination(timeout, unit)` and `isTerminated()` to see if the timeout
     has passed, then it is up to the user to forcibly shutdown or do something else
 * It must be possible for an activity to determine that a worker is being shut down even before graceful timeout elapses
+  * [TODO TS](https://github.com/temporalio/sdk-typescript/issues/1739)
 * It must be possible for the user to determine whether the activity context cancel was the result of worker shutdown,
   or issued by server
-  * TODO: Java - need to add a way for Activities to know when the worker is being shutdown.
+  * [TODO Java](https://github.com/temporalio/sdk-java/issues/1005) - need to add a way for Activities to know when the worker is being shutdown.
 * Activities may handle the cancel however they like (including continuing running)
 * Heartbeating is possible while the shutdown process is ongoing, both during and after the graceful shutdown period
 * If all activities complete, shutdown can complete (assuming WFT work is complete too)

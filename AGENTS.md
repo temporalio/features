@@ -6,6 +6,7 @@ This repository hosts Temporal SDK feature examples in multiple languages. Follo
 - Build the CLI with `go build -o temporal-features` (or use `go run .`). It requires Go, JDK 11+, Node 16+, uv, .NET 7+, and PHP 8.1+ to run the features.
 - Run features with `temporal-features run --lang LANG [--version VERSION] [PATTERN...]`. Use `temporal-features prepare` to prebuild a project, and `build-image` to create docker images.
 - History files live under `features/<path>/history/history.<lang>.<version>.json`. Generate history with `--generate-history` only when developing a new feature or when a version intentionally changes history.
+- Always test changes to a given language by running `go run . run --lang <language>`. If adding a new feature test, test that feature specifically by running `go run . run --lang <language> <feature_directory>` where `<feature_directory>` is the path to the feature directory inside of `features/`.
 
 ## Writing Features
 - Each feature lives under `features/` in its own directory. Keep code short and clear and avoid unnecessary assertions.

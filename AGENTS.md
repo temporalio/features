@@ -25,3 +25,14 @@ This repository hosts Temporal SDK feature examples in multiple languages. Follo
 - **C#**: Builds treat warnings as errors. `.editorconfig` disables warning `CS1998`.
 
 These conventions help keep the examples consistent across languages and ensure CI passes.
+
+## Understanding SDK capabilities
+Agents should use the docs.temporal.io website, as well as github.com to learn about the capabilities and the API specifics of each langauge SDK.
+
+* Go - https://github.com/temporalio/sdk-go and https://docs.temporal.io/develop/go/
+* Java - https://github.com/temporalio/sdk-java and https://docs.temporal.io/develop/java/
+* TypeScript - https://github.com/temporalio/sdk-typescript and https://docs.temporal.io/develop/typescript/
+* Python - https://github.com/temporalio/sdk-python and https://docs.temporal.io/develop/python/
+* .NET / C# - https://github.com/temporalio/sdk-dotnet and https://docs.temporal.io/develop/dotnet/
+* Ruby - https://github.com/temporalio/sdk-ruby and https://docs.temporal.io/develop/ruby/
+* PHP - https://github.com/temporalio/sdk-php and https://docs.temporal.io/develop/php/

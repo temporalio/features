@@ -19,10 +19,10 @@ This repository hosts Temporal SDK feature examples in multiple languages. Follo
 - Bug regression tests belong under `features/bugs/<lang>`. Favor including as many languages as possible for non-bug features and feel free to extract helpers since backward compatibility is not a concern.
 
 ## Formatting and Linting
-- **TypeScript**: Format with Prettier and lint with ESLint using `npm run format` and `npm run lint`. Prettier is configured for single quotes and a 120‑character line width.
+- **TypeScript**: Format with Prettier and lint with ESLint using `npm run format` and `npm run lint`, you must ensure type checking passes with `npm run build`.
 - **Python**: Install tools with `uv tool install poethepoet` and `uv sync`. Format with `poe format` and lint with `poe lint` which runs Ruff and mypy.
 - **Go**: Run `go fmt ./...` before committing.
-- **Java**: Apply Google Java Format with `./gradlew spotlessApply`.
+- **Java**: Ensure the project builds with `./gradlew assemble` and autoformat with `./gradlew spotlessApply`.
 - **C#**: Builds treat warnings as errors. `.editorconfig` disables warning `CS1998`.
 
 These conventions help keep the examples consistent across languages and ensure CI passes.

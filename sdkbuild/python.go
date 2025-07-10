@@ -19,6 +19,9 @@ type BuildPythonProgramOptions struct {
 	// a single wheel in the dist directory. Otherwise it is a specific version
 	// (with leading "v" is trimmed if present).
 	Version string
+	// If specified, takes precedence over Version. Is a PEP 508 requirement string, like
+	// `temporalio>=1.13.0,<2`.
+	VersionFromPyProj string
 	// If present, this directory is expected to exist beneath base dir. Otherwise
 	// a temporary dir is created.
 	DirName string
@@ -89,7 +92,9 @@ requires-python = "~=3.9"
 		return nil, fmt.Errorf("failed writing pyproject.toml: %w", err)
 	}
 
-	if strings.ContainsAny(options.Version, `/\`) {
+	if options.VersionFromPyProj != "" {
+		executeCommand("uv", "add", options.VersionFromPyProj)
+	} else if strings.ContainsAny(options.Version, `/\`) {
 		// It's a path; install from wheel
 		wheel, err := getWheel(ctx, options.Version)
 		if err != nil {

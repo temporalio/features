@@ -5,7 +5,7 @@ description = "Temporal SDK Features"
 authors = [{ name = "Temporal Technologies Inc", email = "sdk@temporal.io" }]
 requires-python = "~=3.9"
 license = "MIT"
-dependencies = ["temporalio>=1.13.0,<2"]
+dependencies = ["temporalio>=1.15.0,<2"]
 
 [dependency-groups]
 dev = [

@@ -69,7 +69,6 @@ class Feature : IFeature
             }
             catch (OperationCanceledException)
             {
-                // Expected on worker shutdown
             }
         }
 

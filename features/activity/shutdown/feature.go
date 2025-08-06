@@ -3,9 +3,10 @@ package shutdown
 import (
 	"context"
 	"fmt"
-	"go.temporal.io/sdk/activity"
 	"strings"
 	"time"
+
+	"go.temporal.io/sdk/activity"
 
 	"github.com/temporalio/features/harness/go/harness"
 	"go.temporal.io/sdk/client"
@@ -25,7 +26,6 @@ var Feature = harness.Feature{
 }
 
 func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error) {
-	// Start workflow
 	run, err := r.ExecuteDefault(ctx)
 	if err != nil {
 		return nil, err
@@ -51,12 +51,10 @@ func Workflow(ctx workflow.Context) (string, error) {
 		},
 	})
 
-	// Execute activity and return error
 	fut := workflow.ExecuteActivity(ctx, activities.CancelSuccess)
 	fut1 := workflow.ExecuteActivity(ctx, activities.CancelFailure)
 	fut2 := workflow.ExecuteActivity(ctx, activities.CancelIgnore)
 
-	// Worker must be shutdown for activities to finish
 	err := fut.Get(ctx, nil)
 	if err != nil {
 		return "", fmt.Errorf("expected activity to succeed, got %v", err)

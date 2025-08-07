@@ -7,6 +7,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+
+	"io"
 )
 
 // BuildPhpProgramOptions are options for BuildPhpProgram.
@@ -17,6 +19,9 @@ type BuildPhpProgramOptions struct {
 	// a temporary dir is created.
 	DirName string
 	RootDir string
+	// If present, custom writers that will capture stdout/stderr.
+	Stdout io.Writer
+	Stderr io.Writer
 }
 
 // PhpProgram is a PHP-specific implementation of Program.
@@ -47,7 +52,7 @@ func BuildPhpProgram(ctx context.Context, options BuildPhpProgramOptions) (*PhpP
 
 	// Skip if installed
 	if st, err := os.Stat(filepath.Join(dir, "vendor")); err == nil && st.IsDir() {
-		return &PhpProgram{dir, sourceDir}, nil
+		return &PhpProgram{dir: dir, source: sourceDir}, nil
 	}
 
 	// Copy composer.json from sourceDir into dir
@@ -75,7 +80,7 @@ func BuildPhpProgram(ctx context.Context, options BuildPhpProgramOptions) (*PhpP
 	if options.Version != "" {
 		cmd = exec.CommandContext(ctx, "composer", "req", "temporal/sdk", options.Version, "-W", "--no-install", "--ignore-platform-reqs")
 		cmd.Dir = dir
-		cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+		setupCommandIO(cmd, options.Stdout, options.Stderr)
 		if err := cmd.Run(); err != nil {
 			return nil, fmt.Errorf("failed installing SDK deps: %w", err)
 		}
@@ -84,7 +89,7 @@ func BuildPhpProgram(ctx context.Context, options BuildPhpProgramOptions) (*PhpP
 	// Install dependencies via composer
 	cmd = exec.CommandContext(ctx, "composer", "i", "-n", "-o", "-q", "--no-scripts", "--ignore-platform-reqs")
 	cmd.Dir = dir
-	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+	setupCommandIO(cmd, options.Stdout, options.Stderr)
 	if err := cmd.Run(); err != nil {
 		return nil, fmt.Errorf("failed installing SDK deps: %w", err)
 	}
@@ -98,7 +103,7 @@ func BuildPhpProgram(ctx context.Context, options BuildPhpProgramOptions) (*PhpP
 	if os.IsNotExist(err) {
 		cmd = exec.CommandContext(ctx, "composer", "run", "rr-get")
 		cmd.Dir = dir
-		cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+		setupCommandIO(cmd, options.Stdout, options.Stderr)
 		if err := cmd.Run(); err != nil {
 			return nil, fmt.Errorf("failed downloading RoadRunner: %w", err)
 		}
@@ -130,6 +135,6 @@ func (p *PhpProgram) NewCommand(ctx context.Context, args ...string) (*exec.Cmd,
 	args = append([]string{filepath.Join(p.source, "runner.php")}, args...)
 	cmd := exec.CommandContext(ctx, "php", args...)
 	cmd.Dir = p.dir
-	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+	setupCommandIO(cmd, nil, nil)
 	return cmd, nil
 }

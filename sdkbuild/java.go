@@ -3,6 +3,7 @@ package sdkbuild
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -35,6 +36,9 @@ type BuildJavaProgramOptions struct {
 	// If present, applied to build commands before run. May be called multiple
 	// times for a single build.
 	ApplyToCommand func(context.Context, *exec.Cmd) error
+	// If present, custom writers that will capture stdout/stderr.
+	Stdout io.Writer
+	Stderr io.Writer
 }
 
 // JavaProgram is a Java-specific implementation of Program.
@@ -139,6 +143,7 @@ includeBuild('` + asAbsPath + `') {
 		// used by run.
 		cmd := j.buildGradleCommand(ctx, dir, true,
 			options.ApplyToCommand, "--no-daemon", "--include-build", "../", "build")
+		setupCommandIO(cmd, options.Stdout, options.Stderr)
 		if err := cmd.Run(); err != nil {
 			return nil, err
 		}
@@ -177,7 +182,9 @@ func (j *JavaProgram) NewCommand(ctx context.Context, args ...string) (*exec.Cmd
 		}
 		argsStr += "'" + arg + "'"
 	}
-	return j.buildGradleCommand(ctx, j.dir, true, nil, "--include-build", "../", "run", "--args", argsStr), nil
+	cmd := j.buildGradleCommand(ctx, j.dir, true, nil, "--include-build", "../", "run", "--args", argsStr)
+	setupCommandIO(cmd, nil, nil)
+	return cmd, nil
 }
 
 func (j *JavaProgram) buildGradleCommand(
@@ -207,6 +214,5 @@ func (j *JavaProgram) buildGradleCommand(
 
 	cmd := exec.CommandContext(ctx, exe, args...)
 	cmd.Dir = dir
-	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	return cmd
 }

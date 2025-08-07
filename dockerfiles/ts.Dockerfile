@@ -2,7 +2,7 @@
 # The author (git blame to reveal) prefers some copying over templating the Dockerfiles.
 
 # Build in a full featured container
-FROM node:16 as build
+FROM node:20 as build
 
 # Install protobuf compiler
 RUN apt-get update \
@@ -45,7 +45,7 @@ COPY ./${REPO_DIR_OR_PLACEHOLDER} ./${REPO_DIR_OR_PLACEHOLDER}
 RUN CGO_ENABLED=0 ./temporal-features prepare --lang ts --dir prepared --version "$SDK_VERSION"
 
 # Copy the CLI and prepared feature to a distroless "run" container
-FROM gcr.io/distroless/nodejs:16
+FROM gcr.io/distroless/nodejs20-debian11
 
 COPY --from=build /app/temporal-features /app/temporal-features
 COPY --from=build /app/features /app/features

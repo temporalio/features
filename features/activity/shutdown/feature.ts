@@ -1,7 +1,7 @@
 import { Feature } from '@temporalio/harness';
 import * as wf from '@temporalio/workflow';
 import { setTimeout } from 'timers/promises';
-import { ActivityFailure, ApplicationFailure, TimeoutFailure, TimeoutType } from '@temporalio/common';
+import { ApplicationFailure, TimeoutFailure, TimeoutType } from '@temporalio/common';
 import * as assert from 'assert';
 
 // Promise and helper used for activities to detect worker shutdown
@@ -43,7 +43,7 @@ export async function workflow(): Promise<string> {
     assert.ok(
       err instanceof wf.ActivityFailure &&
         err.cause instanceof TimeoutFailure &&
-        err.cause.timeoutType === TimeoutType.TIMEOUT_TYPE_SCHEDULE_TO_CLOSE
+        err.cause.timeoutType === TimeoutType.SCHEDULE_TO_CLOSE
     );
     return true;
   });

@@ -79,7 +79,7 @@ export const feature = new Feature({
   alternateRun: async (runner) => {
     const handle = await runner.executeSingleParameterlessWorkflow();
     // Give the worker time to process initial WFT and start activities
-    await setTimeout(100);
+    await setTimeout(200);
     notifyShutdown();
 
     runner.worker.shutdown();

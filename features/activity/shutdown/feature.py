@@ -34,11 +34,9 @@ class Workflow:
             retry_policy=RetryPolicy(maximum_attempts=1),
         )
 
-        print("handle")
         await handle
 
         try:
-            print("handle1")
             await handle1
             raise ApplicationError(
                 "expected activity to fail with 'worker is shutting down'"
@@ -48,13 +46,11 @@ class Workflow:
                 not isinstance(err.cause, ApplicationError)
                 or err.cause.message != "worker is shutting down"
             ):
-                print("this shouldn't print")
                 raise ApplicationError(
                     "expected activity to fail with 'worker is shutting down'"
                 ) from err
 
         try:
-            print("handle2")
             await handle2
             raise ApplicationError(
                 "expected activity to fail with ScheduleToClose timeout"

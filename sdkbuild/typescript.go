@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"io"
 )
 
 // BuildTypeScriptProgramOptions are options for BuildTypeScriptProgram.
@@ -33,6 +35,9 @@ type BuildTypeScriptProgramOptions struct {
 	Excludes []string
 	// If present, add additional dependencies -> version string to package.json.
 	MoreDependencies map[string]string
+	// If present, custom writers that will capture stdout/stderr.
+	Stdout io.Writer
+	Stderr io.Writer
 }
 
 // TypeScriptProgram is a TypeScript-specific implementation of Program.
@@ -255,12 +260,12 @@ func TypeScriptProgramFromDir(dir string) (*TypeScriptProgram, error) {
 // Dir is the directory to run in.
 func (t *TypeScriptProgram) Dir() string { return t.dir }
 
-// NewCommand makes a new Node command. The first argument needs to be the name
-// of the script.
+// NewCommand makes a new Node command.
+// The first argument needs to be the name of the script.
 func (t *TypeScriptProgram) NewCommand(ctx context.Context, args ...string) (*exec.Cmd, error) {
 	args = append([]string{"-r", "tsconfig-paths/register"}, args...)
 	cmd := exec.CommandContext(ctx, "node", args...)
 	cmd.Dir = t.dir
-	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+	setupCommandIO(cmd, nil, nil)
 	return cmd, nil
 }

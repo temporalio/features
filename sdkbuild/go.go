@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -37,6 +38,9 @@ type BuildGoProgramOptions struct {
 	// If present, applied to build commands before run. May be called multiple
 	// times for a single build.
 	ApplyToCommand func(context.Context, *exec.Cmd) error
+	// If present, custom writers that will capture stdout/stderr.
+	Stdout io.Writer
+	Stderr io.Writer
 }
 
 // GoProgram is a Go-specific implementation of Program.
@@ -112,7 +116,7 @@ func BuildGoProgram(ctx context.Context, options BuildGoProgramOptions) (*GoProg
 	// Tidy it
 	cmd := exec.CommandContext(ctx, "go", "mod", "tidy")
 	cmd.Dir = dir
-	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+	setupCommandIO(cmd, options.Stdout, options.Stderr)
 	if options.ApplyToCommand != nil {
 		if err := options.ApplyToCommand(ctx, cmd); err != nil {
 			return nil, err
@@ -133,7 +137,7 @@ func BuildGoProgram(ctx context.Context, options BuildGoProgramOptions) (*GoProg
 	}
 	cmd = exec.CommandContext(ctx, "go", cmdArgs...)
 	cmd.Dir = dir
-	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+	setupCommandIO(cmd, options.Stdout, options.Stderr)
 	if options.ApplyToCommand != nil {
 		if err := options.ApplyToCommand(ctx, cmd); err != nil {
 			return nil, err
@@ -169,6 +173,6 @@ func (g *GoProgram) NewCommand(ctx context.Context, args ...string) (*exec.Cmd, 
 	}
 	cmd := exec.CommandContext(ctx, exe, args...)
 	cmd.Dir = g.dir
-	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+	setupCommandIO(cmd, nil, nil)
 	return cmd, nil
 }

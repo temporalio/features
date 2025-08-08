@@ -1,3 +1,4 @@
+import { Context } from '@temporalio/activity';
 import { Feature } from '@temporalio/harness';
 import * as wf from '@temporalio/workflow';
 import { setTimeout } from 'timers/promises';
@@ -27,7 +28,7 @@ const activitiesImpl = {
     throw new Error('worker is shutting down');
   },
   async cancelIgnore(): Promise<void> {
-    await setTimeout(15000);
+    await Context.current().sleep(15000);
   },
 };
 
@@ -41,11 +42,14 @@ export async function workflow(): Promise<string> {
   const fut1 = activities.cancelFailure();
   const fut2 = activities.cancelIgnore();
 
+  console.log("await fut");
   await fut;
 
   try {
+    console.log("await fut1");
     await fut1;
   } catch (e) {
+    console.log("[ERR]", e);
     if (
       !(e instanceof wf.ActivityFailure) ||
       !(e.cause instanceof ApplicationFailure) ||
@@ -59,15 +63,22 @@ export async function workflow(): Promise<string> {
   try {
     await fut2;
   } catch (e) {
+    console.log("[ERR]", e);
+    if (e instanceof wf.ActivityFailure && e.cause instanceof TimeoutFailure) {
+      console.log("e.cause.timeoutType", e.cause.timeoutType);
+    }
     if (
       !(e instanceof wf.ActivityFailure) ||
       !(e.cause instanceof TimeoutFailure) ||
       e.cause.timeoutType !== TimeoutType.SCHEDULE_TO_CLOSE
     ) {
+      console.log("SHOULD NOT PRINT!!!");
       const error = e instanceof Error ? e : new Error(`${e}`);
       throw new ApplicationFailure('Unexpected error for cancelIgnore', null, true, undefined, error);
     }
   }
+
+  console.log("SHOULD PRINT");
 
   return 'done';
 }

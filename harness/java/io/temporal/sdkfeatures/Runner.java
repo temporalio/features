@@ -386,10 +386,14 @@ public class Runner implements Closeable {
     Assertions.fail("retry limit exceeded");
   }
 
-  public void waitForEvent(Run run, java.util.function.Predicate<io.temporal.api.history.v1.HistoryEvent> predicate, Duration timeout) throws Exception {
+  public void waitForEvent(
+      Run run,
+      java.util.function.Predicate<io.temporal.api.history.v1.HistoryEvent> predicate,
+      Duration timeout)
+      throws Exception {
     long start = System.currentTimeMillis();
     Duration pollInterval = Duration.ofMillis(100);
-    
+
     while (System.currentTimeMillis() - start < timeout.toMillis()) {
       var history = getWorkflowHistory(run);
       var event = history.getEventsList().stream().filter(predicate).findFirst();
@@ -398,7 +402,7 @@ public class Runner implements Closeable {
       }
       Thread.sleep(pollInterval.toMillis());
     }
-    
+
     throw new RuntimeException("Event not found within " + timeout.toMillis() + "ms");
   }
 

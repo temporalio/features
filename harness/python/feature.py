@@ -243,24 +243,33 @@ class Runner:
                 raise SkipFeatureException("Server too old to support update") from e
             raise
 
-    async def wait_for_event(self, handle: WorkflowHandle, predicate, timeout: float = 30.0, poll_interval: float = 0.1):
+    async def wait_for_event(
+        self,
+        handle: WorkflowHandle,
+        predicate,
+        timeout: float = 30.0,
+        poll_interval: float = 0.1,
+    ):
         """Wait for a specific event in the workflow history."""
         start_time = asyncio.get_event_loop().time()
-        
+
         while (asyncio.get_event_loop().time() - start_time) < timeout:
             async for event in handle.fetch_history_events():
                 if predicate(event):
                     return event
             await asyncio.sleep(poll_interval)
-        
+
         raise RuntimeError(f"Event not found within {timeout}s")
 
-    async def wait_for_activity_task_scheduled(self, handle: WorkflowHandle, timeout: float = 30.0):
+    async def wait_for_activity_task_scheduled(
+        self, handle: WorkflowHandle, timeout: float = 30.0
+    ):
         """Wait for an activity task scheduled event."""
         return await self.wait_for_event(
             handle,
-            lambda event: event.event_type == EventType.EVENT_TYPE_ACTIVITY_TASK_SCHEDULED,
-            timeout
+            lambda event: event.event_type
+            == EventType.EVENT_TYPE_ACTIVITY_TASK_SCHEDULED,
+            timeout,
         )
 
 

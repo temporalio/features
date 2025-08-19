@@ -111,10 +111,10 @@ public interface feature extends Feature {
     public Run execute(Runner runner) throws Exception {
       this.initialFactory = runner.getWorkerFactory();
       var run = runner.executeSingleParameterlessWorkflow();
-      
+
       // Wait for activity task to be scheduled
       runner.waitForActivityTaskScheduled(run, Duration.ofSeconds(5));
-      
+
       runner.getWorkerFactory().shutdown();
       runner.getWorkerFactory().awaitTermination(1, TimeUnit.SECONDS);
       runner.restartWorker();

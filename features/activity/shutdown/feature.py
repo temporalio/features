@@ -85,10 +85,10 @@ async def cancel_ignore() -> None:
 
 async def start(runner: Runner):
     handle = await runner.start_single_parameterless_workflow()
-    
+
     # Wait for activity task to be scheduled
     await runner.wait_for_activity_task_scheduled(handle, timeout=5.0)
-    
+
     await runner.stop_worker()
     runner.start_worker()
     return handle

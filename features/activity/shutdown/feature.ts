@@ -1,7 +1,6 @@
 import { Context } from '@temporalio/activity';
 import { Feature } from '@temporalio/harness';
 import * as wf from '@temporalio/workflow';
-import { setTimeout } from 'timers/promises';
 import { ApplicationFailure, TimeoutFailure, TimeoutType } from '@temporalio/common';
 import * as assert from 'assert';
 
@@ -79,8 +78,17 @@ export const feature = new Feature({
   workerOptions: { shutdownGraceTime: '1s' },
   alternateRun: async (runner) => {
     const handle = await runner.executeSingleParameterlessWorkflow();
-    // Give the worker time to process initial WFT and start activities
-    await setTimeout(200);
+
+    // Wait for activity task to be scheduled
+    await (
+      await import('@temporalio/harness')
+    ).waitForEvent(
+      () => runner.getHistoryEvents(handle),
+      (event) => !!event.activityTaskScheduledEventAttributes,
+      5000, // 5 second timeout
+      100 // 100ms poll interval
+    );
+
     notifyShutdown();
 
     runner.worker.shutdown();

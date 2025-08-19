@@ -31,8 +31,11 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 		return nil, err
 	}
 
-	// Give time for first task to get queued
-	time.Sleep(100 * time.Millisecond)
+	// Wait for activity task to be scheduled
+	_, err = r.WaitForActivityTaskScheduled(ctx, run, 5*time.Second)
+	if err != nil {
+		return nil, err
+	}
 
 	r.StopWorker()
 	err = r.StartWorker()
@@ -64,6 +67,7 @@ func Workflow(ctx workflow.Context) (string, error) {
 	if err == nil || !strings.Contains(err.Error(), "worker is shutting down") {
 		return "", fmt.Errorf("expected activity to fail with 'worker is shutting down', got %v", err)
 	}
+
 	err = fut2.Get(ctx, nil)
 	if !strings.Contains(err.Error(), "(type: ScheduleToClose)") {
 		return "", fmt.Errorf("expected activity to fail with ScheduleToClose timeout, got %v", err)

@@ -23,7 +23,10 @@ class Feature : IFeature
     public async Task<WorkflowHandle?> ExecuteAsync(Runner runner)
     {
         var handle = await runner.StartSingleParameterlessWorkflowAsync();
-        await Task.Delay(100);
+        
+        // Wait for activity task to be scheduled
+        await runner.WaitForActivityTaskScheduledAsync(handle, TimeSpan.FromSeconds(5));
+        
         await runner.StopWorker();
         runner.StartWorker();
         return handle;

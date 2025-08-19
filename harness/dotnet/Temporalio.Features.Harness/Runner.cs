@@ -269,4 +269,44 @@ public class Runner
 
         return maybeUpdateSupported.Value;
     }
+
+    /// <summary>
+    /// Wait for a specific event in the workflow history.
+    /// </summary>
+    /// <param name="handle">Workflow handle.</param>
+    /// <param name="predicate">Predicate to check for the event.</param>
+    /// <param name="timeout">Timeout for waiting.</param>
+    /// <returns>Task for completion.</returns>
+    public async Task WaitForEventAsync(WorkflowHandle handle, Func<Temporalio.Api.History.V1.HistoryEvent, bool> predicate, TimeSpan? timeout = null)
+    {
+        timeout ??= TimeSpan.FromSeconds(30);
+        var start = DateTime.UtcNow;
+        var pollInterval = TimeSpan.FromMilliseconds(100);
+        
+        while (DateTime.UtcNow - start < timeout)
+        {
+            var history = await handle.FetchHistoryAsync();
+            var foundEvent = history.Events.FirstOrDefault(predicate);
+            if (foundEvent != null)
+            {
+                return;
+            }
+            await Task.Delay(pollInterval);
+        }
+        
+        throw new TimeoutException($"Event not found within {timeout.Value.TotalMilliseconds}ms");
+    }
+
+    /// <summary>
+    /// Wait for an activity task scheduled event.
+    /// </summary>
+    /// <param name="handle">Workflow handle.</param>
+    /// <param name="timeout">Timeout for waiting.</param>
+    /// <returns>Task for completion.</returns>
+    public async Task WaitForActivityTaskScheduledAsync(WorkflowHandle handle, TimeSpan? timeout = null)
+    {
+        await WaitForEventAsync(handle, 
+            e => e.EventType == Temporalio.Api.Enums.V1.EventType.ActivityTaskScheduled, 
+            timeout);
+    }
 }

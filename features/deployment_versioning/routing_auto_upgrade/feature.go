@@ -16,11 +16,11 @@ import (
 var deploymentName = uuid.NewString()
 var v1 = worker.WorkerDeploymentVersion{
 	DeploymentName: deploymentName,
-	BuildId:        "1.0",
+	BuildID:        "1.0",
 }
 var v2 = worker.WorkerDeploymentVersion{
 	DeploymentName: deploymentName,
-	BuildId:        "2.0",
+	BuildID:        "2.0",
 }
 
 func WaitForSignalOne(ctx workflow.Context) (string, error) {

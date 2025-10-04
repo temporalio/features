@@ -3,9 +3,9 @@ FROM python:3.11-bullseye as build
 
 # Install protobuf compiler
 RUN apt-get update \
- && DEBIAN_FRONTEND=noninteractive \
+    && DEBIAN_FRONTEND=noninteractive \
     apt-get install --no-install-recommends --assume-yes \
-      protobuf-compiler=3.12.4* libprotobuf-dev=3.12.4*
+    protobuf-compiler=3.12.4* libprotobuf-dev=3.12.4*
 
 # Get go compiler
 ARG PLATFORM=amd64
@@ -45,6 +45,11 @@ COPY ./${REPO_DIR_OR_PLACEHOLDER} ./${REPO_DIR_OR_PLACEHOLDER}
 
 # Prepare the feature for running.
 RUN CGO_ENABLED=0 ./temporal-features prepare --lang py --dir prepared --version "$SDK_VERSION"
+
+# Download the worker dependencies for offline use
+WORKDIR /app/prepared
+RUN uv lock && uv sync --frozen
+ENV UV_NO_SYNC=1 UV_FROZEN=1 UV_OFFLINE=1
 
 # Copy the CLI and prepared feature to a smaller container for running
 FROM python:3.11-slim-bullseye

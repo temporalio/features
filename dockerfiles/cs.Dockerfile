@@ -29,7 +29,6 @@ COPY cmd ./cmd
 COPY go.mod go.sum main.go .editorconfig dotnet.csproj ./
 
 # Build the CLI
-RUN /usr/local/go/bin/go mod tidy
 RUN CGO_ENABLED=0 go build -o temporal-features
 
 ARG SDK_VERSION

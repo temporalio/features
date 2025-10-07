@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"io"
 )
 
 // BuildDotNetProgramOptions are options for BuildDotNetProgram.
@@ -27,6 +29,9 @@ type BuildDotNetProgramOptions struct {
 	// Required csproj content. This should not contain a dependency on Temporalio
 	// because this adds a package/project reference near the end.
 	CsprojContents string
+	// If present, custom writers that will capture stdout/stderr.
+	Stdout io.Writer
+	Stderr io.Writer
 }
 
 // DotNetProgram is a .NET-specific implementation of Program.
@@ -77,7 +82,7 @@ func BuildDotNetProgram(ctx context.Context, options BuildDotNetProgramOptions) 
 		// Need to build this csproj first
 		cmd := exec.CommandContext(ctx, "dotnet", "build", absCsproj)
 		cmd.Dir = dir
-		cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+		setupCommandIO(cmd, options.Stdout, options.Stderr)
 		if err := cmd.Run(); err != nil {
 			return nil, fmt.Errorf("failed dotnet build of csproj in version: %w", err)
 		}
@@ -103,7 +108,7 @@ func BuildDotNetProgram(ctx context.Context, options BuildDotNetProgramOptions) 
 	}
 	cmd := exec.CommandContext(ctx, "dotnet", cmdArgs...)
 	cmd.Dir = dir
-	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+	setupCommandIO(cmd, options.Stdout, options.Stderr)
 	if err := cmd.Run(); err != nil {
 		return nil, fmt.Errorf("failed dotnet build: %w", err)
 	}
@@ -134,6 +139,6 @@ func (d *DotNetProgram) NewCommand(ctx context.Context, args ...string) (*exec.C
 	}
 	cmd := exec.CommandContext(ctx, exe, args...)
 	cmd.Dir = d.dir
-	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+	setupCommandIO(cmd, nil, nil)
 	return cmd, nil
 }

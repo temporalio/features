@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"go.temporal.io/api/enums/v1"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -17,6 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/temporalio/features/harness/go/history"
 	"go.temporal.io/api/common/v1"
+	historypb "go.temporal.io/api/history/v1"
 	"go.temporal.io/api/serviceerror"
 	"go.temporal.io/api/workflowservice/v1"
 	"go.temporal.io/sdk/client"
@@ -355,6 +357,37 @@ func (r *Runner) DoUntilEventually(
 			}
 		}
 	}
+}
+
+// WaitForEvent waits for a specific event in the workflow history
+func (r *Runner) WaitForEvent(
+	ctx context.Context,
+	run client.WorkflowRun,
+	eventPredicate func(*historypb.HistoryEvent) bool,
+	timeout time.Duration,
+) (*historypb.HistoryEvent, error) {
+	var foundEvent *historypb.HistoryEvent
+	err := r.DoUntilEventually(ctx, 100*time.Millisecond, timeout, func() bool {
+		hist := r.Client.GetWorkflowHistory(ctx, run.GetID(), run.GetRunID(), false, enums.HISTORY_EVENT_FILTER_TYPE_ALL_EVENT)
+		event, err := FindEvent(hist, eventPredicate)
+		if err == nil && event != nil {
+			foundEvent = event
+			return true
+		}
+		return false
+	})
+	return foundEvent, err
+}
+
+// WaitForActivityTaskScheduled waits for an activity task scheduled event
+func (r *Runner) WaitForActivityTaskScheduled(
+	ctx context.Context,
+	run client.WorkflowRun,
+	timeout time.Duration,
+) (*historypb.HistoryEvent, error) {
+	return r.WaitForEvent(ctx, run, func(ev *historypb.HistoryEvent) bool {
+		return ev.GetActivityTaskScheduledEventAttributes() != nil
+	}, timeout)
 }
 
 // Close closes this runner.

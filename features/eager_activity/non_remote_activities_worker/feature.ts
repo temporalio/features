@@ -18,7 +18,7 @@ export async function workflow(): Promise<void> {
       !(
         err instanceof wf.ActivityFailure &&
         err.cause instanceof wf.TimeoutFailure &&
-        err.cause.timeoutType === TimeoutType.TIMEOUT_TYPE_SCHEDULE_TO_START
+        err.cause.timeoutType === TimeoutType.SCHEDULE_TO_START
       )
     ) {
       throw err;

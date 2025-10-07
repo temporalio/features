@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"io"
 )
 
 // BuildPythonProgramOptions are options for BuildPythonProgram.
@@ -19,12 +21,18 @@ type BuildPythonProgramOptions struct {
 	// a single wheel in the dist directory. Otherwise it is a specific version
 	// (with leading "v" is trimmed if present).
 	Version string
+	// If specified, takes precedence over Version. Is a PEP 508 requirement string, like
+	// `temporalio>=1.13.0,<2`.
+	VersionFromPyProj string
 	// If present, this directory is expected to exist beneath base dir. Otherwise
 	// a temporary dir is created.
 	DirName string
 	// If present, applied to build commands before run. May be called multiple
 	// times for a single build.
 	ApplyToCommand func(context.Context, *exec.Cmd) error
+	// If present, custom writers that will capture stdout/stderr.
+	Stdout io.Writer
+	Stderr io.Writer
 }
 
 // PythonProgram is a Python-specific implementation of Program.
@@ -68,7 +76,7 @@ func BuildPythonProgram(ctx context.Context, options BuildPythonProgramOptions) 
 	executeCommand := func(name string, args ...string) error {
 		cmd := exec.CommandContext(ctx, name, args...)
 		cmd.Dir = dir
-		cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+		setupCommandIO(cmd, options.Stdout, options.Stderr)
 		if options.ApplyToCommand != nil {
 			if err := options.ApplyToCommand(ctx, cmd); err != nil {
 				return err
@@ -89,9 +97,11 @@ requires-python = "~=3.9"
 		return nil, fmt.Errorf("failed writing pyproject.toml: %w", err)
 	}
 
-	if strings.ContainsAny(options.Version, `/\`) {
+	if options.VersionFromPyProj != "" {
+		executeCommand("uv", "add", options.VersionFromPyProj)
+	} else if strings.ContainsAny(options.Version, `/\`) {
 		// It's a path; install from wheel
-		wheel, err := getWheel(ctx, options.Version)
+		wheel, err := getWheel(ctx, options.Version, options.Stdout, options.Stderr)
 		if err != nil {
 			return nil, err
 		}
@@ -110,7 +120,7 @@ requires-python = "~=3.9"
 	return &PythonProgram{dir}, nil
 }
 
-func getWheel(ctx context.Context, version string) (string, error) {
+func getWheel(ctx context.Context, version string, stdout, stderr io.Writer) (string, error) {
 	// We expect a dist/ directory with a single whl file present
 	sdkPath, err := filepath.Abs(version)
 	if err != nil {
@@ -127,13 +137,13 @@ getWheels:
 		// Try to build the project
 		cmd := exec.CommandContext(ctx, "uv", "sync")
 		cmd.Dir = sdkPath
-		cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+		setupCommandIO(cmd, stdout, stderr)
 		if err := cmd.Run(); err != nil {
 			return "", fmt.Errorf("problem installing deps when building sdk by path: %w", err)
 		}
 		cmd = exec.CommandContext(ctx, "uv", "build")
 		cmd.Dir = sdkPath
-		cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+		setupCommandIO(cmd, stdout, stderr)
 		if err := cmd.Run(); err != nil {
 			return "", fmt.Errorf("problem building sdk by path: %w", err)
 		}
@@ -176,6 +186,6 @@ func (p *PythonProgram) NewCommand(ctx context.Context, args ...string) (*exec.C
 	args = append([]string{"run", "python", "-m"}, args...)
 	cmd := exec.CommandContext(ctx, "uv", args...)
 	cmd.Dir = p.dir
-	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+	setupCommandIO(cmd, nil, nil)
 	return cmd, nil
 }

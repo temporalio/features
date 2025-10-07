@@ -10,12 +10,22 @@ complete with failure, and ignore the cancel. The one which ignores the cancel s
 encounter a hard timeout.
 
 # Detailed spec
-* If a worker is told to begin shutdown, activities are immediately notified via
-  a cancel. It must be possible for the user to determine if this cancel was issued
-  by server, or is the result of worker shutdown
+* When a worker shutdown is initiated, the activity context isn't canceled until the
+  graceful shutdown timeout has elapsed
+* Graceful shutdown language behavior
+  * Core based SDKs - when graceful shutdown timeout isn't specified, this is treated as a 0 second timeout
+    * Note: Core itself treats no graceful shutdown timeout meaning no-timeout, but every lang has logic to
+      set a 0 second timeout when lang-side timeout not specified
+  * Go - when graceful shutdown timeout isn't specified, this is treated as a 0 second timeout
+  * Java - there is no timeout parameter set like Go or Core, but instead after calling `shutdown()` 
+    a user can call `workerFactory.awaitTermination(timeout, unit)` and `isTerminated()` to see if the timeout
+    has passed, then it is up to the user to forcibly shutdown or do something else
+* It must be possible for an activity to determine that a worker is being shut down even before graceful timeout elapses
+  * [TODO TS](https://github.com/temporalio/sdk-typescript/issues/1739)
+* It must be possible for the user to determine whether the activity context cancel was the result of worker shutdown,
+  or issued by server
+  * [TODO Java](https://github.com/temporalio/sdk-java/issues/1005) - need to add a way for Activities to know when the worker is being shutdown.
 * Activities may handle the cancel however they like (including continuing running)
-* Heartbeating is possible while the shutdown process is ongoing
+* Heartbeating is possible while the shutdown process is ongoing, both during and after the graceful shutdown period
 * If all activities complete, shutdown can complete (assuming WFT work is complete too)
-* SDKs should provide a timeout parameter which, if elapsed, shutdown completes even if
-  there are still running activities. If such activities complete later their response
-  is ignored
+* If an activity runs indefinitely and ignores the cancelation, then worker shutdown will hang indefinitely.

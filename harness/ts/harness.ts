@@ -332,3 +332,23 @@ export async function retry(fn: () => Promise<boolean>, retries = 3, duration = 
   }
   return false;
 }
+
+export async function waitForEvent(
+  getEvents: () => Promise<proto.temporal.api.history.v1.IHistoryEvent[]>,
+  predicate: (event: proto.temporal.api.history.v1.IHistoryEvent) => boolean,
+  timeout = 30000,
+  pollInterval = 100
+): Promise<proto.temporal.api.history.v1.IHistoryEvent> {
+  const start = Date.now();
+
+  while (Date.now() - start < timeout) {
+    const events = await getEvents();
+    const event = events.find(predicate);
+    if (event) {
+      return event;
+    }
+    await setTimeout(pollInterval);
+  }
+
+  throw new Error(`Event not found within ${timeout}ms`);
+}

@@ -56,6 +56,12 @@ class InnerScopeCancelWorkflow
             });
         }
     }
+
+    #[Workflow\SignalMethod('close')]
+    public function close(): void
+    {
+        $this->scope->cancel();
+    }
 }
 
 #[WorkflowInterface]

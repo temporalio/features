@@ -3,13 +3,12 @@ package sdkbuild
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
-
-	"io"
 )
 
 // BuildPythonProgramOptions are options for BuildPythonProgram.
@@ -112,8 +111,12 @@ requires-python = "~=3.9"
 	// Add the `features` python package
 	executeCommand("uv", "add", "--editable", "../")
 
-	if err := executeCommand("uv", "sync"); err != nil {
-		return nil, fmt.Errorf("failed installing: %w", err)
+	// Lock dependencies and sync for offline use
+	if err := executeCommand("uv", "lock"); err != nil {
+		return nil, fmt.Errorf("failed locking dependencies: %w", err)
+	}
+	if err := executeCommand("uv", "sync", "--frozen"); err != nil {
+		return nil, fmt.Errorf("failed syncing with frozen lockfile: %w", err)
 	}
 
 	success = true

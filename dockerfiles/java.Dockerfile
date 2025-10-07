@@ -23,6 +23,7 @@ COPY features ./features
 COPY sdkbuild ./sdkbuild
 
 # Build the CLI
+RUN /usr/local/go/bin/go mod tidy
 RUN CGO_ENABLED=0 /usr/local/go/bin/go build -o temporal-features
 
 ARG SDK_VERSION

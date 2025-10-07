@@ -183,12 +183,14 @@ func PythonProgramFromDir(dir string) (*PythonProgram, error) {
 // Dir is the directory to run in.
 func (p *PythonProgram) Dir() string { return p.dir }
 
-// NewCommand makes a new Poetry command. The first argument needs to be the
+// NewCommand makes a new uv command. The first argument needs to be the
 // name of the module.
 func (p *PythonProgram) NewCommand(ctx context.Context, args ...string) (*exec.Cmd, error) {
 	args = append([]string{"run", "python", "-m"}, args...)
 	cmd := exec.CommandContext(ctx, "uv", args...)
 	cmd.Dir = p.dir
+	// Set environment variables for offline operation
+	cmd.Env = append(os.Environ(), "UV_NO_SYNC=1", "UV_FROZEN=1", "UV_OFFLINE=1")
 	setupCommandIO(cmd, nil, nil)
 	return cmd, nil
 }

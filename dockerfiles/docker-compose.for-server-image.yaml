@@ -2,11 +2,6 @@
 # (for dependencies) and a docker image for running server itself.
 version: '3.5'
 
-networks:
-  temporal-dev-network:
-    driver: bridge
-    internal: true  # disable internet access to verify images work offline
-
 services:
   temporal-server:
     image: temporaliotest/auto-setup:${IMAGE_TAG:-latest}

@@ -57,5 +57,7 @@ COPY --from=build /app/${REPO_DIR_OR_PLACEHOLDER} /app/${REPO_DIR_OR_PLACEHOLDER
 COPY --from=build /app/uv.lock /app/pyproject.toml /app/
 COPY --from=build /bin/uv /bin/uvx /bin/
 
+ENV UV_NO_SYNC=1 UV_FROZEN=1 UV_OFFLINE=1
+
 # Use entrypoint instead of command to "bake" the default command options
 ENTRYPOINT ["/app/temporal-features", "run", "--lang", "py", "--prepared-dir", "prepared"]

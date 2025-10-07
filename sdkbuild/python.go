@@ -185,8 +185,6 @@ func (p *PythonProgram) NewCommand(ctx context.Context, args ...string) (*exec.C
 	args = append([]string{"run", "python", "-m"}, args...)
 	cmd := exec.CommandContext(ctx, "uv", args...)
 	cmd.Dir = p.dir
-	// Set environment variables for offline operation
-	cmd.Env = append(os.Environ(), "UV_NO_SYNC=1", "UV_FROZEN=1", "UV_OFFLINE=1")
 	setupCommandIO(cmd, nil, nil)
 	return cmd, nil
 }

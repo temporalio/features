@@ -94,6 +94,7 @@ type RunConfig struct {
 	ClientKeyPath  string
 	SummaryURI     string
 	HTTPProxyURL   string
+	TLSServerName  string
 }
 
 func (r *RunConfig) flags() []cli.Flag {
@@ -127,6 +128,11 @@ func (r *RunConfig) flags() []cli.Flag {
 			Name:        "http-proxy-url",
 			Usage:       "URL for an HTTP CONNECT proxy to the server",
 			Destination: &r.HTTPProxyURL,
+		},
+		&cli.StringFlag{
+			Name:        "tls-server-name",
+			Usage:       "TLS server name to use for verification (optional)",
+			Destination: &r.TLSServerName,
 		},
 	}
 }
@@ -226,6 +232,7 @@ func (r *Runner) Run(ctx context.Context, run *Run) error {
 				TaskQueue:      runFeature.TaskQueue,
 				Log:            r.log,
 				HTTPProxyURL:   r.config.HTTPProxyURL,
+				TLSServerName:  r.config.TLSServerName,
 			}
 			err := r.runFeature(ctx, runnerConfig, feature)
 

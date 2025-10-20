@@ -21,6 +21,9 @@ final class Command
     /** @var non-empty-string|null */
     public ?string $tlsCert = null;
 
+    /** @var non-empty-string|null */
+    public ?string $tlsServerName = null;
+
     public static function fromCommandLine(array $argv): self
     {
         $self = new self();
@@ -44,6 +47,11 @@ final class Command
 
             if (\str_starts_with($chunk, 'tls.key=')) {
                 $self->tlsKey = \substr($chunk, 8);
+                continue;
+            }
+
+            if (\str_starts_with($chunk, 'tls.server-name=')) {
+                $self->tlsServerName = \substr($chunk, 16);
                 continue;
             }
 
@@ -72,6 +80,7 @@ final class Command
         $this->address === null or $result[] = "address=$this->address";
         $this->tlsCert === null or $result[] = "tls.cert=$this->tlsCert";
         $this->tlsKey === null or $result[] = "tls.key=$this->tlsKey";
+        $this->tlsServerName === null or $result[] = "tls.server-name=$this->tlsServerName";
         foreach ($this->features as $feature) {
             $result[] = "{$feature->dir}:{$feature->taskQueue}";
         }

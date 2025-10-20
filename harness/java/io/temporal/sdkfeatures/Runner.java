@@ -44,6 +44,7 @@ public class Runner implements Closeable {
     public Scope metricsScope = new NoopScope();
     public SslContext sslContext;
     public String httpProxyUrl;
+    public String tlsServerName;
   }
 
   public final Config config;
@@ -68,6 +69,10 @@ public class Runner implements Closeable {
             .setTarget(config.serverHostPort)
             .setSslContext(config.sslContext)
             .setMetricsScope(config.metricsScope);
+    if (config.sslContext != null && config.tlsServerName != null && !config.tlsServerName.isEmpty()) {
+      serviceBuild.setChannelInitializer(
+          channelBuilder -> channelBuilder.overrideAuthority(config.tlsServerName));
+    }
     feature.workflowServiceOptions(serviceBuild);
     service = WorkflowServiceStubs.newServiceStubs(serviceBuild.build());
     // Shutdown service on failure

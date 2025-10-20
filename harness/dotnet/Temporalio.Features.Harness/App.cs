@@ -33,7 +33,7 @@ public static class App
 
     private static readonly Option<string?> tlsServerNameOption = new(
         name: "--tls-server-name",
-        description: "TLS server name to use for verification (optional)");
+        description: "TLS server name to use for verification");
 
     private static readonly Argument<List<(string, string)>> featuresArgument = new(
         name: "features",

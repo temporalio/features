@@ -14,7 +14,7 @@ async function run() {
     .option('--client-cert-path <clientCertPath>', 'Path to a client certificate for TLS')
     .option('--client-key-path <clientKeyPath>', 'Path to a client key for TLS')
     .option('--http-proxy-url <httpProxyUrl>', 'HTTP proxy URL')
-    .option('--tls-server-name <tlsServerName>', 'TLS server name to use for verification (optional)')
+    .option('--tls-server-name <tlsServerName>', 'TLS server name to use for verification')
     .argument('<features...>', 'Features as dir + ":" + task queue');
 
   const opts = program.parse(process.argv).opts<{

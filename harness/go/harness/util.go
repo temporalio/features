@@ -238,10 +238,7 @@ func LoadTLSConfig(clientCertPath, clientKeyPath, tlsServerName string) (*tls.Co
 		if err != nil {
 			return nil, fmt.Errorf("failed to load certs: %s", err)
 		}
-		tlsConfig := &tls.Config{Certificates: []tls.Certificate{cert}}
-		if tlsServerName != "" {
-			tlsConfig.ServerName = tlsServerName
-		}
+		tlsConfig := &tls.Config{Certificates: []tls.Certificate{cert}, ServerName: tlsServerName}
 		return tlsConfig, nil
 	} else if clientKeyPath != "" {
 		return nil, errors.New("got TLS key with no cert")

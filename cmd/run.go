@@ -95,7 +95,7 @@ func (r *RunConfig) dockerRunFlags() []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:        "tls-server-name",
-			Usage:       "TLS server name to use for verification (optional)",
+			Usage:       "TLS server name to use for verification and SNI override (optional)",
 			Destination: &r.TLSServerName,
 		},
 	}

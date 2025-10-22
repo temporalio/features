@@ -1,11 +1,10 @@
 # Build in a full featured container
 FROM node:22-bullseye AS build
 
-# Install protobuf compiler
 RUN apt-get update \
- && DEBIAN_FRONTEND=noninteractive \
+  && DEBIAN_FRONTEND=noninteractive \
     apt-get install --no-install-recommends --assume-yes \
-      protobuf-compiler=3.6.1.3-2* libprotobuf-dev=3.6.1.3-2*
+      protobuf-compiler=3.12.4* libprotobuf-dev=3.12.4*
 
 # Get go compiler
 ARG PLATFORM=amd64

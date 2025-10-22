@@ -1,8 +1,5 @@
-# While reading this file you might be wondering, hmmm.. this looks a lot like go.Dockerfile, well.. it does!
-# The author (git blame to reveal) prefers some copying over templating the Dockerfiles.
-
 # Build in a full featured container
-FROM node:16 as build
+FROM node:22-bullseye AS build
 
 # Install protobuf compiler
 RUN apt-get update \
@@ -44,15 +41,15 @@ COPY ./${REPO_DIR_OR_PLACEHOLDER} ./${REPO_DIR_OR_PLACEHOLDER}
 # Prepare the feature for running
 RUN CGO_ENABLED=0 ./temporal-features prepare --lang ts --dir prepared --version "$SDK_VERSION"
 
+################################################################################
+
 # Copy the CLI and prepared feature to a distroless "run" container
-FROM gcr.io/distroless/nodejs:16
+FROM node:22-bullseye
 
 COPY --from=build /app/temporal-features /app/temporal-features
 COPY --from=build /app/features /app/features
 COPY --from=build /app/prepared /app/prepared
 COPY --from=build /app/${REPO_DIR_OR_PLACEHOLDER} /app/${REPO_DIR_OR_PLACEHOLDER}
 
-# Node is installed here 👇 in distroless
-ENV PATH="/nodejs/bin"
 # Use entrypoint instead of command to "bake" the default command options
 ENTRYPOINT ["/app/temporal-features", "run", "--lang", "ts", "--prepared-dir", "prepared"]

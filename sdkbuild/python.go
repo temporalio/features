@@ -3,13 +3,12 @@ package sdkbuild
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
-
-	"io"
 )
 
 // BuildPythonProgramOptions are options for BuildPythonProgram.
@@ -180,7 +179,7 @@ func PythonProgramFromDir(dir string) (*PythonProgram, error) {
 // Dir is the directory to run in.
 func (p *PythonProgram) Dir() string { return p.dir }
 
-// NewCommand makes a new Poetry command. The first argument needs to be the
+// NewCommand makes a new uv command. The first argument needs to be the
 // name of the module.
 func (p *PythonProgram) NewCommand(ctx context.Context, args ...string) (*exec.Cmd, error) {
 	args = append([]string{"run", "python", "-m"}, args...)

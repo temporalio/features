@@ -82,6 +82,9 @@ func (r *Runner) RunTypeScriptExternal(ctx context.Context, run *cmd.Run) error 
 	if r.config.HTTPProxyURL != "" {
 		args = append(args, "--http-proxy-url", r.config.HTTPProxyURL)
 	}
+	if r.config.TLSServerName != "" {
+		args = append(args, "--tls-server-name", r.config.TLSServerName)
+	}
 	args = append(args, run.ToArgs()...)
 
 	// Run

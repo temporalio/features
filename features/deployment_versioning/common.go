@@ -86,7 +86,7 @@ func SetCurrent(r *harness.Runner, ctx context.Context, deploymentName string, v
 	}
 
 	_, err = dHandle.SetCurrentVersion(ctx, client.WorkerDeploymentSetCurrentVersionOptions{
-		BuildID:       version.BuildId,
+		BuildID:       version.BuildID,
 		ConflictToken: response1.ConflictToken,
 	})
 
@@ -110,7 +110,7 @@ func SetRamp(r *harness.Runner, ctx context.Context, deploymentName string, vers
 	}
 
 	_, err = dHandle.SetRampingVersion(ctx, client.WorkerDeploymentSetRampingVersionOptions{
-		BuildID:       version.BuildId,
+		BuildID:       version.BuildID,
 		ConflictToken: response1.ConflictToken,
 		Percentage:    float32(100.0),
 	})

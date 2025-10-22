@@ -89,6 +89,9 @@ public class Main implements Runnable {
   @Option(names = "--http-proxy-url", description = "URL for an HTTP CONNECT proxy to the server")
   private String httpProxyUrl;
 
+  @Option(names = "--tls-server-name", description = "TLS server name to use for verification")
+  private String tlsServerName;
+
   @Parameters(description = "Features as dir + ':' + task queue")
   private List<String> features;
 
@@ -140,6 +143,7 @@ public class Main implements Runnable {
         config.namespace = namespace;
         config.httpProxyUrl = httpProxyUrl;
         config.sslContext = sslContext;
+        config.tlsServerName = tlsServerName;
         config.taskQueue = pieces[1];
         Outcome outcome = Outcome.PASSED;
         String message = "";

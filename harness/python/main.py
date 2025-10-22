@@ -24,6 +24,9 @@ async def run():
     parser.add_argument("--log-level", help="Log level", default="WARNING")
     parser.add_argument("--http-proxy-url", help="HTTP proxy URL")
     parser.add_argument(
+        "--tls-server-name", help="TLS server name to use for verification (optional)"
+    )
+    parser.add_argument(
         "features", help="Features as dir + ':' + task queue", nargs="+"
     )
     args = parser.parse_args()
@@ -37,7 +40,11 @@ async def run():
             client_cert = f.read()
         with open(args.client_key_path, "rb") as f:
             client_key = f.read()
-        tls_config = TLSConfig(client_cert=client_cert, client_private_key=client_key)
+
+        tls_kwargs = {"client_cert": client_cert, "client_private_key": client_key}
+        if args.tls_server_name:
+            tls_kwargs["domain"] = args.tls_server_name
+        tls_config = TLSConfig(**tls_kwargs)
     elif args.client_key_path and not args.client_cert_path:
         raise ValueError("Client key specified, but not client cert!")
 

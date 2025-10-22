@@ -130,7 +130,7 @@ func GetCountCompletedUpdates(ctx context.Context, client client.Client, workflo
 
 // WaitNamespaceAvailable waits for up to 5 seconds for the provided namespace to become available
 func WaitNamespaceAvailable(ctx context.Context, logger log.Logger,
-	hostPortStr, namespace, clientCertPath, clientKeyPath string) error {
+	hostPortStr, namespace, clientCertPath, clientKeyPath, tlsServerName string) error {
 	logger.Info("Waiting for namespace to become available", "namespace", namespace)
 
 	var myClient client.Client
@@ -139,12 +139,12 @@ func WaitNamespaceAvailable(ctx context.Context, logger log.Logger,
 			myClient.Close()
 		}
 	}()
-	tlsCfg, err := LoadTLSConfig(clientCertPath, clientKeyPath)
-	clientOpts := client.Options{HostPort: hostPortStr, Namespace: namespace, Logger: logger}
-	clientOpts.ConnectionOptions.TLS = tlsCfg
+	tlsCfg, err := LoadTLSConfig(clientCertPath, clientKeyPath, tlsServerName)
 	if err != nil {
 		return err
 	}
+	clientOpts := client.Options{HostPort: hostPortStr, Namespace: namespace, Logger: logger}
+	clientOpts.ConnectionOptions.TLS = tlsCfg
 	lastErr := RetryFor(600, 100*time.Millisecond, func() (bool, error) {
 		if myClient == nil {
 			var clientErr error
@@ -229,7 +229,7 @@ func RetryFor(maxAttempts int, interval time.Duration, cond func() (bool, error)
 }
 
 // LoadTLSConfig inits a TLS config from the provided cert and key files.
-func LoadTLSConfig(clientCertPath, clientKeyPath string) (*tls.Config, error) {
+func LoadTLSConfig(clientCertPath, clientKeyPath, tlsServerName string) (*tls.Config, error) {
 	if clientCertPath != "" {
 		if clientKeyPath == "" {
 			return nil, errors.New("got TLS cert with no key")
@@ -238,7 +238,8 @@ func LoadTLSConfig(clientCertPath, clientKeyPath string) (*tls.Config, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to load certs: %s", err)
 		}
-		return &tls.Config{Certificates: []tls.Certificate{cert}}, nil
+		tlsConfig := &tls.Config{Certificates: []tls.Certificate{cert}, ServerName: tlsServerName}
+		return tlsConfig, nil
 	} else if clientKeyPath != "" {
 		return nil, errors.New("got TLS key with no cert")
 	}

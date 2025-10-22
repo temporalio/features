@@ -24,6 +24,7 @@ type ConnMaterial struct {
 	Identity       string
 	ClientCertPath string
 	ClientKeyPath  string
+	TLSServerName  string
 }
 
 var Feature = harness.Feature{
@@ -44,6 +45,7 @@ var Feature = harness.Feature{
 			Identity:       runner.Feature.ClientOptions.Identity,
 			ClientCertPath: runner.ClientCertPath,
 			ClientKeyPath:  runner.ClientKeyPath,
+			TLSServerName:  runner.TLSServerName,
 		})
 	},
 }
@@ -75,7 +77,7 @@ func SelfUpdateWorkflow(ctx workflow.Context, cm ConnMaterial) (string, error) {
 }
 
 func SelfUpdateActivity(ctx context.Context, cm ConnMaterial) error {
-	tlsCfg, err := harness.LoadTLSConfig(cm.ClientCertPath, cm.ClientKeyPath)
+	tlsCfg, err := harness.LoadTLSConfig(cm.ClientCertPath, cm.ClientKeyPath, cm.TLSServerName)
 	if err != nil {
 		return err
 	}

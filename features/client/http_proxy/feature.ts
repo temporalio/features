@@ -37,9 +37,9 @@ export const feature = new Feature({
                 clientCertPair: {
                   // Can't serialize Buffers safely to JSON, so let's cheat a bit
                   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                  crt: runner.connectionOpts.tls!.clientCertPair!.crt.toString('base64') as unknown as Buffer,
+                  crt: Buffer.from(runner.connectionOpts.tls!.clientCertPair!.crt).toString('base64') as unknown as Buffer,
                   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                  key: runner.connectionOpts.tls!.clientCertPair!.key.toString('base64') as unknown as Buffer,
+                  key: Buffer.from(runner.connectionOpts.tls!.clientCertPair!.key).toString('base64') as unknown as Buffer,
                 },
               },
             }

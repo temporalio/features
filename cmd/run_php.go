@@ -63,6 +63,9 @@ func (r *Runner) RunPhpExternal(ctx context.Context, run *cmd.Run) error {
 		}
 		args = append(args, "tls.key="+clientKeyPath)
 	}
+	if r.config.TLSServerName != "" {
+		args = append(args, "tls.server-name="+r.config.TLSServerName)
+	}
 
 	// Run
 	cmd, err := r.program.NewCommand(ctx, args...)

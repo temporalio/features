@@ -44,13 +44,19 @@ if (\iterator_to_array($runtime->workflows(), false) !== [] || \iterator_to_arra
 
 // Prepare services to be injected
 
-$serviceClient = $runtime->command->tlsKey === null && $runtime->command->tlsCert === null
-    ? ServiceClient::create($runtime->address)
-    : ServiceClient::createSSL(
+if ($runtime->command->tlsKey === null && $runtime->command->tlsCert === null) {
+    $serviceClient = ServiceClient::create($runtime->address);
+} else {
+    $sslParams = [
         $runtime->address,
-        clientKey: $runtime->command->tlsKey,
-        clientPem: $runtime->command->tlsCert,
-    );
+        'clientKey' => $runtime->command->tlsKey,
+        'clientPem' => $runtime->command->tlsCert,
+    ];
+    if ($runtime->command->tlsServerName !== null) {
+        $sslParams['overrideServerName'] = $runtime->command->tlsServerName;
+    }
+    $serviceClient = ServiceClient::createSSL(...$sslParams);
+}
 echo "Connecting to Temporal service at {$runtime->address}... ";
 try {
     $serviceClient->getConnection()->connect(5);

@@ -68,6 +68,9 @@ func (r *Runner) RunGoExternal(ctx context.Context, run *cmd.Run) error {
 	if r.config.HTTPProxyURL != "" {
 		args = append(args, "--http-proxy-url", r.config.HTTPProxyURL)
 	}
+	if r.config.TLSServerName != "" {
+		args = append(args, "--tls-server-name", r.config.TLSServerName)
+	}
 	args = append(args, run.ToArgs()...)
 	cmd, err := r.program.NewCommand(ctx, args...)
 	if err == nil {

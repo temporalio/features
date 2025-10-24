@@ -35,6 +35,7 @@ RuntimeBuilder::init();
 $workers = [];
 
 FeatureFlags::$workflowDeferredHandlerStart = true;
+FeatureFlags::$cancelAbandonedChildWorkflows = false;
 
 try {
     // Load runtime options

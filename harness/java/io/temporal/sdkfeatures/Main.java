@@ -10,10 +10,15 @@ import io.temporal.serviceclient.SimpleSslContextBuilder;
 import java.io.*;
 import java.net.Socket;
 import java.net.URI;
+import java.security.KeyStore;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.List;
 import java.util.NoSuchElementException;
 import javax.net.ssl.SSLException;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
@@ -111,12 +116,29 @@ public class Main implements Runnable {
         InputStream clientCert = new FileInputStream(clientCertPath);
         InputStream clientKey = new FileInputStream(clientKeyPath);
         SimpleSslContextBuilder builder = SimpleSslContextBuilder.forPKCS8(clientCert, clientKey);
+
         if (StringUtils.isNotEmpty(caCertPath)) {
-          InputStream caCert = new FileInputStream(caCertPath);
-          builder.setTrustedCertificates(caCert);
+          // Load CA certificate and create a TrustManager
+          InputStream caCertStream = new FileInputStream(caCertPath);
+          CertificateFactory cf = CertificateFactory.getInstance("X.509");
+          X509Certificate caCert = (X509Certificate) cf.generateCertificate(caCertStream);
+          caCertStream.close();
+
+          KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
+          trustStore.load(null, null);
+          trustStore.setCertificateEntry("temporal-ca", caCert);
+
+          TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+          tmf.init(trustStore);
+          TrustManager[] trustManagers = tmf.getTrustManagers();
+
+          if (trustManagers.length > 0) {
+            builder.setTrustManager(trustManagers[0]);
+          }
         }
+
         sslContext = builder.build();
-      } catch (FileNotFoundException | SSLException e) {
+      } catch (Exception e) {
         throw new RuntimeException("Error loading certs", e);
       }
 

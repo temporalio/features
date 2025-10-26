@@ -86,6 +86,9 @@ public class Main implements Runnable {
   @Option(names = "--client-key-path", description = "Path to a client key for TLS")
   private String clientKeyPath;
 
+  @Option(names = "--ca-cert-path", description = "Path to a CA cert for server verification")
+  private String caCertPath;
+
   @Option(names = "--http-proxy-url", description = "URL for an HTTP CONNECT proxy to the server")
   private String httpProxyUrl;
 
@@ -107,7 +110,12 @@ public class Main implements Runnable {
       try {
         InputStream clientCert = new FileInputStream(clientCertPath);
         InputStream clientKey = new FileInputStream(clientKeyPath);
-        sslContext = SimpleSslContextBuilder.forPKCS8(clientCert, clientKey).build();
+        SimpleSslContextBuilder builder = SimpleSslContextBuilder.forPKCS8(clientCert, clientKey);
+        if (StringUtils.isNotEmpty(caCertPath)) {
+          InputStream caCert = new FileInputStream(caCertPath);
+          builder.setTrustManager(caCert);
+        }
+        sslContext = builder.build();
       } catch (FileNotFoundException | SSLException e) {
         throw new RuntimeException("Error loading certs", e);
       }

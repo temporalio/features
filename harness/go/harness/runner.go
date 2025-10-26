@@ -53,6 +53,7 @@ type RunnerConfig struct {
 	TaskQueue      string
 	ClientCertPath string
 	ClientKeyPath  string
+	CACertPath     string
 	Log            log.Logger
 	HTTPProxyURL   string
 	TLSServerName  string
@@ -90,7 +91,7 @@ func NewRunner(config RunnerConfig, feature *PreparedFeature) (*Runner, error) {
 		r.Feature.ClientOptions.Logger = r.Log
 	}
 	var err error
-	tlsCfg, err := LoadTLSConfig(r.ClientCertPath, r.ClientKeyPath, r.TLSServerName)
+	tlsCfg, err := LoadTLSConfig(r.ClientCertPath, r.ClientKeyPath, r.CACertPath, r.TLSServerName)
 	if err != nil {
 		return nil, err
 	}

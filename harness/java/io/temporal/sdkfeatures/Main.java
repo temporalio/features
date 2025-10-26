@@ -113,7 +113,7 @@ public class Main implements Runnable {
         SimpleSslContextBuilder builder = SimpleSslContextBuilder.forPKCS8(clientCert, clientKey);
         if (StringUtils.isNotEmpty(caCertPath)) {
           InputStream caCert = new FileInputStream(caCertPath);
-          builder.setTrustManager(caCert);
+          builder.setTrustedCertificates(caCert);
         }
         sslContext = builder.build();
       } catch (FileNotFoundException | SSLException e) {

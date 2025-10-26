@@ -16,7 +16,6 @@ import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.List;
 import java.util.NoSuchElementException;
-import javax.net.ssl.SSLException;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import org.slf4j.Logger;
@@ -128,7 +127,8 @@ public class Main implements Runnable {
           trustStore.load(null, null);
           trustStore.setCertificateEntry("temporal-ca", caCert);
 
-          TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+          TrustManagerFactory tmf =
+              TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
           tmf.init(trustStore);
           TrustManager[] trustManagers = tmf.getTrustManagers();
 

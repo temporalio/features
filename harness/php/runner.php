@@ -55,6 +55,9 @@ if ($runtime->command->tlsKey === null && $runtime->command->tlsCert === null) {
     if ($runtime->command->tlsServerName !== null) {
         $sslParams['overrideServerName'] = $runtime->command->tlsServerName;
     }
+    if ($runtime->command->tlsCaCert !== null) {
+        $sslParams['crt'] = $runtime->command->tlsCaCert;
+    }
     $serviceClient = ServiceClient::createSSL(...$sslParams);
 }
 echo "Connecting to Temporal service at {$runtime->address}... ";

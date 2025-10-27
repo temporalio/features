@@ -92,6 +92,7 @@ type RunConfig struct {
 	Namespace      string
 	ClientCertPath string
 	ClientKeyPath  string
+	CACertPath     string
 	SummaryURI     string
 	HTTPProxyURL   string
 	TLSServerName  string
@@ -118,6 +119,11 @@ func (r *RunConfig) flags() []cli.Flag {
 			Name:        "client-key-path",
 			Usage:       "Path of TLS client key to use (optional)",
 			Destination: &r.ClientKeyPath,
+		},
+		&cli.StringFlag{
+			Name:        "ca-cert-path",
+			Usage:       "Path of CA cert to use for server verification (optional)",
+			Destination: &r.CACertPath,
 		},
 		&cli.StringFlag{
 			Name:        "summary-uri",

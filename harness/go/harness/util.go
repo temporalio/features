@@ -3,6 +3,7 @@ package harness
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"os"
@@ -130,7 +131,7 @@ func GetCountCompletedUpdates(ctx context.Context, client client.Client, workflo
 
 // WaitNamespaceAvailable waits for up to 5 seconds for the provided namespace to become available
 func WaitNamespaceAvailable(ctx context.Context, logger log.Logger,
-	hostPortStr, namespace, clientCertPath, clientKeyPath, tlsServerName string) error {
+	hostPortStr, namespace, clientCertPath, clientKeyPath, caCertPath, tlsServerName string) error {
 	logger.Info("Waiting for namespace to become available", "namespace", namespace)
 
 	var myClient client.Client
@@ -139,7 +140,7 @@ func WaitNamespaceAvailable(ctx context.Context, logger log.Logger,
 			myClient.Close()
 		}
 	}()
-	tlsCfg, err := LoadTLSConfig(clientCertPath, clientKeyPath, tlsServerName)
+	tlsCfg, err := LoadTLSConfig(clientCertPath, clientKeyPath, caCertPath, tlsServerName)
 	if err != nil {
 		return err
 	}
@@ -229,7 +230,7 @@ func RetryFor(maxAttempts int, interval time.Duration, cond func() (bool, error)
 }
 
 // LoadTLSConfig inits a TLS config from the provided cert and key files.
-func LoadTLSConfig(clientCertPath, clientKeyPath, tlsServerName string) (*tls.Config, error) {
+func LoadTLSConfig(clientCertPath, clientKeyPath, caCertPath, tlsServerName string) (*tls.Config, error) {
 	if clientCertPath != "" {
 		if clientKeyPath == "" {
 			return nil, errors.New("got TLS cert with no key")
@@ -239,6 +240,20 @@ func LoadTLSConfig(clientCertPath, clientKeyPath, tlsServerName string) (*tls.Co
 			return nil, fmt.Errorf("failed to load certs: %s", err)
 		}
 		tlsConfig := &tls.Config{Certificates: []tls.Certificate{cert}, ServerName: tlsServerName}
+
+		// Load CA cert if provided
+		if caCertPath != "" {
+			caCert, err := os.ReadFile(caCertPath)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read CA cert: %s", err)
+			}
+			caCertPool := x509.NewCertPool()
+			if !caCertPool.AppendCertsFromPEM(caCert) {
+				return nil, errors.New("failed to parse CA cert")
+			}
+			tlsConfig.RootCAs = caCertPool
+		}
+
 		return tlsConfig, nil
 	} else if clientKeyPath != "" {
 		return nil, errors.New("got TLS key with no cert")

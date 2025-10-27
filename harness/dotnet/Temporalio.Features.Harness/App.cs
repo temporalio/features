@@ -27,6 +27,10 @@ public static class App
         name: "--client-key-path",
         description: "Path to a client key for TLS");
 
+    private static readonly Option<FileInfo?> caCertPathOption = new(
+        name: "--ca-cert-path",
+        description: "Path to a CA certificate for server verification");
+
     private static readonly Option<string?> httpProxyUrlOption = new(
         name: "--http-proxy-url",
         description: "HTTP proxy URL");
@@ -64,6 +68,7 @@ public static class App
         cmd.AddOption(namespaceOption);
         cmd.AddOption(clientCertPathOption);
         cmd.AddOption(clientKeyPathOption);
+        cmd.AddOption(caCertPathOption);
         cmd.AddOption(httpProxyUrlOption);
         cmd.AddOption(tlsServerNameOption);
         cmd.AddArgument(featuresArgument);
@@ -95,6 +100,10 @@ public static class App
                     ctx.ParseResult.GetValueForOption(clientKeyPathOption)?.FullName ??
                     throw new ArgumentException("Missing key with cert"))
             };
+            if (ctx.ParseResult.GetValueForOption(caCertPathOption) is { } caCertPath)
+            {
+                tlsOptions.ServerRootCACert = File.ReadAllBytes(caCertPath.FullName);
+            }
             if (!string.IsNullOrEmpty(tlsServerName))
             {
                 tlsOptions.Domain = tlsServerName;

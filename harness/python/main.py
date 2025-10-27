@@ -21,6 +21,9 @@ async def run():
         "--client-cert-path", help="Path to a client certificate for TLS"
     )
     parser.add_argument("--client-key-path", help="Path to a client key for TLS")
+    parser.add_argument(
+        "--ca-cert-path", help="Path to a CA certificate for server verification"
+    )
     parser.add_argument("--log-level", help="Log level", default="WARNING")
     parser.add_argument("--http-proxy-url", help="HTTP proxy URL")
     parser.add_argument(
@@ -42,6 +45,9 @@ async def run():
             client_key = f.read()
 
         tls_kwargs = {"client_cert": client_cert, "client_private_key": client_key}
+        if args.ca_cert_path:
+            with open(args.ca_cert_path, "rb") as f:
+                tls_kwargs["server_root_ca_cert"] = f.read()
         if args.tls_server_name:
             tls_kwargs["domain"] = args.tls_server_name
         tls_config = TLSConfig(**tls_kwargs)

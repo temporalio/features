@@ -62,6 +62,7 @@ type RunConfig struct {
 	Namespace           string
 	ClientCertPath      string
 	ClientKeyPath       string
+	CACertPath          string
 	TLSServerName       string
 	GenerateHistory     bool
 	DisableHistoryCheck bool
@@ -92,6 +93,11 @@ func (r *RunConfig) dockerRunFlags() []cli.Flag {
 			Name:        "client-key-path",
 			Usage:       "Path of TLS client key to use (optional)",
 			Destination: &r.ClientKeyPath,
+		},
+		&cli.StringFlag{
+			Name:        "ca-cert-path",
+			Usage:       "Path of CA cert to use for server verification (optional)",
+			Destination: &r.CACertPath,
 		},
 		&cli.StringFlag{
 			Name:        "tls-server-name",
@@ -244,7 +250,7 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 	} else {
 		// Wait for namespace to become available
 		err := harness.WaitNamespaceAvailable(ctx, r.log,
-			r.config.Server, r.config.Namespace, r.config.ClientCertPath, r.config.ClientKeyPath, r.config.TLSServerName)
+			r.config.Server, r.config.Namespace, r.config.ClientCertPath, r.config.ClientKeyPath, r.config.CACertPath, r.config.TLSServerName)
 		if err != nil {
 			return err
 		}

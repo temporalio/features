@@ -26,6 +26,9 @@ on: # rebuild any PRs and main branch changes
         default: ''
         type: string
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
@@ -185,6 +188,9 @@ jobs:
       - run: dotnet test
 
   feature-tests-ts:
+    permissions:
+      contents: read
+      actions: read
     needs: build-go
     uses: ./.github/workflows/typescript.yaml
     with:
@@ -194,6 +200,9 @@ jobs:
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
 
   feature-tests-go:
+    permissions:
+      contents: read
+      actions: read
     needs: build-go
     uses: ./.github/workflows/go.yaml
     with:
@@ -203,6 +212,9 @@ jobs:
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
 
   feature-tests-python:
+    permissions:
+      contents: read
+      actions: read
     needs: build-go
     uses: ./.github/workflows/python.yaml
     with:
@@ -212,6 +224,9 @@ jobs:
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
 
   feature-tests-php:
+    permissions:
+      contents: read
+      actions: read
     needs: build-go
     uses: ./.github/workflows/php.yaml
     with:
@@ -221,6 +236,9 @@ jobs:
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
 
   feature-tests-java:
+    permissions:
+      contents: read
+      actions: read
     needs: build-go
     uses: ./.github/workflows/java.yaml
     with:
@@ -230,6 +248,9 @@ jobs:
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
 
   feature-tests-dotnet:
+    permissions:
+      contents: read
+      actions: read
     needs: build-go
     uses: ./.github/workflows/dotnet.yaml
     with:

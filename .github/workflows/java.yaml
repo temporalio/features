@@ -24,6 +24,10 @@ on:
         type: string
         required: false
 
+permissions:
+  contents: read
+  actions: read
+
 jobs:
   test:
     runs-on: ubuntu-latest

@@ -76,9 +76,16 @@ jobs:
           path: sdk-ts
           ref: ${{ inputs.version }}
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '10'
+          run_install: false
+
       - uses: actions/setup-node@v4
         with:
           node-version: 18
+          cache: 'pnpm'
 
       - name: Install protoc
         if: ${{ inputs.version-is-repo-ref }}
@@ -101,10 +108,10 @@ jobs:
 
       # Build TS SDK if using repo
       # Don't build during install phase since we're going to explicitly build
-      - run: npm ci --ignore-scripts
+      - run: pnpm install --frozen-lockfile --ignore-scripts
         if: ${{ inputs.version-is-repo-ref }}
         working-directory: ./sdk-ts
-      - run: npm run build
+      - run: pnpm run build
         if: ${{ inputs.version-is-repo-ref }}
         working-directory: ./sdk-ts
         env:

@@ -90,7 +90,7 @@ name = "python-program-` + filepath.Base(dir) + `"
 version = "0.1.0"
 description = "Temporal SDK Python Test"
 authors = [{ name = "Temporal Technologies Inc", email = "sdk@temporal.io" }]
-requires-python = "~=3.9"
+requires-python = "~=3.10"
 `
 	if err := os.WriteFile(filepath.Join(dir, "pyproject.toml"), []byte(pyProjectTOML), 0644); err != nil {
 		return nil, fmt.Errorf("failed writing pyproject.toml: %w", err)

@@ -156,7 +156,7 @@ func PrepareFeature(feature Feature) (*PreparedFeature, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Use the first the dir of the first workflow
+	// Use the dir of the first workflow
 	if p.Dir, p.AbsDir, err = featureDirFromFuncPointer(firstWorkflow.Workflow); err != nil {
 		return nil, err
 	}

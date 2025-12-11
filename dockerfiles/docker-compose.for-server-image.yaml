@@ -3,60 +3,8 @@
 version: '3.5'
 
 services:
-  # Extend cassandra service with healthcheck and network
-  cassandra:
-    networks:
-      - temporal-dev-network
-    healthcheck:
-      test: ["CMD", "cqlsh", "-e", "describe keyspaces"]
-      interval: 5s
-      timeout: 5s
-      retries: 60
-      start_period: 30s
-
-  # Extend elasticsearch service with healthcheck and network
-  elasticsearch:
-    networks:
-      - temporal-dev-network
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=1s || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 60
-      start_period: 30s
-
-  temporal-admin-tools:
-    image: temporaliotest/admin-tools:${IMAGE_TAG:-latest}
-    container_name: temporal-admin-tools
-    depends_on:
-      cassandra:
-        condition: service_healthy
-      elasticsearch:
-        condition: service_healthy
-    environment:
-      - CASSANDRA_SEEDS=cassandra
-      - ES_HOST=elasticsearch
-      - ES_PORT=9200
-      - ES_SCHEME=http
-      - ES_VERSION=v7
-      - ES_VISIBILITY_INDEX=temporal_visibility_v1_dev
-    networks:
-      - temporal-dev-network
-    entrypoint: ["/bin/sh", "-c"]
-    command: >
-      "echo 'Starting admin-tools setup...' &&
-       temporal-cassandra-tool --ep cassandra create -k temporal --rf 1 &&
-       temporal-cassandra-tool --ep cassandra -k temporal setup-schema -v 0.0 &&
-       temporal-cassandra-tool --ep cassandra -k temporal update-schema -d /etc/temporal/schema/cassandra/temporal/versioned &&
-       curl -X PUT --fail \"$$ES_SCHEME://$$ES_HOST:$$ES_PORT/_template/temporal_visibility_v1_template\" -H 'Content-Type: application/json' --data-binary \"@/etc/temporal/schema/elasticsearch/visibility/index_template_$$ES_VERSION.json\" &&
-       curl --head --fail \"$$ES_SCHEME://$$ES_HOST:$$ES_PORT/$$ES_VISIBILITY_INDEX\" || curl -X PUT --fail \"$$ES_SCHEME://$$ES_HOST:$$ES_PORT/$$ES_VISIBILITY_INDEX\" &&
-       echo 'Cassandra and Elasticsearch setup complete'"
-
   temporal-server:
-    image: temporaliotest/server:${IMAGE_TAG:-latest}
-    depends_on:
-      temporal-admin-tools:
-        condition: service_completed_successfully
+    image: temporaliotest/auto-setup:${IMAGE_TAG:-latest}
     environment:
       - CASSANDRA_SEEDS=cassandra
       - ENABLE_ES=true
@@ -66,6 +14,9 @@ services:
       - ./dynamicconfig:/etc/temporal/config/dynamicconfig
     ports:
       - '7233:7233'
+    depends_on:
+      - cassandra
+      - elasticsearch
     networks:
       - temporal-dev-network
 
@@ -128,7 +79,3 @@ services:
       - temporal-server
     networks:
       - temporal-dev-network
-
-networks:
-  temporal-dev-network:
-    driver: bridge

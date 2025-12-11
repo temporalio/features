@@ -45,11 +45,9 @@ jobs:
           name: ${{ inputs.docker-image-artifact-name }}
           path: /tmp/server-docker
 
-      - name: Load server Docker Images
+      - name: Load server Docker image
         if: ${{ inputs.docker-image-artifact-name }}
-        run: |
-          docker load --input /tmp/server-docker/temporal-server.tar
-          docker load --input /tmp/server-docker/temporal-admin-tools.tar
+        run: docker load --input /tmp/server-docker/temporal-autosetup.tar
         working-directory: '.'
 
       - name: Override IMAGE_TAG environment variable
@@ -112,7 +110,7 @@ jobs:
           docker compose \
             -f ./dockerfiles/docker-compose.for-server-image.yaml \
             -f /tmp/server-docker/docker-compose.yml \
-            up -d cassandra elasticsearch temporal-admin-tools temporal-server
+            up -d temporal-server cassandra elasticsearch
 
       - name: Run SDK-features tests directly
         if: inputs.docker-image-artifact-name == ''

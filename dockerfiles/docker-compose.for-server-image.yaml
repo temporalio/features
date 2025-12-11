@@ -62,8 +62,6 @@ services:
       - ENABLE_ES=true
       - ES_SEEDS=elasticsearch
       - ES_VERSION=v7
-      - BIND_ON_IP=0.0.0.0
-      - DYNAMIC_CONFIG_FILE_PATH=/etc/temporal/config/dynamicconfig/docker.yaml
     volumes:
       - ./dynamicconfig:/etc/temporal/config/dynamicconfig
     ports:

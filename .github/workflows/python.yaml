@@ -45,7 +45,7 @@ jobs:
           name: ${{ inputs.docker-image-artifact-name }}
           path: /tmp/server-docker
 
-      - name: Load server Docker images
+      - name: Load server Docker Images
         if: ${{ inputs.docker-image-artifact-name }}
         run: |
           docker load --input /tmp/server-docker/temporal-server.tar

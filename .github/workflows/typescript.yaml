@@ -159,6 +159,16 @@ jobs:
             -f /tmp/server-docker/docker-compose.yml \
             up --no-log-prefix --exit-code-from features-tests-ts features-tests-ts
 
+      - name: Show all container logs before teardown
+        if: always() && inputs.docker-image-artifact-name
+        run: |
+          echo "=== All container logs before teardown ==="
+          docker compose \
+            -f ./dockerfiles/docker-compose.for-server-image.yaml \
+            -f /tmp/server-docker/docker-compose.yml \
+            logs
+        working-directory: ./features
+
       - name: Tear down docker compose
         if: inputs.docker-image-artifact-name && (success() || failure())
         run: docker compose -f ./dockerfiles/docker-compose.for-server-image.yaml -f /tmp/server-docker/docker-compose.yml down -v

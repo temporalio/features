@@ -83,6 +83,15 @@ jobs:
         with:
           go-version: '^1.21'
 
+      - name: Show merged docker-compose configuration
+        if: inputs.docker-image-artifact-name
+        run: |
+          docker compose \
+            -f ./dockerfiles/docker-compose.for-server-image.yaml \
+            -f /tmp/server-docker/docker-compose.yml \
+            config
+        working-directory: ./features
+
       - name: Start containerized server and dependencies
         id: start-server
         if: inputs.docker-image-artifact-name
@@ -91,6 +100,16 @@ jobs:
             -f ./dockerfiles/docker-compose.for-server-image.yaml \
             -f /tmp/server-docker/docker-compose.yml \
             up -d cassandra elasticsearch temporal-admin-tools temporal-server temporal-create-namespace
+
+      - name: Show all container logs
+        if: always()
+        run: |
+          echo "=== All container logs ==="
+          docker compose \
+            -f ./dockerfiles/docker-compose.for-server-image.yaml \
+            -f /tmp/server-docker/docker-compose.yml \
+            logs
+        working-directory: ./features
 
       - name: Run SDK-features tests directly
         if: inputs.docker-image-artifact-name == ''

@@ -41,7 +41,11 @@ services:
   temporal-admin-tools:
     image: temporaliotest/admin-tools:${IMAGE_TAG:-latest}
     container_name: temporal-admin-tools
-    restart: on-failure:3
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
     depends_on:
       cassandra:
         condition: service_healthy
@@ -66,6 +70,19 @@ services:
          temporal-elasticsearch-tool --ep \"$$ES_SCHEME://$$ES_HOST:$$ES_PORT\" create-index --index $$ES_VISIBILITY_INDEX;
        else
          echo 'Using curl for Elasticsearch setup' &&
+         echo 'Waiting for Elasticsearch to be accessible...' &&
+         max_attempts=10 &&
+         attempt=0 &&
+         until curl -f \"$$ES_SCHEME://$$ES_HOST:$$ES_PORT\"; do
+           attempt=$$((attempt + 1)) &&
+           if [ $$attempt -ge $$max_attempts ]; then
+             echo 'Elasticsearch did not become accessible after $$max_attempts attempts' &&
+             exit 1;
+           fi &&
+           echo \"Elasticsearch not ready yet, waiting... (attempt $$attempt/$$max_attempts)\" &&
+           sleep 2;
+         done &&
+         echo 'Elasticsearch is accessible' &&
          curl -X PUT --fail \"$$ES_SCHEME://$$ES_HOST:$$ES_PORT/_template/temporal_visibility_v1_template\" -H 'Content-Type: application/json' --data-binary \"@/etc/temporal/schema/elasticsearch/visibility/index_template_$$ES_VERSION.json\" &&
          curl --head --fail \"$$ES_SCHEME://$$ES_HOST:$$ES_PORT/$$ES_VISIBILITY_INDEX\" || curl -X PUT --fail \"$$ES_SCHEME://$$ES_HOST:$$ES_PORT/$$ES_VISIBILITY_INDEX\";
        fi &&
@@ -96,7 +113,11 @@ services:
   temporal-create-namespace:
     image: temporaliotest/admin-tools:${IMAGE_TAG:-latest}
     container_name: temporal-create-namespace
-    restart: on-failure:3
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
     depends_on:
       temporal-server:
         condition: service_healthy

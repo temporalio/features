@@ -84,14 +84,28 @@ jobs:
         # Only supported in non-fork runs
         if: ${{ (github.event.pull_request.head.repo.full_name == '' || github.event.pull_request.head.repo.full_name == 'temporalio/features') && !inputs.skip-cloud }}
         run: |
-          docker run --rm -i \
-          -v /tmp/temporal-certs:/certs \
-          --env TEMPORAL_FEATURES_DISABLE_WORKFLOW_COMPLETION_CHECK=true \
-          ${{ env.FEATURES_BUILT_IMAGE_TAG }} \
-          --server $TEMPORAL_CLOUD_ADDRESS \
-          --namespace $TEMPORAL_CLOUD_NAMESPACE \
-          --client-cert-path /certs/client.pem \
-          --client-key-path /certs/client.key
+          max_attempts=3
+          attempt=0
+          until [ $attempt -ge $max_attempts ]
+          do
+            docker run --rm -i \
+            -v /tmp/temporal-certs:/certs \
+            --env TEMPORAL_FEATURES_DISABLE_WORKFLOW_COMPLETION_CHECK=true \
+            ${{ env.FEATURES_BUILT_IMAGE_TAG }} \
+            --server $TEMPORAL_CLOUD_ADDRESS \
+            --namespace $TEMPORAL_CLOUD_NAMESPACE \
+            --client-cert-path /certs/client.pem \
+            --client-key-path /certs/client.key && break
+
+            attempt=$((attempt + 1))
+            echo "Attempt $attempt/$max_attempts failed. Retrying..."
+            sleep 5
+          done
+
+          if [ $attempt -ge $max_attempts ]; then
+            echo "Failed after $max_attempts attempts"
+            exit 1
+          fi
 
       - name: Login to DockerHub
         uses: docker/login-action@v3

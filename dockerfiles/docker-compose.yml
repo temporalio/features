@@ -1,12 +1,16 @@
-# This is meant to be used in conjunction with a docker compose file from the server repo
-# (for dependencies) and a docker image for running server itself.
+# Complete docker-compose file for running Temporal server with all dependencies
 version: '3.5'
 
 services:
-  # Extend cassandra service with healthcheck and network
   cassandra:
-    networks:
-      - temporal-dev-network
+    image: cassandra:3.11
+    container_name: temporal-dev-cassandra
+    ports:
+      - "9042:9042"
+    environment:
+      CASSANDRA_LISTEN_ADDRESS: 127.0.0.1
+      MAX_HEAP_SIZE: 1G
+      HEAP_NEWSIZE: 100M
     healthcheck:
       test: ["CMD", "cqlsh", "-e", "describe keyspaces"]
       interval: 5s
@@ -14,10 +18,19 @@ services:
       retries: 60
       start_period: 30s
 
-  # Extend elasticsearch service with healthcheck and network
   elasticsearch:
-    networks:
-      - temporal-dev-network
+    image: elasticsearch:7.10.1
+    container_name: temporal-dev-elasticsearch
+    ports:
+      - "9200:9200"
+    environment:
+      # Set storage limit to low number.
+      - cluster.routing.allocation.disk.threshold_enabled=true
+      - cluster.routing.allocation.disk.watermark.low=512mb
+      - cluster.routing.allocation.disk.watermark.high=256mb
+      - cluster.routing.allocation.disk.watermark.flood_stage=128mb
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms100m -Xmx100m
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=1s || exit 1"]
       interval: 5s
@@ -28,6 +41,7 @@ services:
   temporal-admin-tools:
     image: temporaliotest/admin-tools:${IMAGE_TAG:-latest}
     container_name: temporal-admin-tools
+    restart: on-failure:3
     depends_on:
       cassandra:
         condition: service_healthy
@@ -40,8 +54,6 @@ services:
       - ES_SCHEME=http
       - ES_VERSION=v7
       - ES_VISIBILITY_INDEX=temporal_visibility_v1_dev
-    networks:
-      - temporal-dev-network
     entrypoint: ["/bin/sh", "-c"]
     command: >
       "echo 'Starting admin-tools setup...' &&
@@ -69,23 +81,27 @@ services:
       - ENABLE_ES=true
       - ES_SEEDS=elasticsearch
       - ES_VERSION=v7
+      - BIND_ON_IP=0.0.0.0
     volumes:
       - ./dynamicconfig:/etc/temporal/config/dynamicconfig
     ports:
       - '7233:7233'
-    networks:
-      - temporal-dev-network
+    healthcheck:
+        test: ["CMD", "nc", "-z", "localhost", "7233"]
+        interval: 5s
+        timeout: 3s
+        start_period: 30s
+        retries: 60
 
   temporal-create-namespace:
     image: temporaliotest/admin-tools:${IMAGE_TAG:-latest}
     container_name: temporal-create-namespace
+    restart: on-failure:3
     depends_on:
       temporal-server:
-        condition: service_started
+        condition: service_healthy
     environment:
       - TEMPORAL_ADDRESS=temporal-server:7233
-    networks:
-      - temporal-dev-network
     entrypoint: ["/bin/sh", "-c"]
     command: >
       "echo 'Waiting for Temporal server to be healthy...' &&
@@ -112,8 +128,6 @@ services:
     depends_on:
       temporal-create-namespace:
         condition: service_completed_successfully
-    networks:
-      - temporal-dev-network
 
   features-tests-py:
     image: temporaliotest/features:py
@@ -123,8 +137,6 @@ services:
     depends_on:
       temporal-create-namespace:
         condition: service_completed_successfully
-    networks:
-      - temporal-dev-network
 
   features-tests-ts:
     image: temporaliotest/features:ts
@@ -134,8 +146,6 @@ services:
     depends_on:
       temporal-create-namespace:
         condition: service_completed_successfully
-    networks:
-      - temporal-dev-network
 
   features-tests-java:
     image: temporaliotest/features:java
@@ -145,8 +155,6 @@ services:
     depends_on:
       temporal-create-namespace:
         condition: service_completed_successfully
-    networks:
-      - temporal-dev-network
 
   features-tests-cs:
     image: temporaliotest/features:cs
@@ -156,8 +164,6 @@ services:
     depends_on:
       temporal-create-namespace:
         condition: service_completed_successfully
-    networks:
-      - temporal-dev-network
 
   features-tests-php:
     image: temporaliotest/features:php
@@ -167,9 +173,3 @@ services:
     depends_on:
       temporal-create-namespace:
         condition: service_completed_successfully
-    networks:
-      - temporal-dev-network
-
-networks:
-  temporal-dev-network:
-    driver: bridge

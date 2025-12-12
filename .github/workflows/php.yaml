@@ -82,22 +82,12 @@ jobs:
           tools: composer:v2
           extensions: dom, sockets, grpc, curl, protobuf
 
-      - name: Show merged docker-compose configuration
-        if: inputs.docker-image-artifact-name
-        run: |
-          docker compose \
-            -f ./dockerfiles/docker-compose.for-server-image.yaml \
-            -f /tmp/server-docker/docker-compose.yml \
-            config
-        working-directory: ./features
-
       - name: Start containerized server and dependencies
         id: start-server
         if: inputs.docker-image-artifact-name
         run: |
           docker compose \
-            -f ./dockerfiles/docker-compose.for-server-image.yaml \
-            -f /tmp/server-docker/docker-compose.yml \
+            -f ./dockerfiles/docker-compose.yml \
             up -d cassandra elasticsearch temporal-admin-tools temporal-server temporal-create-namespace
 
       - name: Show all container logs
@@ -105,8 +95,7 @@ jobs:
         run: |
           echo "=== All container logs ==="
           docker compose \
-            -f ./dockerfiles/docker-compose.for-server-image.yaml \
-            -f /tmp/server-docker/docker-compose.yml \
+            -f ./dockerfiles/docker-compose.yml \
             logs
         working-directory: ./features
 
@@ -119,8 +108,7 @@ jobs:
         if: inputs.docker-image-artifact-name
         run: |
           docker compose \
-            -f ./dockerfiles/docker-compose.for-server-image.yaml \
-            -f /tmp/server-docker/docker-compose.yml \
+            -f ./dockerfiles/docker-compose.yml \
             up --no-log-prefix --exit-code-from features-tests-php features-tests-php
 
       - name: Show all container logs before teardown
@@ -128,11 +116,10 @@ jobs:
         run: |
           echo "=== All container logs before teardown ==="
           docker compose \
-            -f ./dockerfiles/docker-compose.for-server-image.yaml \
-            -f /tmp/server-docker/docker-compose.yml \
+            -f ./dockerfiles/docker-compose.yml \
             logs
         working-directory: ./features
 
       - name: Tear down docker compose
         if: inputs.docker-image-artifact-name && (success() || failure())
-        run: docker compose -f ./dockerfiles/docker-compose.for-server-image.yaml -f /tmp/server-docker/docker-compose.yml down -v
+        run: docker compose -f ./dockerfiles/docker-compose.yml down -v

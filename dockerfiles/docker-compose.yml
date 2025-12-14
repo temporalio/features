@@ -1,0 +1,192 @@
+# Complete docker-compose file for running Temporal server with all dependencies
+version: '3.5'
+
+services:
+  cassandra:
+    image: cassandra:3.11
+    container_name: temporal-dev-cassandra
+    ports:
+      - "9042:9042"
+    environment:
+      CASSANDRA_LISTEN_ADDRESS: 127.0.0.1
+      MAX_HEAP_SIZE: 1G
+      HEAP_NEWSIZE: 100M
+    healthcheck:
+      test: ["CMD", "cqlsh", "-e", "describe keyspaces"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 30s
+
+  elasticsearch:
+    image: elasticsearch:7.10.1
+    container_name: temporal-dev-elasticsearch
+    ports:
+      - "9200:9200"
+    environment:
+      # Set storage limit to low number.
+      - cluster.routing.allocation.disk.threshold_enabled=true
+      - cluster.routing.allocation.disk.watermark.low=512mb
+      - cluster.routing.allocation.disk.watermark.high=256mb
+      - cluster.routing.allocation.disk.watermark.flood_stage=128mb
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms100m -Xmx100m
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=1s || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 30s
+
+  temporal-admin-tools:
+    image: temporaliotest/admin-tools:${IMAGE_TAG:-latest}
+    container_name: temporal-admin-tools
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 6
+    depends_on:
+      cassandra:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      - CASSANDRA_SEEDS=cassandra
+      - ES_HOST=elasticsearch
+      - ES_PORT=9200
+      - ES_SCHEME=http
+      - ES_VERSION=v7
+      - ES_VISIBILITY_INDEX=temporal_visibility_v1_dev
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "echo 'Starting admin-tools setup...' &&
+       echo 'Waiting for Cassandra port to be available...' &&
+       nc -z -w 10 cassandra 9042 &&
+       echo 'Cassandra port is available' &&
+       temporal-cassandra-tool --ep cassandra create -k temporal --rf 1 &&
+       temporal-cassandra-tool --ep cassandra -k temporal setup-schema -v 0.0 &&
+       temporal-cassandra-tool --ep cassandra -k temporal update-schema -d /etc/temporal/schema/cassandra/temporal/versioned &&
+       if [ -x /usr/local/bin/temporal-elasticsearch-tool ]; then
+         echo 'Using temporal-elasticsearch-tool for Elasticsearch setup' &&
+         temporal-elasticsearch-tool --ep \"$$ES_SCHEME://$$ES_HOST:$$ES_PORT\" setup-schema &&
+         temporal-elasticsearch-tool --ep \"$$ES_SCHEME://$$ES_HOST:$$ES_PORT\" create-index --index $$ES_VISIBILITY_INDEX;
+       else
+         echo 'Using curl for Elasticsearch setup' &&
+         echo 'Waiting for Elasticsearch port to be available...' &&
+         nc -z -w 10 $$ES_HOST $$ES_PORT &&
+         echo 'Elasticsearch port is available' &&
+         curl -X PUT --fail \"$$ES_SCHEME://$$ES_HOST:$$ES_PORT/_template/temporal_visibility_v1_template\" -H 'Content-Type: application/json' --data-binary \"@/etc/temporal/schema/elasticsearch/visibility/index_template_$$ES_VERSION.json\" &&
+         curl --head --fail \"$$ES_SCHEME://$$ES_HOST:$$ES_PORT/$$ES_VISIBILITY_INDEX\" || curl -X PUT --fail \"$$ES_SCHEME://$$ES_HOST:$$ES_PORT/$$ES_VISIBILITY_INDEX\";
+       fi &&
+       echo 'Cassandra and Elasticsearch setup complete'"
+
+  temporal-server:
+    image: temporaliotest/server:${IMAGE_TAG:-latest}
+    depends_on:
+      temporal-admin-tools:
+        condition: service_completed_successfully
+    environment:
+      - CASSANDRA_SEEDS=cassandra
+      - ENABLE_ES=true
+      - ES_SEEDS=elasticsearch
+      - ES_VERSION=v7
+      - BIND_ON_IP=0.0.0.0
+    volumes:
+      - ./dynamicconfig:/etc/temporal/config/dynamicconfig
+    ports:
+      - '7233:7233'
+    healthcheck:
+        test: ["CMD", "nc", "-z", "localhost", "7233"]
+        interval: 5s
+        timeout: 3s
+        start_period: 30s
+        retries: 60
+
+  temporal-create-namespace:
+    image: temporaliotest/admin-tools:${IMAGE_TAG:-latest}
+    container_name: temporal-create-namespace
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+    depends_on:
+      temporal-server:
+        condition: service_healthy
+    environment:
+      - TEMPORAL_ADDRESS=temporal-server:7233
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "echo 'Waiting for Temporal server port to be available...' &&
+       nc -z -w 10 temporal-server 7233 &&
+       echo 'Temporal server port is available' &&
+       echo 'Waiting for Temporal server to be healthy...' &&
+       max_attempts=3 &&
+       attempt=0 &&
+       until temporal operator cluster health --address $$TEMPORAL_ADDRESS; do
+         attempt=$$((attempt + 1)) &&
+         if [ $$attempt -ge $$max_attempts ]; then
+           echo 'Server did not become healthy after $$max_attempts attempts' &&
+           exit 1;
+         fi &&
+         echo \"Server not ready yet, waiting... (attempt $$attempt/$$max_attempts)\" &&
+         sleep 5;
+       done &&
+       echo 'Server is healthy, creating default namespace...' &&
+       temporal operator namespace describe -n default --address $$TEMPORAL_ADDRESS || temporal operator namespace create -n default --address $$TEMPORAL_ADDRESS &&
+       echo 'Default namespace created'"
+
+  features-tests-go:
+    image: temporaliotest/features:go
+    environment:
+      - WAIT_EXTRA_FOR_NAMESPACE
+    command: ['--server', 'temporal-server:7233', '--namespace', 'default']
+    depends_on:
+      temporal-create-namespace:
+        condition: service_completed_successfully
+
+  features-tests-py:
+    image: temporaliotest/features:py
+    environment:
+      - WAIT_EXTRA_FOR_NAMESPACE
+    command: ['--server', 'temporal-server:7233', '--namespace', 'default']
+    depends_on:
+      temporal-create-namespace:
+        condition: service_completed_successfully
+
+  features-tests-ts:
+    image: temporaliotest/features:ts
+    environment:
+      - WAIT_EXTRA_FOR_NAMESPACE
+    command: ['--server', 'temporal-server:7233', '--namespace', 'default']
+    depends_on:
+      temporal-create-namespace:
+        condition: service_completed_successfully
+
+  features-tests-java:
+    image: temporaliotest/features:java
+    environment:
+      - WAIT_EXTRA_FOR_NAMESPACE
+    command: ['--server', 'temporal-server:7233', '--namespace', 'default']
+    depends_on:
+      temporal-create-namespace:
+        condition: service_completed_successfully
+
+  features-tests-cs:
+    image: temporaliotest/features:cs
+    environment:
+      - WAIT_EXTRA_FOR_NAMESPACE
+    command: ['--server', 'temporal-server:7233', '--namespace', 'default']
+    depends_on:
+      temporal-create-namespace:
+        condition: service_completed_successfully
+
+  features-tests-php:
+    image: temporaliotest/features:php
+    environment:
+      - WAIT_EXTRA_FOR_NAMESPACE
+    command: ['--server', 'temporal-server:7233', '--namespace', 'default']
+    depends_on:
+      temporal-create-namespace:
+        condition: service_completed_successfully

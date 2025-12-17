@@ -10,8 +10,8 @@ require (
 	github.com/temporalio/features/harness/go v0.0.0-00010101000000-000000000000
 	github.com/uber-go/tally/v4 v4.1.1
 	github.com/urfave/cli/v2 v2.3.0
-	go.temporal.io/api v1.51.0
-	go.temporal.io/sdk v1.36.1-0.20250912171946-2b7cc2f88dfd
+	go.temporal.io/api v1.53.0
+	go.temporal.io/sdk v1.37.0
 	go.temporal.io/sdk/contrib/tally v0.2.0
 	golang.org/x/mod v0.17.0
 	google.golang.org/grpc v1.67.1

@@ -3,13 +3,12 @@ package sdkbuild
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
-
-	"io"
 )
 
 // BuildPythonProgramOptions are options for BuildPythonProgram.
@@ -91,7 +90,7 @@ name = "python-program-` + filepath.Base(dir) + `"
 version = "0.1.0"
 description = "Temporal SDK Python Test"
 authors = [{ name = "Temporal Technologies Inc", email = "sdk@temporal.io" }]
-requires-python = "~=3.9"
+requires-python = "~=3.10"
 `
 	if err := os.WriteFile(filepath.Join(dir, "pyproject.toml"), []byte(pyProjectTOML), 0644); err != nil {
 		return nil, fmt.Errorf("failed writing pyproject.toml: %w", err)
@@ -180,7 +179,7 @@ func PythonProgramFromDir(dir string) (*PythonProgram, error) {
 // Dir is the directory to run in.
 func (p *PythonProgram) Dir() string { return p.dir }
 
-// NewCommand makes a new Poetry command. The first argument needs to be the
+// NewCommand makes a new uv command. The first argument needs to be the
 // name of the module.
 func (p *PythonProgram) NewCommand(ctx context.Context, args ...string) (*exec.Cmd, error) {
 	args = append([]string{"run", "python", "-m"}, args...)

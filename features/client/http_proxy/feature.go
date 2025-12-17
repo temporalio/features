@@ -52,6 +52,8 @@ func (h HTTPProxyTest) Execute(ctx context.Context, r *harness.Runner) (client.W
 		namespace:      r.Namespace,
 		clientCertPath: r.ClientCertPath,
 		clientKeyPath:  r.ClientKeyPath,
+		caCertPath:     r.CACertPath,
+		tlsServerName:  r.TLSServerName,
 		taskQueue:      r.TaskQueue,
 		workflowID:     "wf-" + uuid.NewString(),
 	}
@@ -93,7 +95,7 @@ func SubprocessExecuteWorkflow(ctx context.Context, args *subprocessArgs) error 
 	clientOpts := client.Options{HostPort: fmt.Sprintf("passthrough:///%s", args.server), Namespace: args.namespace}
 	if args.clientCertPath != "" {
 		var err error
-		clientOpts.ConnectionOptions.TLS, err = harness.LoadTLSConfig(args.clientCertPath, args.clientKeyPath)
+		clientOpts.ConnectionOptions.TLS, err = harness.LoadTLSConfig(args.clientCertPath, args.clientKeyPath, args.caCertPath, args.tlsServerName)
 		if err != nil {
 			return fmt.Errorf("failed loading TLS config: %w", err)
 		}
@@ -138,6 +140,8 @@ type subprocessArgs struct {
 	namespace      string
 	clientCertPath string
 	clientKeyPath  string
+	caCertPath     string
+	tlsServerName  string
 	taskQueue      string
 	workflowID     string
 	useAuth        bool
@@ -149,6 +153,8 @@ func (s *subprocessArgs) flags() []cli.Flag {
 		&cli.StringFlag{Name: "namespace", Destination: &s.namespace, Required: true},
 		&cli.StringFlag{Name: "client-cert-path", Destination: &s.clientCertPath},
 		&cli.StringFlag{Name: "client-key-path", Destination: &s.clientKeyPath},
+		&cli.StringFlag{Name: "ca-cert-path", Destination: &s.caCertPath},
+		&cli.StringFlag{Name: "tls-server-name", Destination: &s.tlsServerName},
 		&cli.StringFlag{Name: "task-queue", Destination: &s.taskQueue, Required: true},
 		&cli.StringFlag{Name: "workflow-id", Destination: &s.workflowID, Required: true},
 	}
@@ -163,6 +169,12 @@ func (s *subprocessArgs) args() []string {
 	}
 	if s.clientCertPath != "" {
 		args = append(args, "--client-cert-path", s.clientCertPath, "--client-key-path", s.clientKeyPath)
+	}
+	if s.caCertPath != "" {
+		args = append(args, "--ca-cert-path", s.caCertPath)
+	}
+	if s.tlsServerName != "" {
+		args = append(args, "--tls-server-name", s.tlsServerName)
 	}
 	return args
 }

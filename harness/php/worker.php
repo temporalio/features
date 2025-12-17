@@ -35,6 +35,7 @@ RuntimeBuilder::init();
 $workers = [];
 
 FeatureFlags::$workflowDeferredHandlerStart = true;
+FeatureFlags::$cancelAbandonedChildWorkflows = false;
 
 try {
     // Load runtime options
@@ -72,6 +73,7 @@ try {
             $runtime->address,
             clientKey: $runtime->command->tlsKey,
             clientPem: $runtime->command->tlsCert,
+            crt: $runtime->command->tlsCaCert,
         );
     $options = (new ClientOptions())->withNamespace($runtime->namespace);
     $workflowClient = WorkflowClient::create(serviceClient: $serviceClient, options: $options, converter: $converter);

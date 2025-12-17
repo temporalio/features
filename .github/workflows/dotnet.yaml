@@ -23,6 +23,10 @@ on:
         type: string
         required: false
 
+permissions:
+  contents: read
+  actions: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -41,9 +45,11 @@ jobs:
           name: ${{ inputs.docker-image-artifact-name }}
           path: /tmp/server-docker
 
-      - name: Load server Docker image
+      - name: Load server Docker Images
         if: ${{ inputs.docker-image-artifact-name }}
-        run: docker load --input /tmp/server-docker/temporal-autosetup.tar
+        run: |
+          docker load --input /tmp/server-docker/temporal-server.tar
+          docker load --input /tmp/server-docker/temporal-admin-tools.tar
         working-directory: '.'
 
       - name: Override IMAGE_TAG environment variable
@@ -101,12 +107,21 @@ jobs:
         working-directory: ./sdk-dotnet
 
       - name: Start containerized server and dependencies
+        id: start-server
         if: inputs.docker-image-artifact-name
         run: |
           docker compose \
-            -f ./dockerfiles/docker-compose.for-server-image.yaml \
-            -f /tmp/server-docker/docker-compose.yml \
-            up -d temporal-server cassandra elasticsearch
+            -f ./dockerfiles/docker-compose.yml \
+            up -d cassandra elasticsearch temporal-admin-tools temporal-server temporal-create-namespace
+
+      - name: Show all container logs
+        if: always()
+        run: |
+          echo "=== All container logs ==="
+          docker compose \
+            -f ./dockerfiles/docker-compose.yml \
+            logs
+        working-directory: ./features
 
       - name: Run SDK-features tests directly
         if: inputs.docker-image-artifact-name == ''
@@ -117,10 +132,18 @@ jobs:
         if: inputs.docker-image-artifact-name
         run: |
           docker compose \
-            -f ./dockerfiles/docker-compose.for-server-image.yaml \
-            -f /tmp/server-docker/docker-compose.yml \
+            -f ./dockerfiles/docker-compose.yml \
             up --no-log-prefix --exit-code-from features-tests-cs features-tests-cs
+
+      - name: Show all container logs before teardown
+        if: always() && inputs.docker-image-artifact-name
+        run: |
+          echo "=== All container logs before teardown ==="
+          docker compose \
+            -f ./dockerfiles/docker-compose.yml \
+            logs
+        working-directory: ./features
 
       - name: Tear down docker compose
         if: inputs.docker-image-artifact-name && (success() || failure())
-        run: docker compose -f ./dockerfiles/docker-compose.for-server-image.yaml -f /tmp/server-docker/docker-compose.yml down -v
+        run: docker compose -f ./dockerfiles/docker-compose.yml down -v

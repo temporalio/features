@@ -77,8 +77,18 @@ func (r *Runner) RunPythonExternal(ctx context.Context, run *cmd.Run) error {
 		}
 		args = append(args, "--client-key-path", clientKeyPath)
 	}
+	if r.config.CACertPath != "" {
+		caCertPath, err := filepath.Abs(r.config.CACertPath)
+		if err != nil {
+			return err
+		}
+		args = append(args, "--ca-cert-path", caCertPath)
+	}
 	if r.config.HTTPProxyURL != "" {
 		args = append(args, "--http-proxy-url", r.config.HTTPProxyURL)
+	}
+	if r.config.TLSServerName != "" {
+		args = append(args, "--tls-server-name", r.config.TLSServerName)
 	}
 	args = append(args, run.ToArgs()...)
 

@@ -13,7 +13,9 @@ async function run() {
     .requiredOption('--namespace <namespace>', 'The namespace to use')
     .option('--client-cert-path <clientCertPath>', 'Path to a client certificate for TLS')
     .option('--client-key-path <clientKeyPath>', 'Path to a client key for TLS')
+    .option('--ca-cert-path <caCertPath>', 'Path to a CA certificate for server verification')
     .option('--http-proxy-url <httpProxyUrl>', 'HTTP proxy URL')
+    .option('--tls-server-name <tlsServerName>', 'TLS server name to use for verification')
     .argument('<features...>', 'Features as dir + ":" + task queue');
 
   const opts = program.parse(process.argv).opts<{
@@ -21,7 +23,9 @@ async function run() {
     namespace: string;
     clientCertPath: string;
     clientKeyPath: string;
+    caCertPath: string;
     httpProxyUrl: string;
+    tlsServerName: string;
     featureAndTaskQueues: string[];
   }>();
   opts.featureAndTaskQueues = program.args;
@@ -42,11 +46,18 @@ async function run() {
     }
     const crt = fs.readFileSync(opts.clientCertPath);
     const key = fs.readFileSync(opts.clientKeyPath);
-    tlsConfig = {};
-    tlsConfig.clientCertPair = {
-      crt,
-      key,
+    tlsConfig = {
+      clientCertPair: {
+        crt,
+        key,
+      },
     };
+    if (opts.caCertPath) {
+      tlsConfig.serverRootCACertificate = fs.readFileSync(opts.caCertPath);
+    }
+    if (opts.tlsServerName) {
+      tlsConfig.serverNameOverride = opts.tlsServerName;
+    }
   } else if (opts.clientKeyPath && !opts.clientCertPath) {
     throw new Error('Client key path specified but no cert path!');
   }

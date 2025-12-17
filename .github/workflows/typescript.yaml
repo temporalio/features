@@ -23,6 +23,10 @@ on:
         type: string
         required: false
 
+permissions:
+  contents: read
+  actions: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -41,9 +45,11 @@ jobs:
           name: ${{ inputs.docker-image-artifact-name }}
           path: /tmp/server-docker
 
-      - name: Load server Docker image
+      - name: Load server Docker Images
         if: ${{ inputs.docker-image-artifact-name }}
-        run: docker load --input /tmp/server-docker/temporal-autosetup.tar
+        run: |
+          docker load --input /tmp/server-docker/temporal-server.tar
+          docker load --input /tmp/server-docker/temporal-admin-tools.tar
         working-directory: '.'
 
       - name: Override IMAGE_TAG environment variable
@@ -72,6 +78,12 @@ jobs:
           path: sdk-ts
           ref: ${{ inputs.version }}
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '10'
+          run_install: false
+
       - uses: actions/setup-node@v4
         with:
           node-version: 18
@@ -97,22 +109,31 @@ jobs:
 
       # Build TS SDK if using repo
       # Don't build during install phase since we're going to explicitly build
-      - run: npm ci --ignore-scripts
+      - run: pnpm install --frozen-lockfile --ignore-scripts
         if: ${{ inputs.version-is-repo-ref }}
         working-directory: ./sdk-ts
-      - run: npm run build
+      - run: pnpm run build
         if: ${{ inputs.version-is-repo-ref }}
         working-directory: ./sdk-ts
         env:
           BUILD_CORE_RELEASE: true
 
       - name: Start containerized server and dependencies
+        id: start-server
         if: inputs.docker-image-artifact-name
         run: |
           docker compose \
-            -f ./dockerfiles/docker-compose.for-server-image.yaml \
-            -f /tmp/server-docker/docker-compose.yml \
-            up -d temporal-server cassandra elasticsearch
+            -f ./dockerfiles/docker-compose.yml \
+            up -d cassandra elasticsearch temporal-admin-tools temporal-server temporal-create-namespace
+
+      - name: Show all container logs
+        if: always()
+        run: |
+          echo "=== All container logs ==="
+          docker compose \
+            -f ./dockerfiles/docker-compose.yml \
+            logs
+        working-directory: ./features
 
       - name: Run SDK-features tests directly
         if: inputs.docker-image-artifact-name == ''
@@ -123,10 +144,18 @@ jobs:
         if: inputs.docker-image-artifact-name
         run: |
           docker compose \
-            -f ./dockerfiles/docker-compose.for-server-image.yaml \
-            -f /tmp/server-docker/docker-compose.yml \
+            -f ./dockerfiles/docker-compose.yml \
             up --no-log-prefix --exit-code-from features-tests-ts features-tests-ts
+
+      - name: Show all container logs before teardown
+        if: always() && inputs.docker-image-artifact-name
+        run: |
+          echo "=== All container logs before teardown ==="
+          docker compose \
+            -f ./dockerfiles/docker-compose.yml \
+            logs
+        working-directory: ./features
 
       - name: Tear down docker compose
         if: inputs.docker-image-artifact-name && (success() || failure())
-        run: docker compose -f ./dockerfiles/docker-compose.for-server-image.yaml -f /tmp/server-docker/docker-compose.yml down -v
+        run: docker compose -f ./dockerfiles/docker-compose.yml down -v

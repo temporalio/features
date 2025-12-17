@@ -27,9 +27,17 @@ public static class App
         name: "--client-key-path",
         description: "Path to a client key for TLS");
 
+    private static readonly Option<FileInfo?> caCertPathOption = new(
+        name: "--ca-cert-path",
+        description: "Path to a CA certificate for server verification");
+
     private static readonly Option<string?> httpProxyUrlOption = new(
         name: "--http-proxy-url",
         description: "HTTP proxy URL");
+
+    private static readonly Option<string?> tlsServerNameOption = new(
+        name: "--tls-server-name",
+        description: "TLS server name to use for verification");
 
     private static readonly Argument<List<(string, string)>> featuresArgument = new(
         name: "features",
@@ -60,7 +68,9 @@ public static class App
         cmd.AddOption(namespaceOption);
         cmd.AddOption(clientCertPathOption);
         cmd.AddOption(clientKeyPathOption);
+        cmd.AddOption(caCertPathOption);
         cmd.AddOption(httpProxyUrlOption);
+        cmd.AddOption(tlsServerNameOption);
         cmd.AddArgument(featuresArgument);
         cmd.SetHandler(RunCommandAsync);
         return cmd;
@@ -79,19 +89,32 @@ public static class App
         var logger = loggerFactory.CreateLogger(typeof(App));
 
         // Connect a client
+        var tlsServerName = ctx.ParseResult.GetValueForOption(tlsServerNameOption);
+        TlsOptions? tlsOptions = null;
+        if (ctx.ParseResult.GetValueForOption(clientCertPathOption) is { } certPath)
+        {
+            tlsOptions = new()
+            {
+                ClientCert = File.ReadAllBytes(certPath.FullName),
+                ClientPrivateKey = File.ReadAllBytes(
+                    ctx.ParseResult.GetValueForOption(clientKeyPathOption)?.FullName ??
+                    throw new ArgumentException("Missing key with cert"))
+            };
+            if (ctx.ParseResult.GetValueForOption(caCertPathOption) is { } caCertPath)
+            {
+                tlsOptions.ServerRootCACert = File.ReadAllBytes(caCertPath.FullName);
+            }
+            if (!string.IsNullOrEmpty(tlsServerName))
+            {
+                tlsOptions.Domain = tlsServerName;
+            }
+        }
+
         var clientOptions =
             new TemporalClientConnectOptions(ctx.ParseResult.GetValueForOption(serverOption)!)
             {
                 Namespace = ctx.ParseResult.GetValueForOption(namespaceOption)!,
-                Tls = ctx.ParseResult.GetValueForOption(clientCertPathOption) is not { } certPath
-                    ? null
-                    : new()
-                    {
-                        ClientCert = File.ReadAllBytes(certPath.FullName),
-                        ClientPrivateKey = File.ReadAllBytes(
-                            ctx.ParseResult.GetValueForOption(clientKeyPathOption)?.FullName ??
-                            throw new ArgumentException("Missing key with cert"))
-                    }
+                Tls = tlsOptions
             };
 
         // Go over each feature, calling the runner for it

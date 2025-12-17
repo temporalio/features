@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+
 	"github.com/temporalio/features/harness/go/cmd"
 	"github.com/temporalio/features/sdkbuild"
 )
@@ -62,6 +63,16 @@ func (r *Runner) RunPhpExternal(ctx context.Context, run *cmd.Run) error {
 			return err
 		}
 		args = append(args, "tls.key="+clientKeyPath)
+	}
+	if r.config.CACertPath != "" {
+		caCertPath, err := filepath.Abs(r.config.CACertPath)
+		if err != nil {
+			return err
+		}
+		args = append(args, "tls.ca-cert="+caCertPath)
+	}
+	if r.config.TLSServerName != "" {
+		args = append(args, "tls.server-name="+r.config.TLSServerName)
 	}
 
 	// Run

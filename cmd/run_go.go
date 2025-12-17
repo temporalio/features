@@ -65,8 +65,14 @@ func (r *Runner) RunGoExternal(ctx context.Context, run *cmd.Run) error {
 		"--client-key-path", r.config.ClientKeyPath,
 		"--summary-uri", r.config.SummaryURI,
 	}
+	if r.config.CACertPath != "" {
+		args = append(args, "--ca-cert-path", r.config.CACertPath)
+	}
 	if r.config.HTTPProxyURL != "" {
 		args = append(args, "--http-proxy-url", r.config.HTTPProxyURL)
+	}
+	if r.config.TLSServerName != "" {
+		args = append(args, "--tls-server-name", r.config.TLSServerName)
 	}
 	args = append(args, run.ToArgs()...)
 	cmd, err := r.program.NewCommand(ctx, args...)

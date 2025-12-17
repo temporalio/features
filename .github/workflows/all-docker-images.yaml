@@ -67,6 +67,9 @@ on:
         type: boolean
         default: false
 
+permissions:
+  contents: read
+
 jobs:
   build-go-docker-images:
     if: inputs.go-ver || inputs.go-repo-ref

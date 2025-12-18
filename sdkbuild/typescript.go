@@ -118,7 +118,7 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 		}
 	} else {
 		version := strings.TrimPrefix(options.Version, "v")
-		pkgs := []string{"activity", "client", "common", "worker", "workflow"}
+		pkgs := []string{"activity", "client", "common", "proto", "worker", "workflow"}
 		for _, pkg := range pkgs {
 			packageJSONDepStr += fmt.Sprintf(`    "@temporalio/%v": %q,`, pkg, version) + "\n"
 		}

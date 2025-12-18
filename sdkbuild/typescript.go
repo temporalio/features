@@ -89,7 +89,7 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 		// Have to build the local repo
 		if st, err := os.Stat(filepath.Join(options.Version, "node_modules")); err != nil || !st.IsDir() {
 			// Only install dependencies, avoid triggerring any post install build scripts
-			cmd := exec.CommandContext(ctx, "pnpm", "install", "--frozen-lockfile", "--ignore-scripts")
+			cmd := exec.CommandContext(ctx, "npx", "pnpm", "install", "--frozen-lockfile", "--ignore-scripts")
 			cmd.Dir = options.Version
 			cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 			if err := cmd.Run(); err != nil {
@@ -97,7 +97,7 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 			}
 
 			// Build the SDK, ignore the unused `create` package as a mostly insignificant micro optimisation.
-			cmd = exec.CommandContext(ctx, "pnpm", "run", "build", "--", "--ignore", "@temporalio/create")
+			cmd = exec.CommandContext(ctx, "npx", "pnpm", "run", "build", "--", "--ignore", "@temporalio/create")
 			cmd.Dir = options.Version
 			cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 			if err := cmd.Run(); err != nil {
@@ -217,7 +217,7 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 	}
 
 	// Install
-	cmd := exec.CommandContext(ctx, "pnpm", "install")
+	cmd := exec.CommandContext(ctx, "npx", "pnpm", "install")
 	cmd.Dir = dir
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	if options.ApplyToCommand != nil {
@@ -230,7 +230,7 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 	}
 
 	// Compile
-	cmd = exec.CommandContext(ctx, "pnpm", "run", "build")
+	cmd = exec.CommandContext(ctx, "npx", "pnpm", "run", "build")
 	cmd.Dir = dir
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	if options.ApplyToCommand != nil {

@@ -22,6 +22,10 @@ on:
       docker-image-artifact-name:
         type: string
         required: false
+      # Additional dynamic config values to append to docker.yaml (YAML format)
+      dynamic-config-values:
+        type: string
+        required: false
 
 permissions:
   contents: read
@@ -105,6 +109,14 @@ jobs:
       - run: dotnet build
         if: ${{ inputs.version-is-repo-ref }}
         working-directory: ./sdk-dotnet
+
+      - name: Append custom dynamic config
+        if: ${{ inputs.dynamic-config-values }}
+        env:
+          DYNAMIC_CONFIG_VALUES: ${{ inputs.dynamic-config-values }}
+        run: |
+          echo "" >> ./dockerfiles/dynamicconfig/docker.yaml
+          echo "$DYNAMIC_CONFIG_VALUES" >> ./dockerfiles/dynamicconfig/docker.yaml
 
       - name: Start containerized server and dependencies
         id: start-server

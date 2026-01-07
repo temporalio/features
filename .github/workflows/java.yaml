@@ -95,9 +95,11 @@ jobs:
 
       - name: Append custom dynamic config
         if: ${{ inputs.dynamic-config-values }}
+        env:
+          DYNAMIC_CONFIG_VALUES: ${{ inputs.dynamic-config-values }}
         run: |
           echo "" >> ./dockerfiles/dynamicconfig/docker.yaml
-          echo '${{ inputs.dynamic-config-values }}' >> ./dockerfiles/dynamicconfig/docker.yaml
+          echo "$DYNAMIC_CONFIG_VALUES" >> ./dockerfiles/dynamicconfig/docker.yaml
 
       - name: Start containerized server and dependencies
         id: start-server

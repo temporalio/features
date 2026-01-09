@@ -3,7 +3,6 @@ package cmd
 import (
 	"bufio"
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -301,15 +300,16 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 				err = r.RunGoExternal(ctx, run)
 			}
 		} else {
-			err = cmd.NewRunner(cmd.RunConfig{
-				Server:         r.config.Server,
-				Namespace:      r.config.Namespace,
-				ClientCertPath: r.config.ClientCertPath,
-				ClientKeyPath:  r.config.ClientKeyPath,
-				TLSServerName:  r.config.TLSServerName,
-				SummaryURI:     r.config.SummaryURI,
-				HTTPProxyURL:   r.config.HTTPProxyURL,
-			}).Run(ctx, run)
+		err = cmd.NewRunner(cmd.RunConfig{
+			Server:         r.config.Server,
+			Namespace:      r.config.Namespace,
+			ClientCertPath: r.config.ClientCertPath,
+			ClientKeyPath:  r.config.ClientKeyPath,
+			CACertPath:     r.config.CACertPath,
+			TLSServerName:  r.config.TLSServerName,
+			SummaryURI:     r.config.SummaryURI,
+			HTTPProxyURL:   r.config.HTTPProxyURL,
+		}).Run(ctx, run)
 		}
 	case "java":
 		if r.config.DirName != "" {
@@ -428,14 +428,16 @@ func (r *Runner) handleHistory(ctx context.Context, run *cmd.Run, summary Summar
 				Namespace: r.config.Namespace,
 				Logger:    r.log,
 			}
-			if r.config.ClientCertPath != "" {
-				cert, err := tls.LoadX509KeyPair(r.config.ClientCertPath, r.config.ClientKeyPath)
-				if err != nil {
-					return fmt.Errorf("failed to load certs: %s", err)
-				}
-				opts.ConnectionOptions.TLS = &tls.Config{Certificates: []tls.Certificate{cert}}
+			tlsCfg, err := harness.LoadTLSConfig(
+				r.config.ClientCertPath,
+				r.config.ClientKeyPath,
+				r.config.CACertPath,
+				r.config.TLSServerName,
+			)
+			if err != nil {
+				return fmt.Errorf("failed to load TLS config: %w", err)
 			}
-			var err error
+			opts.ConnectionOptions.TLS = tlsCfg
 			if cl, err = client.Dial(opts); err != nil {
 				return fmt.Errorf("failed creating client: %w", err)
 			}

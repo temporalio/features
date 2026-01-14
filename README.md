@@ -118,6 +118,26 @@ settings are:
 There are also files in the `history/` subdirectory which contain history files used during run. See the
 "History Checking" and "Generating History" sections for more info.
 
+### Writing snippets for documentation
+
+The repo can also be used as a way to author buildable/testable example snippets for our documentation. This is done
+using Snipsync as described in the 
+[documentation repo](https://github.com/temporalio/documentation/blob/main/CONTRIBUTING.md#snipsync).
+
+Snippets may be sourced from normal features, or, if writen purely for usage as a docs snippet they should be placed
+in `features/snippets/snippet_name`. Beyond the path prefix, the folder contents should follow the same practices
+as for a normal feature.
+
+To define a snippet, use syntax like the following, where hellouniverse is the snippet identifier.
+
+```
+// @@@SNIPSTART hellouniverse
+func HelloUniverse() {
+	fmt.Println("Hello Universe!")
+}
+// @@@SNIPEND
+```
+
 ### Best Practices
 
 - Try to only demonstrate/test one feature per feature directory.

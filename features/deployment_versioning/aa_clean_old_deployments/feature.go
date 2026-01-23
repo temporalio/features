@@ -82,20 +82,16 @@ func DeleteDeployment(ctx context.Context, deploymentName string) error {
 		return fmt.Errorf("failed to describe worker deployment %s: %w", deploymentName, err)
 	}
 	// Unset current/ramping versions so things can be deleted
-	_, err = client.WorkflowService().SetWorkerDeploymentCurrentVersion(ctx, &workflowservice.SetWorkerDeploymentCurrentVersionRequest{
-		Namespace:               ns,
-		DeploymentName:          deploymentName,
-		Identity:                "feature-deployment-deleter",
-		IgnoreMissingTaskQueues: true,
-		AllowNoPollers:          true,
-	})
-	if err != nil {
-		// Try using unversioned string (needed if deployment was very old)
-		_, err = client.WorkflowService().SetWorkerDeploymentCurrentVersion(ctx, &workflowservice.SetWorkerDeploymentCurrentVersionRequest{
+	routingConfig := deploymentInfo.WorkerDeploymentInfo.RoutingConfig
+	conflictToken := deploymentInfo.ConflictToken
+
+	// Unset current version if one is set (pass empty BuildId with ConflictToken)
+	if routingConfig != nil && routingConfig.CurrentDeploymentVersion != nil && routingConfig.CurrentDeploymentVersion.BuildId != "" {
+		resp, err := client.WorkflowService().SetWorkerDeploymentCurrentVersion(ctx, &workflowservice.SetWorkerDeploymentCurrentVersionRequest{
 			Namespace:               ns,
 			DeploymentName:          deploymentName,
-			Version:                 "__unversioned__",
-			BuildId:                 "__unversioned__",
+			BuildId:                 "", // Empty to unset
+			ConflictToken:           conflictToken,
 			Identity:                "feature-deployment-deleter",
 			IgnoreMissingTaskQueues: true,
 			AllowNoPollers:          true,
@@ -103,21 +99,17 @@ func DeleteDeployment(ctx context.Context, deploymentName string) error {
 		if err != nil {
 			return fmt.Errorf("failed to unset current version for deployment %s: %w", deploymentName, err)
 		}
+		// Update conflict token for next call
+		conflictToken = resp.ConflictToken
 	}
-	_, err = client.WorkflowService().SetWorkerDeploymentRampingVersion(ctx, &workflowservice.SetWorkerDeploymentRampingVersionRequest{
-		Namespace:               ns,
-		DeploymentName:          deploymentName,
-		Identity:                "feature-deployment-deleter",
-		IgnoreMissingTaskQueues: true,
-		AllowNoPollers:          true,
-	})
-	if err != nil {
-		// Try using unversioned string (needed if deployment was very old)
+
+	// Unset ramping version if one is set (pass empty BuildId with ConflictToken)
+	if routingConfig != nil && routingConfig.RampingDeploymentVersion != nil && routingConfig.RampingDeploymentVersion.BuildId != "" {
 		_, err = client.WorkflowService().SetWorkerDeploymentRampingVersion(ctx, &workflowservice.SetWorkerDeploymentRampingVersionRequest{
 			Namespace:               ns,
 			DeploymentName:          deploymentName,
-			Version:                 "__unversioned__",
-			BuildId:                 "__unversioned__",
+			BuildId:                 "", // Empty to unset
+			ConflictToken:           conflictToken,
 			Identity:                "feature-deployment-deleter",
 			IgnoreMissingTaskQueues: true,
 			AllowNoPollers:          true,

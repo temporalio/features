@@ -71,7 +71,7 @@ func DeleteDeployment(ctx context.Context, deploymentName string) error {
 	tClient := activity.GetClient(ctx)
 	ns := activity.GetInfo(ctx).WorkflowNamespace
 
-	// Use low-level gRPC API to access routing config
+	// Describe to get version summaries
 	deploymentInfo, err := tClient.WorkflowService().DescribeWorkerDeployment(
 		ctx,
 		&workflowservice.DescribeWorkerDeploymentRequest{
@@ -83,43 +83,7 @@ func DeleteDeployment(ctx context.Context, deploymentName string) error {
 		return fmt.Errorf("failed to describe worker deployment %s: %w", deploymentName, err)
 	}
 
-	routingConfig := deploymentInfo.WorkerDeploymentInfo.RoutingConfig
-	conflictToken := deploymentInfo.ConflictToken
-
-	// Unset current version if one is set
-	if routingConfig != nil && routingConfig.CurrentDeploymentVersion != nil && routingConfig.CurrentDeploymentVersion.BuildId != "" {
-		resp, err := tClient.WorkflowService().SetWorkerDeploymentCurrentVersion(ctx, &workflowservice.SetWorkerDeploymentCurrentVersionRequest{
-			Namespace:               ns,
-			DeploymentName:          deploymentName,
-			BuildId:                 "", // Empty to unset
-			ConflictToken:           conflictToken,
-			Identity:                "feature-deployment-deleter",
-			IgnoreMissingTaskQueues: true,
-			AllowNoPollers:          true,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to unset current version for deployment %s: %w", deploymentName, err)
-		}
-		conflictToken = resp.ConflictToken
-	}
-
-	// Unset ramping version if one is set
-	if routingConfig != nil && routingConfig.RampingDeploymentVersion != nil && routingConfig.RampingDeploymentVersion.BuildId != "" {
-		_, err = tClient.WorkflowService().SetWorkerDeploymentRampingVersion(ctx, &workflowservice.SetWorkerDeploymentRampingVersionRequest{
-			Namespace:               ns,
-			DeploymentName:          deploymentName,
-			BuildId:                 "", // Empty to unset
-			ConflictToken:           conflictToken,
-			Identity:                "feature-deployment-deleter",
-			IgnoreMissingTaskQueues: true,
-			AllowNoPollers:          true,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to unset ramping version for deployment %s: %w", deploymentName, err)
-		}
-	}
-
-	// Delete all versions
+	// Delete all versions (with SkipDrainage to force delete)
 	for _, version := range deploymentInfo.WorkerDeploymentInfo.VersionSummaries {
 		_, err = tClient.WorkflowService().DeleteWorkerDeploymentVersion(ctx,
 			&workflowservice.DeleteWorkerDeploymentVersionRequest{
@@ -136,12 +100,15 @@ func DeleteDeployment(ctx context.Context, deploymentName string) error {
 	}
 
 	// Delete the deployment itself
-	tClient.WorkflowService().DeleteWorkerDeployment(ctx,
+	_, err = tClient.WorkflowService().DeleteWorkerDeployment(ctx,
 		&workflowservice.DeleteWorkerDeploymentRequest{
 			Namespace:      ns,
 			DeploymentName: deploymentName,
 			Identity:       "features-deployment-deleter",
 		},
 	)
+	if err != nil {
+		return fmt.Errorf("failed to delete deployment %s: %w", deploymentName, err)
+	}
 	return nil
 }

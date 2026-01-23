@@ -125,7 +125,6 @@ func DeleteDeployment(ctx context.Context, deploymentName string) error {
 		if err != nil {
 			return fmt.Errorf("failed to unset ramping version for deployment %s: %w", deploymentName, err)
 		}
-		return fmt.Errorf("failed to unset ramping version for deployment %s: %w", deploymentName, err)
 	}
 
 	for _, version := range deploymentInfo.WorkerDeploymentInfo.VersionSummaries {

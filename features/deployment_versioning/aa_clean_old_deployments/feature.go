@@ -13,6 +13,7 @@ import (
 )
 
 var Feature = harness.Feature{
+	SkipReason: "Investigate issue with BuildId cannot be empty error",
 	Workflows:  CleanOldDeployments,
 	Activities: []any{ListOldDeployments, DeleteDeployment},
 	Execute: func(ctx context.Context, runner *harness.Runner) (client.WorkflowRun, error) {

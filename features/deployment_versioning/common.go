@@ -6,6 +6,7 @@ import (
 
 	"github.com/temporalio/features/harness/go/harness"
 	enumspb "go.temporal.io/api/enums/v1"
+	"go.temporal.io/api/workflowservice/v1"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
 	"go.temporal.io/sdk/workflow"
@@ -66,6 +67,40 @@ func WaitForWorkflowRunning(r *harness.Runner, ctx context.Context, handle clien
 			}
 			status := describeResp.WorkflowExecutionInfo.Status
 			return enumspb.WORKFLOW_EXECUTION_STATUS_RUNNING == status
+		})
+}
+
+func WaitForWorkerDeploymentRoutingConfigPropagation(
+	r *harness.Runner,
+	ctx context.Context,
+	deploymentName string,
+	expectedCurrentBuildID string,
+	expectedRampingBuildID string,
+) error {
+	return r.DoUntilEventually(ctx, 300*time.Millisecond, 10*time.Second,
+		func() bool {
+			resp, err := r.Client.WorkflowService().DescribeWorkerDeployment(ctx, &workflowservice.DescribeWorkerDeploymentRequest{
+				Namespace:      r.Namespace,
+				DeploymentName: deploymentName,
+			})
+			if err != nil {
+				return false
+			}
+			if resp.GetWorkerDeploymentInfo().GetRoutingConfig().GetCurrentDeploymentVersion().GetBuildId() != expectedCurrentBuildID {
+				return false
+			}
+			if resp.GetWorkerDeploymentInfo().GetRoutingConfig().GetRampingDeploymentVersion().GetBuildId() != expectedRampingBuildID {
+				return false
+			}
+			switch resp.GetWorkerDeploymentInfo().GetRoutingConfigUpdateState() {
+			case enumspb.ROUTING_CONFIG_UPDATE_STATE_COMPLETED:
+				return true
+			case enumspb.ROUTING_CONFIG_UPDATE_STATE_UNSPECIFIED:
+				return true // not implemented
+			case enumspb.ROUTING_CONFIG_UPDATE_STATE_IN_PROGRESS:
+				return false
+			}
+			return false
 		})
 }
 

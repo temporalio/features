@@ -42,4 +42,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/cactus/go-statsd-client => github.com/cactus/go-statsd-client v3.2.1+incompatible
+replace (
+	github.com/cactus/go-statsd-client => github.com/cactus/go-statsd-client v3.2.1+incompatible
+	go.temporal.io/sdk => ../sdk-go
+)

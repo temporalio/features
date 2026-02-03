@@ -23,7 +23,10 @@ var Feature = harness.Feature{
 		return run, nil
 	},
 	StartWorkflowOptionsMutator: func(o *client.StartWorkflowOptions) {
-		o.WorkflowExecutionTimeout = 0
+		// I observed this complete in 2 minutes 55 seconds when there were many Deployments
+		// to delete. If the deletions are happening frequently, this will likely be shorter.
+		// Giving a long timeout here to make sure it doesn't cause flakiness.
+		o.WorkflowExecutionTimeout = 5 * time.Minute
 	},
 }
 

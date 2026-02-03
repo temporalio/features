@@ -22,6 +22,9 @@ var Feature = harness.Feature{
 		}
 		return run, nil
 	},
+	StartWorkflowOptionsMutator: func(o *client.StartWorkflowOptions) {
+		o.WorkflowExecutionTimeout = 0
+	},
 }
 
 func CleanOldDeployments(ctx workflow.Context) (string, error) {

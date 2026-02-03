@@ -86,7 +86,7 @@ func DeleteDeployment(ctx context.Context, deploymentName string) error {
 		AllowNoPollers:          true,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to unset current version for deployment %s: %w", deploymentName, err)
+		return fmt.Errorf("CARLY failed to unset current version for deployment %s: %w", deploymentName, err)
 	}
 	_, err = client.WorkflowService().SetWorkerDeploymentRampingVersion(ctx, &workflowservice.SetWorkerDeploymentRampingVersionRequest{
 		Namespace:               ns,

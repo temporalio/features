@@ -22,6 +22,12 @@ var Feature = harness.Feature{
 		}
 		return run, nil
 	},
+	StartWorkflowOptionsMutator: func(o *client.StartWorkflowOptions) {
+		// I observed this complete in 2 minutes 55 seconds when there were many Deployments
+		// to delete. If the deletions are happening frequently, this will likely be shorter.
+		// Giving a long timeout here to make sure it doesn't cause flakiness.
+		o.WorkflowExecutionTimeout = 5 * time.Minute
+	},
 }
 
 func CleanOldDeployments(ctx workflow.Context) (string, error) {
@@ -60,10 +66,6 @@ func ListOldDeployments(ctx context.Context) ([]string, error) {
 			allDeployments = append(allDeployments, deployment.Name)
 		}
 	}
-
-	if err != nil {
-		return nil, err
-	}
 	return allDeployments, nil
 }
 
@@ -87,44 +89,17 @@ func DeleteDeployment(ctx context.Context, deploymentName string) error {
 		DeploymentName:          deploymentName,
 		Identity:                "feature-deployment-deleter",
 		IgnoreMissingTaskQueues: true,
-		AllowNoPollers:          true,
 	})
 	if err != nil {
-		// Try using unversioned string (needed if deployment was very old)
-		_, err = client.WorkflowService().SetWorkerDeploymentCurrentVersion(ctx, &workflowservice.SetWorkerDeploymentCurrentVersionRequest{
-			Namespace:               ns,
-			DeploymentName:          deploymentName,
-			Version:                 "__unversioned__",
-			BuildId:                 "__unversioned__",
-			Identity:                "feature-deployment-deleter",
-			IgnoreMissingTaskQueues: true,
-			AllowNoPollers:          true,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to unset current version for deployment %s: %w", deploymentName, err)
-		}
+		return fmt.Errorf("failed to unset current version for deployment %s: %w", deploymentName, err)
 	}
 	_, err = client.WorkflowService().SetWorkerDeploymentRampingVersion(ctx, &workflowservice.SetWorkerDeploymentRampingVersionRequest{
 		Namespace:               ns,
 		DeploymentName:          deploymentName,
 		Identity:                "feature-deployment-deleter",
 		IgnoreMissingTaskQueues: true,
-		AllowNoPollers:          true,
 	})
 	if err != nil {
-		// Try using unversioned string (needed if deployment was very old)
-		_, err = client.WorkflowService().SetWorkerDeploymentRampingVersion(ctx, &workflowservice.SetWorkerDeploymentRampingVersionRequest{
-			Namespace:               ns,
-			DeploymentName:          deploymentName,
-			Version:                 "__unversioned__",
-			BuildId:                 "__unversioned__",
-			Identity:                "feature-deployment-deleter",
-			IgnoreMissingTaskQueues: true,
-			AllowNoPollers:          true,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to unset ramping version for deployment %s: %w", deploymentName, err)
-		}
 		return fmt.Errorf("failed to unset ramping version for deployment %s: %w", deploymentName, err)
 	}
 

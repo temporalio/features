@@ -30,6 +30,7 @@ import (
 	deployment_versioning_routing_pinned "github.com/temporalio/features/features/deployment_versioning/routing_pinned"
 	deployment_versioning_routing_with_override "github.com/temporalio/features/features/deployment_versioning/routing_with_override"
 	deployment_versioning_routing_with_ramp "github.com/temporalio/features/features/deployment_versioning/routing_with_ramp"
+	deployment_versioning_upgrade_on_continue_as_new "github.com/temporalio/features/features/deployment_versioning/upgrade_on_continue_as_new"
 	eager_activity_non_remote_activities_worker "github.com/temporalio/features/features/eager_activity/non_remote_activities_worker"
 	eager_workflow_successful_start "github.com/temporalio/features/features/eager_workflow/successful_start"
 	query_successful_query "github.com/temporalio/features/features/query/successful_query"
@@ -90,6 +91,7 @@ func init() {
 		deployment_versioning_routing_pinned.Feature,
 		deployment_versioning_routing_with_override.Feature,
 		deployment_versioning_routing_with_ramp.Feature,
+		deployment_versioning_upgrade_on_continue_as_new.Feature,
 		eager_activity_non_remote_activities_worker.Feature,
 		eager_workflow_successful_start.Feature,
 		query_successful_query.Feature,

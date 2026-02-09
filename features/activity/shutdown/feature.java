@@ -41,18 +41,25 @@ public interface feature extends Feature {
 
     @Override
     public String workflow() {
-      var activities =
+      var gracefulActivities =
           activities(
               feature.class,
               builder ->
                   builder
-                      .setScheduleToCloseTimeout(Duration.ofMillis(300))
+                      .setScheduleToCloseTimeout(Duration.ofSeconds(30))
+                      .setRetryOptions(RetryOptions.newBuilder().setMaximumAttempts(1).build()));
+      var ignoringActivities =
+          activities(
+              feature.class,
+              builder ->
+                  builder
+                      .setScheduleToCloseTimeout(Duration.ofSeconds(2))
                       .setRetryOptions(RetryOptions.newBuilder().setMaximumAttempts(1).build()));
 
-      activities.cancelSuccess();
+      gracefulActivities.cancelSuccess();
 
       try {
-        activities.cancelFailure();
+        gracefulActivities.cancelFailure();
         throw ApplicationFailure.newFailure("expected failure", "NoError");
       } catch (ActivityFailure e) {
         if (!(e.getCause() instanceof ApplicationFailure)
@@ -62,7 +69,7 @@ public interface feature extends Feature {
       }
 
       try {
-        activities.cancelIgnore();
+        ignoringActivities.cancelIgnore();
         throw ApplicationFailure.newFailure("expected timeout", "NoError");
       } catch (ActivityFailure e) {
         if (e.getCause() instanceof TimeoutFailure) {

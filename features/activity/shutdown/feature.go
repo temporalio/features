@@ -47,16 +47,22 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 }
 
 func Workflow(ctx workflow.Context) (string, error) {
-	ctx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
-		ScheduleToCloseTimeout: 300 * time.Millisecond,
+	gracefulCtx := workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
+		ScheduleToCloseTimeout: 30 * time.Second,
+		RetryPolicy: &temporal.RetryPolicy{
+			MaximumAttempts: 1,
+		},
+	})
+	ignoreCtx := workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
+		ScheduleToCloseTimeout: 2 * time.Second,
 		RetryPolicy: &temporal.RetryPolicy{
 			MaximumAttempts: 1,
 		},
 	})
 
-	fut := workflow.ExecuteActivity(ctx, activities.CancelSuccess)
-	fut1 := workflow.ExecuteActivity(ctx, activities.CancelFailure)
-	fut2 := workflow.ExecuteActivity(ctx, activities.CancelIgnore)
+	fut := workflow.ExecuteActivity(gracefulCtx, activities.CancelSuccess)
+	fut1 := workflow.ExecuteActivity(gracefulCtx, activities.CancelFailure)
+	fut2 := workflow.ExecuteActivity(ignoreCtx, activities.CancelIgnore)
 
 	err := fut.Get(ctx, nil)
 	if err != nil {

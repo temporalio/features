@@ -54,7 +54,7 @@ func Workflow(ctx workflow.Context) (string, error) {
 		},
 	})
 	ignoreCtx := workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
-		ScheduleToCloseTimeout: 2 * time.Second,
+		ScheduleToCloseTimeout: 300 * time.Millisecond,
 		RetryPolicy: &temporal.RetryPolicy{
 			MaximumAttempts: 1,
 		},

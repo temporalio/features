@@ -53,7 +53,7 @@ public interface feature extends Feature {
               feature.class,
               builder ->
                   builder
-                      .setScheduleToCloseTimeout(Duration.ofSeconds(2))
+                      .setScheduleToCloseTimeout(Duration.ofMillis(300))
                       .setRetryOptions(RetryOptions.newBuilder().setMaximumAttempts(1).build()));
 
       gracefulActivities.cancelSuccess();

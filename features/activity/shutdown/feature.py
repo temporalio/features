@@ -30,7 +30,7 @@ class Workflow:
         )
         handle2 = workflow.start_activity(
             cancel_ignore,
-            schedule_to_close_timeout=timedelta(seconds=2),
+            schedule_to_close_timeout=timedelta(milliseconds=300),
             retry_policy=RetryPolicy(maximum_attempts=1),
         )
 

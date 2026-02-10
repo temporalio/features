@@ -45,7 +45,7 @@ class Feature : IFeature
             };
             var ignoreOptions = new ActivityOptions
             {
-                ScheduleToCloseTimeout = TimeSpan.FromSeconds(2),
+                ScheduleToCloseTimeout = TimeSpan.FromMilliseconds(300),
                 RetryPolicy = new() { MaximumAttempts = 1 },
             };
 

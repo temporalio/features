@@ -38,7 +38,7 @@ const gracefulActivities = wf.proxyActivities<typeof activitiesImpl>({
 });
 
 const ignoringActivities = wf.proxyActivities<typeof activitiesImpl>({
-  scheduleToCloseTimeout: '2s',
+  scheduleToCloseTimeout: '300ms',
   retry: { maximumAttempts: 1 },
 });
 

@@ -95,22 +95,53 @@ func BuildRubyProgram(ctx context.Context, options BuildRubyProgramOptions) (*Ru
 		gemfileContent = fmt.Sprintf(`source "https://rubygems.org"
 
 gem "temporalio", path: %q
-`, gemPath)
+gem "harness", path: %q
+`, gemPath, sourceDir)
 	} else {
 		version := strings.TrimPrefix(options.Version, "v")
 		gemfileContent = fmt.Sprintf(`source "https://rubygems.org"
 
 gem "temporalio", "%s"
-`, version)
+gem "harness", path: %q
+`, version, sourceDir)
 	}
 
 	if err := os.WriteFile(filepath.Join(dir, "Gemfile"), []byte(gemfileContent), 0644); err != nil {
 		return nil, fmt.Errorf("failed writing Gemfile: %w", err)
 	}
 
-	// Install dependencies via Bundler
+	// Install dependencies via Bundler into a local vendor directory so the
+	// prepared dir is self-contained (important for Docker multi-stage builds).
+	// We write .bundle/config directly because the Ruby Docker image sets
+	// BUNDLE_APP_CONFIG to /usr/local/bundle, which would cause bundle config
+	// to write outside the prepared directory.
+	bundleDir := filepath.Join(dir, ".bundle")
+	if err := os.MkdirAll(bundleDir, 0755); err != nil {
+		return nil, fmt.Errorf("failed creating .bundle dir: %w", err)
+	}
+	bundleConfig := "---\nBUNDLE_PATH: \"vendor/bundle\"\n"
+	if err := os.WriteFile(filepath.Join(bundleDir, "config"), []byte(bundleConfig), 0644); err != nil {
+		return nil, fmt.Errorf("failed writing .bundle/config: %w", err)
+	}
 	if err := executeCommand("bundle", "install"); err != nil {
 		return nil, fmt.Errorf("failed installing dependencies: %w", err)
+	}
+
+	// When using a local SDK path, compile the native Rust extension
+	if strings.ContainsAny(options.Version, `/\`) {
+		sdkPath, _ := filepath.Abs(options.Version)
+		gemPath := filepath.Join(sdkPath, "temporalio")
+		if _, err := os.Stat(filepath.Join(gemPath, "Rakefile")); err != nil {
+			gemPath = sdkPath
+		}
+		if _, err := os.Stat(filepath.Join(gemPath, "Rakefile")); err == nil {
+			compileCmd := exec.CommandContext(ctx, "bundle", "exec", "rake", "compile")
+			compileCmd.Dir = gemPath
+			setupCommandIO(compileCmd, options.Stdout, options.Stderr)
+			if err := compileCmd.Run(); err != nil {
+				return nil, fmt.Errorf("failed compiling native extension: %w", err)
+			}
+		}
 	}
 
 	success = true

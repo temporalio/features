@@ -9,7 +9,7 @@ require 'uri'
 require 'temporalio/client'
 require 'temporalio/worker'
 
-require_relative 'feature'
+require 'harness'
 
 module Harness
   class Runner
@@ -55,7 +55,7 @@ module Harness
 
     private
 
-    def parse_args(argv) # rubocop:disable Metrics/MethodLength
+    def parse_args(argv)
       parser = OptionParser.new do |opts|
         opts.banner = 'Usage: runner.rb [options] feature:taskqueue ...'
 
@@ -65,7 +65,7 @@ module Harness
         opts.on('--client-key-path PATH', 'Path to a client key for TLS') { |v| @client_key_path = v }
         opts.on('--ca-cert-path PATH', 'Path to a CA certificate') { |v| @ca_cert_path = v }
         opts.on('--tls-server-name NAME', 'TLS server name override') { |v| @tls_server_name = v }
-        opts.on('--http-proxy-url URL', 'HTTP proxy URL') { |v| @http_proxy_url = v } # rubocop:disable Lint/UselessAssignment
+        opts.on('--http-proxy-url URL', 'HTTP proxy URL') { |v| @http_proxy_url = v }
         opts.on('--summary-uri URI', 'Where to stream the test summary JSONL') { |v| @summary_uri = v }
       end
 
@@ -98,7 +98,7 @@ module Harness
     end
 
     def connect_client
-      connect_options = { namespace: @namespace }
+      connect_options = {}
 
       if @client_cert_path
         raise ArgumentError, 'Client cert specified, but not client key!' unless @client_key_path
@@ -106,7 +106,12 @@ module Harness
         connect_options[:tls] = build_tls_options
       end
 
-      Temporalio::Client.connect(@server, **connect_options)
+      if @http_proxy_url
+        connect_options[:http_connect_proxy] =
+          Temporalio::Client::Connection::HTTPConnectProxyOptions.new(target_host: @http_proxy_url)
+      end
+
+      Temporalio::Client.connect(@server, @namespace, **connect_options)
     end
 
     def build_tls_options

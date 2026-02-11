@@ -1,4 +1,3 @@
-import { Context } from '@temporalio/activity';
 import { Feature } from '@temporalio/harness';
 import * as wf from '@temporalio/workflow';
 import { ApplicationFailure, TimeoutFailure, TimeoutType } from '@temporalio/common';
@@ -27,19 +26,26 @@ const activitiesImpl = {
     throw new Error('worker is shutting down');
   },
   async cancelIgnore(): Promise<void> {
-    await Context.current().sleep(15000);
+    // Use a plain setTimeout that doesn't respond to activity cancellation,
+    // so the worker must abandon this activity on shutdown.
+    await new Promise((resolve) => setTimeout(resolve, 15000));
   },
 };
 
-const activities = wf.proxyActivities<typeof activitiesImpl>({
+const gracefulActivities = wf.proxyActivities<typeof activitiesImpl>({
+  scheduleToCloseTimeout: '30s',
+  retry: { maximumAttempts: 1 },
+});
+
+const ignoringActivities = wf.proxyActivities<typeof activitiesImpl>({
   scheduleToCloseTimeout: '300ms',
   retry: { maximumAttempts: 1 },
 });
 
 export async function workflow(): Promise<string> {
-  const fut = activities.cancelSuccess();
-  const fut1 = activities.cancelFailure();
-  const fut2 = activities.cancelIgnore();
+  const fut = gracefulActivities.cancelSuccess();
+  const fut1 = gracefulActivities.cancelFailure();
+  const fut2 = ignoringActivities.cancelIgnore();
 
   await fut;
 

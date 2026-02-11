@@ -1,0 +1,57 @@
+inherit_mode:
+  merge:
+    - Exclude
+
+AllCops:
+  NewCops: enable
+  TargetRubyVersion: 4.0
+  SuggestExtensions: false
+  Include:
+    - harness/ruby/**/*.rb
+    - features/**/feature.rb
+  Exclude:
+    - vendor/**/*
+    - tmp/**/*
+
+# Don't need super for activities/workflows
+Lint/MissingSuper:
+  AllowedParentClasses:
+    - Temporalio::Activity::Definition
+    - Temporalio::Workflow::Definition
+
+# Harness methods can be longer
+Metrics/AbcSize:
+  Max: 100
+
+# Harness blocks can be longer
+Metrics/BlockLength:
+  Max: 50
+
+# Harness classes can be longer
+Metrics/ClassLength:
+  Max: 300
+
+# Harness methods can be longer
+Metrics/MethodLength:
+  Max: 100
+
+Metrics/CyclomaticComplexity:
+  Max: 30
+
+Metrics/PerceivedComplexity:
+  Max: 30
+
+# Feature files are small and self-contained, no docs needed
+Style/Documentation:
+  Enabled: false
+
+Style/DocumentationMethod:
+  Enabled: false
+
+# We are ok with large amount of keyword args
+Metrics/ParameterLists:
+  CountKeywordArgs: false
+
+# We want our require lists to be in order
+Style/RequireOrder:
+  Enabled: true

@@ -38,15 +38,20 @@ class Feature : IFeature
         [WorkflowRun]
         public async Task<string> RunAsync()
         {
-            var options = new ActivityOptions
+            var gracefulOptions = new ActivityOptions
+            {
+                ScheduleToCloseTimeout = TimeSpan.FromSeconds(30),
+                RetryPolicy = new() { MaximumAttempts = 1 },
+            };
+            var ignoreOptions = new ActivityOptions
             {
                 ScheduleToCloseTimeout = TimeSpan.FromMilliseconds(300),
                 RetryPolicy = new() { MaximumAttempts = 1 },
             };
 
-            var fut = Workflow.ExecuteActivityAsync((MyActivities act) => act.CancelSuccess(), options);
-            var fut1 = Workflow.ExecuteActivityAsync((MyActivities act) => act.CancelFailure(), options);
-            var fut2 = Workflow.ExecuteActivityAsync((MyActivities act) => act.CancelIgnore(), options);
+            var fut = Workflow.ExecuteActivityAsync((MyActivities act) => act.CancelSuccess(), gracefulOptions);
+            var fut1 = Workflow.ExecuteActivityAsync((MyActivities act) => act.CancelFailure(), gracefulOptions);
+            var fut2 = Workflow.ExecuteActivityAsync((MyActivities act) => act.CancelIgnore(), ignoreOptions);
 
             await fut;
 

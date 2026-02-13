@@ -17,7 +17,7 @@ on:
         default: 'temporalio/features'
       features-repo-ref:
         type: string
-        default: 'main'
+        default: 'spk/update-bug'
       # If set, download the docker image for server from the provided artifact name
       docker-image-artifact-name:
         type: string

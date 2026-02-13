@@ -42,7 +42,7 @@ class Feature : IFeature
         {
             var handle =
                 Client.GetWorkflowHandle<MyWorkflow>(ActivityExecutionContext.Current.Info
-                    .WorkflowId);
+                    .WorkflowId!);
             await handle.ExecuteUpdateAsync(wf => wf.UpdateMe());
         }
     }

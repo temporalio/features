@@ -25,6 +25,9 @@ on: # rebuild any PRs and main branch changes
       dotnet_sdk_version:
         default: ''
         type: string
+      ruby_sdk_version:
+        default: ''
+        type: string
 
 permissions:
   contents: read
@@ -48,6 +51,7 @@ jobs:
       php_latest: ${{ steps.latest_version.outputs.php_latest }}
       python_latest: ${{ steps.latest_version.outputs.python_latest }}
       csharp_latest: ${{ steps.latest_version.outputs.csharp_latest }}
+      ruby_latest: ${{ steps.latest_version.outputs.ruby_latest }}
     steps:
       - name: Print build information
         run: 'echo head_ref: "$GITHUB_HEAD_REF", ref: "$GITHUB_REF", os: ${{ matrix.os }}'
@@ -60,48 +64,63 @@ jobs:
 
       - name: Get the latest release version
         id: latest_version
+        env:
+          INPUT_GO_SDK_VERSION: ${{ github.event.inputs.go_sdk_version }}
+          INPUT_TS_SDK_VERSION: ${{ github.event.inputs.typescript_sdk_version }}
+          INPUT_JAVA_SDK_VERSION: ${{ github.event.inputs.java_sdk_version }}
+          INPUT_PHP_SDK_VERSION: ${{ github.event.inputs.php_sdk_version }}
+          INPUT_PYTHON_SDK_VERSION: ${{ github.event.inputs.python_sdk_version }}
+          INPUT_DOTNET_SDK_VERSION: ${{ github.event.inputs.dotnet_sdk_version }}
+          INPUT_RUBY_SDK_VERSION: ${{ github.event.inputs.ruby_sdk_version }}
         run: |
-          go_latest="${{ github.event.inputs.go_sdk_version }}"
+          go_latest="$INPUT_GO_SDK_VERSION"
           if [ -z "$go_latest" ]; then
             go_latest=$(./temporal-features latest-sdk-version --lang go)
             echo "Derived latest Go SDK release version: $go_latest"
           fi
           echo "go_latest=$go_latest" >> $GITHUB_OUTPUT
 
-          typescript_latest="${{ github.event.inputs.typescript_sdk_version }}"
+          typescript_latest="$INPUT_TS_SDK_VERSION"
           if [ -z "$typescript_latest" ]; then
             typescript_latest=$(./temporal-features latest-sdk-version --lang ts)
             echo "Derived latest Typescript SDK release version: $typescript_latest"
           fi
           echo "typescript_latest=$typescript_latest" >> $GITHUB_OUTPUT
 
-          java_latest="${{ github.event.inputs.java_sdk_version }}"
+          java_latest="$INPUT_JAVA_SDK_VERSION"
           if [ -z "$java_latest" ]; then
             java_latest=$(./temporal-features latest-sdk-version --lang java)
             echo "Derived latest Java SDK release version: $java_latest"
           fi
           echo "java_latest=$java_latest" >> $GITHUB_OUTPUT
 
-          php_latest="${{ github.event.inputs.php_sdk_version }}"
+          php_latest="$INPUT_PHP_SDK_VERSION"
           if [ -z "$php_latest" ]; then
             php_latest=$(./temporal-features latest-sdk-version --lang php)
             echo "Derived latest PHP SDK release version: $php_latest"
           fi
           echo "php_latest=$php_latest" >> $GITHUB_OUTPUT
 
-          python_latest="${{ github.event.inputs.python_sdk_version }}"
+          python_latest="$INPUT_PYTHON_SDK_VERSION"
           if [ -z "$python_latest" ]; then
             python_latest=$(./temporal-features latest-sdk-version --lang py)
             echo "Derived latest Python SDK release version: $python_latest"
           fi
           echo "python_latest=$python_latest" >> $GITHUB_OUTPUT
 
-          csharp_latest="${{ github.event.inputs.dotnet_sdk_version }}"
+          csharp_latest="$INPUT_DOTNET_SDK_VERSION"
           if [ -z "$csharp_latest" ]; then
             csharp_latest=$(./temporal-features latest-sdk-version --lang cs)
             echo "Derived latest Dotnet SDK release version: $csharp_latest"
           fi
           echo "csharp_latest=$csharp_latest" >> $GITHUB_OUTPUT
+
+          ruby_latest="$INPUT_RUBY_SDK_VERSION"
+          if [ -z "$ruby_latest" ]; then
+            ruby_latest=$(./temporal-features latest-sdk-version --lang rb)
+            echo "Derived latest Ruby SDK release version: $ruby_latest"
+          fi
+          echo "ruby_latest=$ruby_latest" >> $GITHUB_OUTPUT
 
   build-ts:
     strategy:
@@ -187,6 +206,23 @@ jobs:
       - run: dotnet build
       - run: dotnet test
 
+  build-ruby:
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Print build information
+        run: 'echo head_ref: "$GITHUB_HEAD_REF", ref: "$GITHUB_REF", os: ${{ matrix.os }}'
+      - uses: actions/checkout@v4
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '4.0'
+      - run: gem install rubocop
+      - run: rubocop
+
   feature-tests-ts:
     permissions:
       contents: read
@@ -259,6 +295,18 @@ jobs:
       features-repo-ref: ${{ github.head_ref }}
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
 
+  feature-tests-ruby:
+    permissions:
+      contents: read
+      actions: read
+    needs: build-go
+    uses: ./.github/workflows/ruby.yaml
+    with:
+      version: ${{ needs.build-go.outputs.ruby_latest }}
+      version-is-repo-ref: false
+      features-repo-ref: ${{ github.head_ref }}
+      features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
+
   build-docker-images:
     needs: build-go
     uses: ./.github/workflows/all-docker-images.yaml
@@ -271,3 +319,4 @@ jobs:
       php-ver: 'v${{ needs.build-go.outputs.php_latest }}'
       py-ver: 'v${{ needs.build-go.outputs.python_latest }}'
       cs-ver: 'v${{ needs.build-go.outputs.csharp_latest }}'
+      rb-ver: 'v${{ needs.build-go.outputs.ruby_latest }}'

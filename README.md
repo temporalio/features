@@ -31,6 +31,7 @@ Prerequisites:
 - [.NET](https://dotnet.microsoft.com) 7+
 - [PHP](https://www.php.net/) 8.1+
   - [Composer](https://getcomposer.org/)
+- [Ruby](https://www.ruby-lang.org/) 4.0+
 
 Command:
 
@@ -38,7 +39,7 @@ Command:
 
 Note, `go run .` can be used in place of `go build` + `temporal-features` to save on the build step.
 
-`LANG` can be `go`, `java`, `ts`, `php`, `py`, or `cs`. `VERSION` is per SDK and if left off, uses the latest version set for
+`LANG` can be `go`, `java`, `ts`, `php`, `py`, `cs`, or `rb`. `VERSION` is per SDK and if left off, uses the latest version set for
 the language in this repository.
 
 `PATTERN` must match either the features relative directory _or_ the relative directory + `/feature.<ext>` via
@@ -153,6 +154,7 @@ func HelloUniverse() {
   mind when writing features.
 
 - A Python feature should be in `feature.py`.
+- A Ruby feature should be in `feature.rb`.
 - Add a README.md to each feature directory.
   - README should have a title summarizing the feature (only first letter needs to be in title case), then a short
     paragraph explaining the feature and its purpose, and then optionally another paragraph explaining details of the

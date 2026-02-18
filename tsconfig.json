@@ -1,17 +1,16 @@
 // This really only exists to make working on the TS harness in an IDE easy. A more elaborate
 // tsconfig is generated when running the code.
 {
-  "extends": "@tsconfig/node16/tsconfig.json",
-  "version": "4.4.2",
+  "extends": "@tsconfig/node20/tsconfig.json",
+  "version": "5.9.0",
   "compilerOptions": {
     "outDir": "./tslib",
     "baseUrl": ".",
     "paths": {
-      "@temporalio/harness": ["harness/ts/harness.ts"],
+      "@temporalio/harness": ["harness/ts/harness.ts"]
     },
     "resolveJsonModule": true
   },
   "include": ["features/**/*.ts", "harness/ts/**/*.ts"],
   "exclude": ["node_modules"]
 }
-

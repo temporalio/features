@@ -67,7 +67,7 @@ async def cancellable_activity() -> None:
 
     # Send result as signal to workflow
     await client.get_workflow_handle_for(
-        Workflow.run, activity.info().workflow_id
+        Workflow.run, activity.info().workflow_id or ""
     ).signal(Workflow.activity_result, result)
 
 

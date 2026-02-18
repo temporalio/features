@@ -115,6 +115,10 @@ requires-python = "~=3.10"
 		return nil, fmt.Errorf("failed installing: %w", err)
 	}
 
+	if err := executeCommand("poe", "lint"); err != nil {
+		return nil, fmt.Errorf("failed linting: %w", err)
+	}
+
 	success = true
 	return &PythonProgram{dir}, nil
 }

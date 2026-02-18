@@ -44,4 +44,4 @@ require (
 
 replace github.com/cactus/go-statsd-client => github.com/cactus/go-statsd-client v3.2.1+incompatible
 
-replace go.temporal.io/sdk => github.com/temporalio/sdk-go v1.40.1-0.20260218000401-cd7be10ff079
+replace go.temporal.io/sdk => github.com/temporalio/sdk-go v1.40.1-0.20260218031808-37a562c4c48e

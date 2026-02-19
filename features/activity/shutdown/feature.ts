@@ -46,6 +46,9 @@ export async function workflow(): Promise<string> {
   const fut = gracefulActivities.cancelSuccess();
   const fut1 = gracefulActivities.cancelFailure();
   const fut2 = ignoringActivities.cancelIgnore();
+  // Register rejection handlers eagerly in case harness is slow seeing first activity scheduled event
+  fut1.catch(() => {}); // eslint-disable-line @typescript-eslint/no-empty-function
+  fut2.catch(() => {}); // eslint-disable-line @typescript-eslint/no-empty-function
 
   await fut;
 

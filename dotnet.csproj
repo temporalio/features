@@ -16,7 +16,7 @@
 
   <!-- Default SDK version if not specified in command line -->
   <PropertyGroup Condition="'$(TemporalioVersion)' == '' And '$(TemporalioProjectReference)' == ''">
-    <TemporalioVersion>1.6.0</TemporalioVersion>
+    <TemporalioVersion>1.11.1</TemporalioVersion>
   </PropertyGroup>
 
   <Target Name="CheckCommandLineProperties">

@@ -17,7 +17,7 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "temporalio", specifier = ">=1.22.0,<2" }]
+requires-dist = [{ name = "temporalio", specifier = ">=1.23.0,<2" }]
 
 [package.metadata.requires-dev]
 dev = [

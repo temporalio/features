@@ -118,7 +118,7 @@ requires-python = "~=3.10"
 	if err := executeCommand("uv", "add", "--dev", "mypy"); err != nil {
 		return nil, fmt.Errorf("failed installing mypy: %w", err)
 	}
-	if err := executeCommand("uv", "run", "mypy", "--explicit-package-bases", "--namespace-packages", "."); err != nil {
+	if err := executeCommand("uv", "run", "mypy", "--explicit-package-bases", "--namespace-packages", dir); err != nil {
 		return nil, fmt.Errorf("failed type checking: %w", err)
 	}
 

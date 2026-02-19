@@ -114,9 +114,12 @@ requires-python = "~=3.10"
 	if err := executeCommand("uv", "sync"); err != nil {
 		return nil, fmt.Errorf("failed installing: %w", err)
 	}
-
-	if err := executeCommand("poe", "lint"); err != nil {
-		return nil, fmt.Errorf("failed linting: %w", err)
+	// Install mypy for type checking
+	if err := executeCommand("uv", "add", "--dev", "mypy"); err != nil {
+		return nil, fmt.Errorf("failed installing mypy: %w", err)
+	}
+	if err := executeCommand("uv", "run", "mypy", "--explicit-package-bases", "--namespace-packages", "."); err != nil {
+		return nil, fmt.Errorf("failed type checking: %w", err)
 	}
 
 	success = true

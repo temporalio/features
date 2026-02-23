@@ -29,10 +29,13 @@ export const feature = new Feature({
     // We test in a subprocess to not infect other things in this process. The
     // subprocess will make the client call to run the workflow, this will just
     // return the run.
-    const { tls, ...connectionOpts } = runner.connectionOpts;
+    const { tls, metadata, ...connectionOpts } = runner.connectionOpts;
     const subprocessOpts: SubprocessOpts = {
       connectionOpts: {
         ...connectionOpts,
+        ...(metadata && typeof metadata === 'object'
+          ? { metadata: Object.fromEntries(Object.entries(metadata).map(([key, value]) => [key, value.toString()])) }
+          : undefined),
         ...(tls && typeof tls === 'object'
           ? {
               tls: {

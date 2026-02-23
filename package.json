@@ -22,7 +22,8 @@
     "protobufjs": "7.5.1"
   },
   "devDependencies": {
-    "@tsconfig/node20": "^20.0.0",
+    "@tsconfig/node24": "^24.0.4",
+    "@types/node": "^24.1.0",
     "@types/ms": "^2.1.0",
     "@typescript-eslint/eslint-plugin": "^8.10.0",
     "@typescript-eslint/parser": "^8.10.0",

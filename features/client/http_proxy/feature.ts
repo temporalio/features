@@ -23,7 +23,7 @@ export const feature = new Feature({
     const url = new URL(runner.options.proxyUrl);
     const proxyUrl = url.toString();
 
-    const { tls, ...connectionOpts } = runner.connectionOpts;
+    const { tls, metadata, ...connectionOpts } = runner.connectionOpts;
 
     // Proxying config is internally passed to @grpc/grpc-js using an environment variable.
     // We test in a subprocess to not infect other things in this process. The
@@ -32,6 +32,9 @@ export const feature = new Feature({
     const subprocessOpts: SubprocessOpts = {
       connectionOpts: {
         ...connectionOpts,
+        ...(metadata && typeof metadata === 'object'
+          ? { metadata: Object.fromEntries(Object.entries(metadata).map(([key, value]) => [key, value.toString()])) }
+          : undefined),
         ...(tls && typeof tls === 'object'
           ? {
               tls: {

@@ -144,11 +144,10 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
     "uuid": "^8.3.2"
   },
   "devDependencies": {
-    "@tsconfig/node16": "^1.0.0",
-    "@types/node": "^16.11.59",
-    "@types/uuid": "^8.3.4",
+    "@tsconfig/node24": "^24.0.4",
+    "@types/node": "^24.1.0",
     "tsconfig-paths": "^3.12.0",
-    "typescript": "^5.8.3"
+    "typescript": "^5.9.3"
   },
   "overrides": {
 		"protobufjs": "7.5.1"
@@ -190,8 +189,8 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 		quotedExcludes[i] = strconv.Quote(exclude)
 	}
 	tsConfig := `{
-  "extends": "@tsconfig/node16/tsconfig.json",
-  "version": "5.8.3",
+  "extends": "@tsconfig/node24/tsconfig.json",
+  "version": "5.9.3",
   "compilerOptions": {
     "baseUrl": ".",
     "outDir": "./tslib",

@@ -1,7 +1,7 @@
-import * as wf from '@temporalio/workflow';
-import { Feature } from '@temporalio/harness';
 import * as assert from 'assert';
 import ms from 'ms';
+import * as wf from '@temporalio/workflow';
+import { Feature } from '@temporalio/harness';
 import { Duration, StringValue } from '@temporalio/common';
 import { WorkflowUpdateStage } from '@temporalio/client';
 

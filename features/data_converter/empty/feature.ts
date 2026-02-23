@@ -1,13 +1,13 @@
+import * as assert from 'assert';
 import { JSONToPayload } from '@temporalio/common/lib/proto-utils';
 import { Feature } from '@temporalio/harness';
-import * as assert from 'assert';
 import { ApplicationFailure } from '@temporalio/common';
-import expectedPayload from './payload.json';
 import * as wf from '@temporalio/workflow';
+import expectedPayload from './payload.json';
 
 const activitiesImpl = {
   async activity(input: any): Promise<void> {
-    if (input != undefined) {
+    if (input !== undefined) {
       throw ApplicationFailure.nonRetryable('Activity input should be undefined', 'BadResult');
     }
   },

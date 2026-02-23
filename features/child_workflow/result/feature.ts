@@ -1,6 +1,6 @@
+import * as assert from 'assert';
 import * as wf from '@temporalio/workflow';
 import { Feature } from '@temporalio/harness';
-import * as assert from 'assert';
 
 const ChildWorkflowInput = 'test';
 

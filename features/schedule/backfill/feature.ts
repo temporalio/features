@@ -1,7 +1,7 @@
-import { Feature, retry } from '@temporalio/harness';
-import { ScheduleClient, Connection, ScheduleOverlapPolicy } from '@temporalio/client';
 import * as assert from 'assert';
 import { randomUUID } from 'crypto';
+import { Feature, retry } from '@temporalio/harness';
+import { ScheduleClient, Connection, ScheduleOverlapPolicy } from '@temporalio/client';
 
 export async function workflow(arg: string): Promise<string> {
   return arg;
@@ -58,7 +58,7 @@ export const feature = new Feature({
         await retry(async function () {
           return handle.describe().then((s) => {
             // TODO: remove the == 4 case after server 1.24
-            return (s.info.numActionsTaken == 6 || s.info.numActionsTaken == 4) && s.info.runningActions.length == 0;
+            return (s.info.numActionsTaken === 6 || s.info.numActionsTaken === 4) && s.info.runningActions.length === 0;
           });
         }, 10),
       );

@@ -1,9 +1,9 @@
+import * as assert from 'assert';
 import { Context } from '@temporalio/activity';
 import * as wf from '@temporalio/workflow';
 import { WorkflowFailedError } from '@temporalio/client';
 import { TemporalFailure } from '@temporalio/common';
 import { Feature } from '@temporalio/harness';
-import * as assert from 'assert';
 
 // Allow 4 retries with no backoff
 const activities = wf.proxyActivities<typeof activitiesImpl>({

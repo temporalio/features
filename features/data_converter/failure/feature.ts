@@ -1,5 +1,5 @@
-import { Feature } from '@temporalio/harness';
 import * as assert from 'assert';
+import { Feature } from '@temporalio/harness';
 import { ApplicationFailure } from '@temporalio/common';
 
 // Run a workflow that fails
@@ -18,7 +18,7 @@ export const feature = new Feature({
       await handle.result();
       // Workflow should fail
       assert.fail();
-    } catch (error) {
+    } catch (_error) {
       // get result payload of an WorkflowExecutionFailed event from workflow history
       const events = await runner.getHistoryEvents(handle);
       const completedEvent = events.find(

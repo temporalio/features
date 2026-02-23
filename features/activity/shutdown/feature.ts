@@ -1,7 +1,7 @@
+import * as assert from 'assert';
 import { Feature } from '@temporalio/harness';
 import * as wf from '@temporalio/workflow';
 import { ApplicationFailure, TimeoutFailure, TimeoutType } from '@temporalio/common';
-import * as assert from 'assert';
 
 // Promise and helper used for activities to detect worker shutdown
 let shutdownRequested = false;
@@ -47,8 +47,8 @@ export async function workflow(): Promise<string> {
   const fut1 = gracefulActivities.cancelFailure();
   const fut2 = ignoringActivities.cancelIgnore();
   // Register rejection handlers eagerly in case harness is slow seeing first activity scheduled event
-  fut1.catch(() => {}); // eslint-disable-line @typescript-eslint/no-empty-function
-  fut2.catch(() => {}); // eslint-disable-line @typescript-eslint/no-empty-function
+  fut1.catch(() => {});
+  fut2.catch(() => {});
 
   await fut;
 

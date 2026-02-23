@@ -2,8 +2,7 @@ import assert from 'assert';
 import { fork } from 'child_process';
 import { randomUUID } from 'crypto';
 import { Client, ClientOptions, Connection, ConnectionOptions } from '@temporalio/client';
-import { Feature } from '@temporalio/harness';
-import { ReplaceNested } from '@temporalio/harness';
+import { ReplaceNested, Feature } from '@temporalio/harness';
 
 export async function workflow(): Promise<void> {
   return;

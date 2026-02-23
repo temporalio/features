@@ -1,10 +1,10 @@
-import { FeatureSource, Runner } from './harness';
+import * as path from 'path';
+import * as fs from 'fs';
+import { Command } from 'commander';
 import { Runtime, DefaultLogger } from '@temporalio/worker';
 import pkg from '@temporalio/worker/lib/pkg';
-import { Command } from 'commander';
-import * as path from 'path';
 import { TLSConfig } from '@temporalio/client';
-import * as fs from 'fs';
+import { FeatureSource, Runner } from './harness';
 
 async function run() {
   const program = new Command();

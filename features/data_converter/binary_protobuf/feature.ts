@@ -1,6 +1,6 @@
+import * as assert from 'assert';
 import { Feature } from '@temporalio/harness';
 import * as proto from '@temporalio/proto';
-import * as assert from 'assert';
 
 // Inject Buffer and Uint8Array from the node context to the workflow context to workaround SDK bug
 // TODO(antlai-temporal) Remove when SDK bug is fixed

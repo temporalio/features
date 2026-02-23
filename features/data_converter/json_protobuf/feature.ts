@@ -1,9 +1,9 @@
+import * as assert from 'assert';
+import { fromProto3JSON } from 'proto3-json-serializer';
 import { Feature } from '@temporalio/harness';
 import * as proto from '@temporalio/proto';
 import { patchProtobufRoot } from '@temporalio/proto/lib/patch-protobuf-root';
-import { fromProto3JSON } from 'proto3-json-serializer';
 import { decode } from '@temporalio/common/lib/encoding';
-import * as assert from 'assert';
 
 // Cast to `any` because the generated proto module types are missing the `lookupType` method
 const patched = patchProtobufRoot(proto) as any;

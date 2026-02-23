@@ -1,4 +1,7 @@
 import { randomUUID } from 'node:crypto';
+import { promises as fs } from 'fs';
+import { setTimeout } from 'timers/promises';
+import * as path from 'path';
 import {
   Connection,
   Client,
@@ -11,10 +14,7 @@ import {
 import * as proto from '@temporalio/proto';
 import { DataConverter, UntypedActivities, Workflow, WorkflowResultType } from '@temporalio/common';
 import { Worker, WorkerOptions, NativeConnection, NativeConnectionOptions } from '@temporalio/worker';
-import { promises as fs } from 'fs';
-import * as path from 'path';
 import { ConnectionInjectorInterceptor } from './activity-interceptors';
-import { setTimeout } from 'timers/promises';
 import type { ReplaceNested } from './type-helpers';
 
 export { getConnection, getClient, Context } from './activity-interceptors';
@@ -107,9 +107,8 @@ export class FeatureSource {
     readonly absDir: string,
   ) {}
 
-  loadFeature<W extends Workflow, A extends UntypedActivities>(): Feature<W, A> {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    return require(path.join(this.absDir, 'feature.js')).feature;
+  async loadFeature<W extends Workflow, A extends UntypedActivities>(): Promise<Feature<W, A>> {
+    return (await import(path.join(this.absDir, 'feature.js'))).feature;
   }
 }
 
@@ -124,7 +123,7 @@ export interface RunnerOptions {
 export class Runner<W extends Workflow, A extends UntypedActivities> {
   static async create(source: FeatureSource, options: RunnerOptions): Promise<Runner<Workflow, UntypedActivities>> {
     // Load the feature
-    const feature = source.loadFeature();
+    const feature = await source.loadFeature();
 
     // Connect to client
     const connectionOpts: ConnectionOptions = {

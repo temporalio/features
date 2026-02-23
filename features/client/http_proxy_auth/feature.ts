@@ -2,8 +2,7 @@ import assert from 'assert';
 import { fork } from 'child_process';
 import { randomUUID } from 'crypto';
 import { Client, ClientOptions, Connection, ConnectionOptions } from '@temporalio/client';
-import { Feature } from '@temporalio/harness';
-import { ReplaceNested } from '@temporalio/harness';
+import { ReplaceNested, Feature } from '@temporalio/harness';
 
 export async function workflow(): Promise<void> {
   return;
@@ -44,9 +43,9 @@ export const feature = new Feature({
                 clientCertPair: tls.clientCertPair
                   ? {
                       // Can't serialize Buffers safely to JSON, so let's cheat a bit
-                      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
                       crt: Buffer.from(tls.clientCertPair!.crt).toString('base64'),
-                      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
                       key: Buffer.from(tls.clientCertPair!.key).toString('base64'),
                     }
                   : undefined,
@@ -94,9 +93,8 @@ async function subprocess() {
               : undefined,
             clientCertPair: tls.clientCertPair
               ? {
-                  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                   crt: new Uint8Array(Buffer.from(tls.clientCertPair!.crt as string, 'base64')),
-                  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
                   key: new Uint8Array(Buffer.from(tls.clientCertPair!.key as string, 'base64')),
                 }
               : undefined,

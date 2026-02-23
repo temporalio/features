@@ -36,7 +36,7 @@ export const feature = new Feature({
     await assert.rejects(runner.waitForRunResult(handle), (err) => {
       assert.ok(
         err instanceof WorkflowFailedError,
-        `expected WorkflowFailedError, got ${typeof err}, message: ${(err as any).message}`
+        `expected WorkflowFailedError, got ${typeof err}, message: ${(err as any).message}`,
       );
       assert.ok(err.cause instanceof TemporalFailure);
       assert.equal(err.cause.cause?.message, 'activity attempt 5 failed');

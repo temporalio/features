@@ -2,7 +2,7 @@
 // tsconfig is generated when running the code.
 {
   "extends": "@tsconfig/node20/tsconfig.json",
-  "version": "5.8.0",
+  "version": "5.9.3",
   "compilerOptions": {
     "outDir": "./tslib",
     "baseUrl": ".",

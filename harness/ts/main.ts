@@ -44,8 +44,8 @@ async function run() {
     if (!opts.clientKeyPath) {
       throw new Error('Client cert path specified but no key path!');
     }
-    const crt = fs.readFileSync(opts.clientCertPath);
-    const key = fs.readFileSync(opts.clientKeyPath);
+    const crt = new Uint8Array(fs.readFileSync(opts.clientCertPath));
+    const key = new Uint8Array(fs.readFileSync(opts.clientKeyPath));
     tlsConfig = {
       clientCertPair: {
         crt,
@@ -53,7 +53,7 @@ async function run() {
       },
     };
     if (opts.caCertPath) {
-      tlsConfig.serverRootCACertificate = fs.readFileSync(opts.caCertPath);
+      tlsConfig.serverRootCACertificate = new Uint8Array(fs.readFileSync(opts.caCertPath));
     }
     if (opts.tlsServerName) {
       tlsConfig.serverNameOverride = opts.tlsServerName;

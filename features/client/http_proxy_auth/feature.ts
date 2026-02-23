@@ -3,13 +3,14 @@ import { fork } from 'child_process';
 import { randomUUID } from 'crypto';
 import { Client, ClientOptions, Connection, ConnectionOptions } from '@temporalio/client';
 import { Feature } from '@temporalio/harness';
+import { ReplaceNested } from '@temporalio/harness';
 
 export async function workflow(): Promise<void> {
   return;
 }
 
 interface SubprocessOpts {
-  connectionOpts: ConnectionOptions;
+  connectionOpts: ReplaceNested<ConnectionOptions, Uint8Array<ArrayBufferLike>, string>;
   clientOpts: ClientOptions;
   taskQueue: string;
 }
@@ -29,24 +30,26 @@ export const feature = new Feature({
     // We test in a subprocess to not infect other things in this process. The
     // subprocess will make the client call to run the workflow, this will just
     // return the run.
+    const { tls, ...connectionOpts } = runner.connectionOpts;
     const subprocessOpts: SubprocessOpts = {
       connectionOpts: {
-        ...runner.connectionOpts,
-        ...(typeof runner.connectionOpts?.tls === 'object'
+        ...connectionOpts,
+        ...(tls && typeof tls === 'object'
           ? {
               tls: {
-                ...runner.connectionOpts.tls,
-                clientCertPair: {
-                  // Can't serialize Buffers safely to JSON, so let's cheat a bit
-                  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                  crt: Buffer.from(runner.connectionOpts.tls!.clientCertPair!.crt).toString(
-                    'base64'
-                  ) as unknown as Buffer,
-                  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                  key: Buffer.from(runner.connectionOpts.tls!.clientCertPair!.key).toString(
-                    'base64'
-                  ) as unknown as Buffer,
-                },
+                serverNameOverride: tls.serverNameOverride,
+                serverRootCACertificate: tls.serverRootCACertificate
+                  ? Buffer.from(tls.serverRootCACertificate).toString('base64')
+                  : undefined,
+                clientCertPair: tls.clientCertPair
+                  ? {
+                      // Can't serialize Buffers safely to JSON, so let's cheat a bit
+                      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                      crt: Buffer.from(tls.clientCertPair!.crt).toString('base64'),
+                      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                      key: Buffer.from(tls.clientCertPair!.key).toString('base64'),
+                    }
+                  : undefined,
               },
             }
           : undefined),
@@ -79,19 +82,24 @@ async function subprocess() {
   if (typeof process.env.subprocess_opts !== 'string')
     throw new Error('Expected process.env.subprocess_opts to be a string');
   const { connectionOpts, clientOpts, taskQueue } = JSON.parse(process.env.subprocess_opts) as SubprocessOpts;
+  const { tls, ...connectionOptsRest } = connectionOpts;
   const connection = await Connection.connect({
-    ...connectionOpts,
-    ...(typeof connectionOpts?.tls === 'object'
+    ...connectionOptsRest,
+    ...(tls && typeof tls === 'object'
       ? {
           tls: {
-            ...connectionOpts.tls,
-            // Can't serialize Buffers safely to JSON, so let's cheat a bit
-            clientCertPair: {
-              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-              crt: Buffer.from(connectionOpts.tls!.clientCertPair!.crt as unknown as string, 'base64'),
-              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-              key: Buffer.from(connectionOpts.tls!.clientCertPair!.key as unknown as string, 'base64'),
-            },
+            serverNameOverride: tls.serverNameOverride,
+            serverRootCACertificate: tls.serverRootCACertificate
+              ? new Uint8Array(Buffer.from(tls.serverRootCACertificate as string, 'base64'))
+              : undefined,
+            clientCertPair: tls.clientCertPair
+              ? {
+                  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                  crt: new Uint8Array(Buffer.from(tls.clientCertPair!.crt as string, 'base64')),
+                  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                  key: new Uint8Array(Buffer.from(tls.clientCertPair!.key as string, 'base64')),
+                }
+              : undefined,
           },
         }
       : undefined),

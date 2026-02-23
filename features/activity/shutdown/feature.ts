@@ -95,7 +95,7 @@ export const feature = new Feature({
       () => runner.getHistoryEvents(handle),
       (event) => !!event.activityTaskScheduledEventAttributes,
       5000, // 5 second timeout
-      100 // 100ms poll interval
+      100, // 100ms poll interval
     );
 
     notifyShutdown();

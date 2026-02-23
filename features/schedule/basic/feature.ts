@@ -98,7 +98,7 @@ export const feature = new Feature({
       assert.ok(
         await retry(async function () {
           return waitCompletedWith('arg2');
-        }, 10)
+        }, 10),
       );
     } finally {
       await handle.delete();

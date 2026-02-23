@@ -50,7 +50,7 @@ export const feature = new Feature({
           return handle.describe().then((s) => {
             return s.info.numActionsTaken === 2;
           });
-        })
+        }),
       );
     } finally {
       await handle.delete();

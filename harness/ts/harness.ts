@@ -15,7 +15,10 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 import { ConnectionInjectorInterceptor } from './activity-interceptors';
 import { setTimeout } from 'timers/promises';
+import type { ReplaceNested } from './type-helpers';
+
 export { getConnection, getClient, Context } from './activity-interceptors';
+export type { ReplaceNested };
 
 export interface FeatureOptions<W extends Workflow, A extends UntypedActivities> {
   /**
@@ -101,7 +104,7 @@ export class FeatureSource {
   constructor(
     // Relative to features/ root _and_ uses / for platform independence
     readonly relDir: string,
-    readonly absDir: string
+    readonly absDir: string,
   ) {}
 
   loadFeature<W extends Workflow, A extends UntypedActivities>(): Feature<W, A> {
@@ -185,7 +188,7 @@ export class Runner<W extends Workflow, A extends UntypedActivities> {
       nativeConnectionOpts,
       worker,
       workerOpts,
-      workerRunPromise
+      workerRunPromise,
     );
   }
 
@@ -199,7 +202,7 @@ export class Runner<W extends Workflow, A extends UntypedActivities> {
     readonly nativeConnectionOpts: NativeConnectionOptions,
     private _worker: Worker,
     readonly workerOpts: WorkerOptions,
-    private _workerRunPromise: Promise<void>
+    private _workerRunPromise: Promise<void>,
   ) {}
 
   async run(): Promise<void> {
@@ -274,7 +277,7 @@ export class Runner<W extends Workflow, A extends UntypedActivities> {
   }
 
   async waitForRunResult<W extends Workflow>(
-    run: WorkflowHandleWithFirstExecutionRunId<W>
+    run: WorkflowHandleWithFirstExecutionRunId<W>,
   ): Promise<WorkflowResultType<W>> {
     return await run.result();
   }
@@ -309,7 +312,7 @@ export class Runner<W extends Workflow, A extends UntypedActivities> {
   async getWorkflowResultPayload(handle: WorkflowHandle): Promise<proto.temporal.api.common.v1.IPayload | void> {
     const events = await this.getHistoryEvents(handle);
     const completedEvent = events.find(
-      ({ workflowExecutionCompletedEventAttributes }) => !!workflowExecutionCompletedEventAttributes
+      ({ workflowExecutionCompletedEventAttributes }) => !!workflowExecutionCompletedEventAttributes,
     );
     return completedEvent?.workflowExecutionCompletedEventAttributes?.result?.payloads?.[0];
   }
@@ -317,7 +320,7 @@ export class Runner<W extends Workflow, A extends UntypedActivities> {
   async getWorkflowArgumentPayload(handle: WorkflowHandle): Promise<proto.temporal.api.common.v1.IPayload | void> {
     const events = await this.getHistoryEvents(handle);
     const startedEvent = events.find(
-      ({ workflowExecutionStartedEventAttributes }) => !!workflowExecutionStartedEventAttributes
+      ({ workflowExecutionStartedEventAttributes }) => !!workflowExecutionStartedEventAttributes,
     );
     return startedEvent?.workflowExecutionStartedEventAttributes?.input?.payloads?.[0];
   }
@@ -337,7 +340,7 @@ export async function waitForEvent(
   getEvents: () => Promise<proto.temporal.api.history.v1.IHistoryEvent[]>,
   predicate: (event: proto.temporal.api.history.v1.IHistoryEvent) => boolean,
   timeout = 30000,
-  pollInterval = 100
+  pollInterval = 100,
 ): Promise<proto.temporal.api.history.v1.IHistoryEvent> {
   const start = Date.now();
 

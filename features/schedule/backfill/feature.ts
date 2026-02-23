@@ -60,7 +60,7 @@ export const feature = new Feature({
             // TODO: remove the == 4 case after server 1.24
             return (s.info.numActionsTaken == 6 || s.info.numActionsTaken == 4) && s.info.runningActions.length == 0;
           });
-        }, 10)
+        }, 10),
       );
     } finally {
       await handle.delete();

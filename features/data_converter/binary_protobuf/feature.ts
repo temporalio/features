@@ -14,7 +14,7 @@ const expectedResult = proto.temporal.api.common.v1.DataBlob.create({
 
 // An "echo" workflow
 export async function workflow(
-  res: proto.temporal.api.common.v1.DataBlob
+  res: proto.temporal.api.common.v1.DataBlob,
 ): Promise<proto.temporal.api.common.v1.DataBlob> {
   return res;
 }

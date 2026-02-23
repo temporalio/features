@@ -6,9 +6,9 @@ import { decode, encode } from '@temporalio/common/lib/encoding';
 
 const toBase64 = (inArray: Uint8Array): Uint8Array => {
   const buf = Buffer.from(inArray);
-  return Buffer.from(buf.toString('base64'), 'ascii');
+  return new Uint8Array(Buffer.from(buf.toString('base64'), 'ascii'));
 };
-const fromBase64 = (inArray: Uint8Array): Uint8Array => Buffer.from(decode(inArray), 'base64');
+const fromBase64 = (inArray: Uint8Array): Uint8Array => new Uint8Array(Buffer.from(decode(inArray), 'base64'));
 
 class Base64Codec implements PayloadCodec {
   async encode(payloads: Payload[]): Promise<Payload[]> {

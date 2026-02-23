@@ -22,7 +22,7 @@ export const feature = new Feature({
       // get result payload of an WorkflowExecutionFailed event from workflow history
       const events = await runner.getHistoryEvents(handle);
       const completedEvent = events.find(
-        ({ workflowExecutionFailedEventAttributes }) => !!workflowExecutionFailedEventAttributes
+        ({ workflowExecutionFailedEventAttributes }) => !!workflowExecutionFailedEventAttributes,
       );
 
       const failure = completedEvent?.workflowExecutionFailedEventAttributes?.failure;

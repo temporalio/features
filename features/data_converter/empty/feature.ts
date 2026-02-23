@@ -33,7 +33,7 @@ export const feature = new Feature({
     // get result payload of ActivityTaskScheduled event from workflow history
     const events = await runner.getHistoryEvents(handle);
     const completedEvent = events.find(
-      ({ activityTaskScheduledEventAttributes }) => !!activityTaskScheduledEventAttributes
+      ({ activityTaskScheduledEventAttributes }) => !!activityTaskScheduledEventAttributes,
     );
 
     const payload = completedEvent?.activityTaskScheduledEventAttributes?.input?.payloads?.[0];

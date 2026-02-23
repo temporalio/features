@@ -12,18 +12,18 @@ export const feature = new Feature({
   workflow,
   checkResult: async (_, handle) => {
     const timeToAccept = await time(
-      handle.startUpdate(myUpdate, { args: [requestedSleep, false], waitForStage: WorkflowUpdateStage.ACCEPTED })
+      handle.startUpdate(myUpdate, { args: [requestedSleep, false], waitForStage: WorkflowUpdateStage.ACCEPTED }),
     );
     const timeToComplete = await time(handle.executeUpdate(myUpdate, { args: [requestedSleep, false] }));
     assert.equal(
       ms(timeToAccept) < ms(requestedSleep),
       true,
-      `Expected timeToAccept (${timeToAccept}) < requestedSleep (${requestedSleep})`
+      `Expected timeToAccept (${timeToAccept}) < requestedSleep (${requestedSleep})`,
     );
     assert.equal(
       ms(timeToComplete) >= ms(requestedSleep),
       true,
-      `Expected timeToComplete (${timeToComplete}) >= requestedSleep (${requestedSleep})`
+      `Expected timeToComplete (${timeToComplete}) >= requestedSleep (${requestedSleep})`,
     );
     await handle.executeUpdate(myUpdate, { args: [0, true] });
     await handle.result();

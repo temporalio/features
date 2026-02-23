@@ -38,6 +38,10 @@ export const feature = new Feature({
         ...(tls && typeof tls === 'object'
           ? {
               tls: {
+                serverNameOverride: tls.serverNameOverride,
+                serverRootCACertificate: tls.serverRootCACertificate
+                  ? Buffer.from(tls.serverRootCACertificate).toString('base64')
+                  : undefined,
                 clientCertPair: {
                   // Can't serialize Buffers safely to JSON, so let's cheat a bit
                   crt: Buffer.from(tls.clientCertPair!.crt).toString('base64'),
@@ -84,6 +88,10 @@ async function subprocess() {
     ...(tls && typeof tls === 'object'
       ? {
           tls: {
+            serverNameOverride: tls.serverNameOverride,
+            serverRootCACertificate: tls.serverRootCACertificate
+              ? new Uint8Array(Buffer.from(tls.serverRootCACertificate as string, 'base64'))
+              : undefined,
             clientCertPair: {
               crt: new Uint8Array(Buffer.from(tls.clientCertPair!.crt, 'base64')),
               key: new Uint8Array(Buffer.from(tls.clientCertPair!.key, 'base64')),

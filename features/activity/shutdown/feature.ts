@@ -47,8 +47,8 @@ export async function workflow(): Promise<string> {
   const fut1 = gracefulActivities.cancelFailure();
   const fut2 = ignoringActivities.cancelIgnore();
   // Register rejection handlers eagerly in case harness is slow seeing first activity scheduled event
-  fut1.catch(() => {});
-  fut2.catch(() => {});
+  void fut1.catch(() => {});
+  void fut2.catch(() => {});
 
   await fut;
 

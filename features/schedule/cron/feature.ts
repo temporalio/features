@@ -3,7 +3,7 @@ import * as wf from '@temporalio/workflow';
 import { temporal } from '@temporalio/proto';
 
 export async function workflow(): Promise<void> {
-  if (wf.workflowInfo().cronSchedule != '@every 2s') {
+  if (wf.workflowInfo().cronSchedule !== '@every 2s') {
     throw new Error('Invalid cron schedule');
   }
 }
@@ -21,9 +21,9 @@ export const feature = new Feature({
           query: `WorkflowId = '${handle.workflowId}'`,
         });
         const completed = resp.executions.filter((info) => {
-          if (info.status == temporal.api.enums.v1.WorkflowExecutionStatus.WORKFLOW_EXECUTION_STATUS_COMPLETED) {
+          if (info.status === temporal.api.enums.v1.WorkflowExecutionStatus.WORKFLOW_EXECUTION_STATUS_COMPLETED) {
             return true;
-          } else if (info.status != temporal.api.enums.v1.WorkflowExecutionStatus.WORKFLOW_EXECUTION_STATUS_RUNNING) {
+          } else if (info.status !== temporal.api.enums.v1.WorkflowExecutionStatus.WORKFLOW_EXECUTION_STATUS_RUNNING) {
             throw new Error('Not running');
           }
           return false;

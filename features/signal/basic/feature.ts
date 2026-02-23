@@ -1,6 +1,6 @@
+import * as assert from 'assert';
 import { Feature } from '@temporalio/harness';
 import * as wf from '@temporalio/workflow';
-import * as assert from 'assert';
 
 const mySignal = wf.defineSignal<string[]>('mySignal');
 const signalData = 'signal-data';
@@ -19,6 +19,6 @@ export async function workflow(): Promise<string> {
   wf.setHandler(mySignal, (str: string) => {
     result = str;
   });
-  await wf.condition(() => result != '');
+  await wf.condition(() => result !== '');
   return result;
 }

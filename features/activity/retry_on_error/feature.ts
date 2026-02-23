@@ -1,9 +1,9 @@
+import * as assert from 'assert';
 import { Context } from '@temporalio/activity';
 import * as wf from '@temporalio/workflow';
 import { WorkflowFailedError } from '@temporalio/client';
 import { TemporalFailure } from '@temporalio/common';
 import { Feature } from '@temporalio/harness';
-import * as assert from 'assert';
 
 // Allow 4 retries with no backoff
 const activities = wf.proxyActivities<typeof activitiesImpl>({
@@ -36,7 +36,7 @@ export const feature = new Feature({
     await assert.rejects(runner.waitForRunResult(handle), (err) => {
       assert.ok(
         err instanceof WorkflowFailedError,
-        `expected WorkflowFailedError, got ${typeof err}, message: ${(err as any).message}`
+        `expected WorkflowFailedError, got ${typeof err}, message: ${(err as any).message}`,
       );
       assert.ok(err.cause instanceof TemporalFailure);
       assert.equal(err.cause.cause?.message, 'activity attempt 5 failed');

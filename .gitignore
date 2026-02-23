@@ -19,6 +19,9 @@ node_modules
 __pycache__
 pyrightconfig.json
 
+# .NET stuff
+features.sln
+
 # Build stuff
 bin
 obj

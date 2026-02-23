@@ -1,6 +1,6 @@
+import * as assert from 'assert';
 import { Feature } from '@temporalio/harness';
 import * as wf from '@temporalio/workflow';
-import * as assert from 'assert';
 
 const mySignal = wf.defineSignal<any[]>('mySignal');
 const activityCount = 5;

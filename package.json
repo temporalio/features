@@ -32,6 +32,6 @@
     "prettier": "^2.3.2",
     "ts-node": "^10.4.0",
     "tsconfig-paths": "^3.12.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.8.3"
   }
 }

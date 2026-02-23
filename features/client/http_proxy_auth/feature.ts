@@ -106,7 +106,7 @@ async function subprocess() {
       : undefined),
   });
   try {
-    const client = await new Client({
+    const client = new Client({
       ...clientOpts,
       connection,
     });

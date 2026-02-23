@@ -92,16 +92,18 @@ async function subprocess() {
             serverRootCACertificate: tls.serverRootCACertificate
               ? new Uint8Array(Buffer.from(tls.serverRootCACertificate as string, 'base64'))
               : undefined,
-            clientCertPair: {
-              crt: new Uint8Array(Buffer.from(tls.clientCertPair!.crt, 'base64')),
-              key: new Uint8Array(Buffer.from(tls.clientCertPair!.key, 'base64')),
-            },
+            clientCertPair: tls.clientCertPair
+              ? {
+                  crt: new Uint8Array(Buffer.from(tls.clientCertPair!.crt, 'base64')),
+                  key: new Uint8Array(Buffer.from(tls.clientCertPair!.key, 'base64')),
+                }
+              : undefined,
           },
         }
       : undefined),
   });
   try {
-    const client = await new Client({
+    const client = new Client({
       ...clientOpts,
       connection,
     });

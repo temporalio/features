@@ -1,10 +1,10 @@
-import { FeatureSource, Runner } from './harness';
+import * as path from 'path';
+import * as fs from 'fs';
+import { Command } from 'commander';
 import { Runtime, DefaultLogger } from '@temporalio/worker';
 import pkg from '@temporalio/worker/lib/pkg';
-import { Command } from 'commander';
-import * as path from 'path';
 import { TLSConfig } from '@temporalio/client';
-import * as fs from 'fs';
+import { FeatureSource, Runner } from './harness';
 
 async function run() {
   const program = new Command();
@@ -44,8 +44,8 @@ async function run() {
     if (!opts.clientKeyPath) {
       throw new Error('Client cert path specified but no key path!');
     }
-    const crt = fs.readFileSync(opts.clientCertPath);
-    const key = fs.readFileSync(opts.clientKeyPath);
+    const crt = new Uint8Array(fs.readFileSync(opts.clientCertPath));
+    const key = new Uint8Array(fs.readFileSync(opts.clientKeyPath));
     tlsConfig = {
       clientCertPair: {
         crt,
@@ -53,7 +53,7 @@ async function run() {
       },
     };
     if (opts.caCertPath) {
-      tlsConfig.serverRootCACertificate = fs.readFileSync(opts.caCertPath);
+      tlsConfig.serverRootCACertificate = new Uint8Array(fs.readFileSync(opts.caCertPath));
     }
     if (opts.tlsServerName) {
       tlsConfig.serverNameOverride = opts.tlsServerName;

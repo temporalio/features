@@ -5,7 +5,10 @@ import { ActivityExecuteInput, ActivityInboundCallsInterceptor, Next } from '@te
 // FIXME: Remove this interceptor once 1.12.4 has been released
 //        https://github.com/temporalio/sdk-typescript/pull/1769
 export class ConnectionInjectorInterceptor implements ActivityInboundCallsInterceptor {
-  constructor(public readonly connection: Connection, public readonly client: Client) {}
+  constructor(
+    public readonly connection: Connection,
+    public readonly client: Client,
+  ) {}
   async execute(input: ActivityExecuteInput, next: Next<ActivityInboundCallsInterceptor, 'execute'>): Promise<unknown> {
     Object.assign(activity.Context.current(), {
       injectedConnection: this.connection,

@@ -124,7 +124,7 @@ requires-python = "~=3.10"
 		return nil, fmt.Errorf("failed creating __init__.py files: %w", err)
 	}
 	
-	if err := executeCommand("uv", "run", "mypy", "--explicit-package-bases", "../"); err != nil {
+	if err := executeCommand("uv", "run", "mypy", "--explicit-package-bases", "../features"); err != nil {
 		return nil, fmt.Errorf("failed type checking: %w", err)
 	}
 

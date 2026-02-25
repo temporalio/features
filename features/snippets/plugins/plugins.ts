@@ -1,19 +1,20 @@
+import * as nexus from 'nexus-rpc';
 import { SimplePlugin } from '@temporalio/plugin';
 import { PayloadCodec, Payload } from '@temporalio/common';
 import { WorkflowClientInterceptor } from '@temporalio/client';
 import { ActivityInboundCallsInterceptor, ActivityOutboundCallsInterceptor } from '@temporalio/worker';
-import * as nexus from 'nexus-rpc';
 
-// @@@SNIPSTART typescript-plugins-activity
-const activity = async () => 'activity';
-const plugin = new SimplePlugin({
-  name: 'plugin-name',
-  activities: {
-    pluginActivity: activity,
-  },
-});
-// @@@SNIPEND
-
+{
+  // @@@SNIPSTART typescript-plugins-activity
+  const activity = async () => 'activity';
+  const _plugin = new SimplePlugin({
+    name: 'plugin-name',
+    activities: {
+      pluginActivity: activity,
+    },
+  });
+  // @@@SNIPEND
+}
 {
   // @@@SNIPSTART typescript-plugins-nexus
   const testServiceHandler = nexus.serviceHandler(
@@ -26,7 +27,7 @@ const plugin = new SimplePlugin({
       },
     }
   );
-  const plugin = new SimplePlugin({
+  const _plugin = new SimplePlugin({
     name: 'plugin-name',
     nexusServices: [testServiceHandler],
   });
@@ -36,14 +37,14 @@ const plugin = new SimplePlugin({
 {
   // @@@SNIPSTART typescript-plugins-converter
   const codec: PayloadCodec = {
-    encode(payloads: Payload[]): Promise<Payload[]> {
+    encode(_payloads: Payload[]): Promise<Payload[]> {
       throw new Error();
     },
-    decode(payloads: Payload[]): Promise<Payload[]> {
+    decode(_payloads: Payload[]): Promise<Payload[]> {
       throw new Error();
     },
   };
-  const plugin = new SimplePlugin({
+  const _plugin = new SimplePlugin({
     name: 'plugin-name',
     dataConverter: (converter) => ({
       ...converter,
@@ -63,7 +64,7 @@ const plugin = new SimplePlugin({
 
   const workflowInterceptorsPath = '';
 
-  const plugin = new SimplePlugin({
+  const _plugin = new SimplePlugin({
     name: 'plugin-name',
     clientInterceptors: {
       workflow: [new MyWorkflowClientInterceptor()],

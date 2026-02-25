@@ -19,13 +19,14 @@
     "@temporalio/workflow": "^1.15.0",
     "commander": "^8.3.0",
     "ms": "^3.0.0-canary.1",
+    "nexus-rpc": "^0.0.1",
     "proto3-json-serializer": "^1.1.1",
     "protobufjs": "7.5.1"
   },
   "devDependencies": {
     "@tsconfig/node24": "^24.0.4",
-    "@types/node": "^24.1.0",
     "@types/ms": "^2.1.0",
+    "@types/node": "^24.1.0",
     "@typescript-eslint/eslint-plugin": "^8.10.0",
     "@typescript-eslint/parser": "^8.10.0",
     "eslint": "^9.26.0",

@@ -1,7 +1,7 @@
-import { Feature, retry } from '@temporalio/harness';
-import { ScheduleClient, Connection, ScheduleOverlapPolicy } from '@temporalio/client';
 import * as assert from 'assert';
 import { randomUUID } from 'crypto';
+import { Feature, retry } from '@temporalio/harness';
+import { ScheduleClient, Connection, ScheduleOverlapPolicy } from '@temporalio/client';
 
 export async function BasicWorkflow(arg: string): Promise<string> {
   return arg;
@@ -66,7 +66,7 @@ export const feature = new Feature({
           if (!exec.workflowId.startsWith(workflowId)) {
             continue;
           }
-          if (exec.status.name == 'COMPLETED') {
+          if (exec.status.name === 'COMPLETED') {
             const wfHandle = runner.client.workflow.getHandle(exec.workflowId, exec.runId);
             const result = await wfHandle.result();
             if (result === untilResult) {
@@ -98,7 +98,7 @@ export const feature = new Feature({
       assert.ok(
         await retry(async function () {
           return waitCompletedWith('arg2');
-        }, 10)
+        }, 10),
       );
     } finally {
       await handle.delete();

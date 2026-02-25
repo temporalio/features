@@ -1,5 +1,5 @@
-import { Feature } from '@temporalio/harness';
 import * as assert from 'assert';
+import { Feature } from '@temporalio/harness';
 import { METADATA_ENCODING_KEY, Payload, PayloadCodec, ValueError } from '@temporalio/common';
 import * as proto from '@temporalio/proto';
 import { decode, encode } from '@temporalio/common/lib/encoding';

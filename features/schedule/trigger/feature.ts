@@ -1,8 +1,8 @@
-import { Feature, retry } from '@temporalio/harness';
-import { ScheduleClient, Connection } from '@temporalio/client';
 import * as assert from 'assert';
 import { randomUUID } from 'crypto';
 import { setTimeout } from 'timers/promises';
+import { ScheduleClient, Connection } from '@temporalio/client';
+import { Feature, retry } from '@temporalio/harness';
 
 export async function workflow(arg: string): Promise<string> {
   return arg;
@@ -50,7 +50,7 @@ export const feature = new Feature({
           return handle.describe().then((s) => {
             return s.info.numActionsTaken === 2;
           });
-        })
+        }),
       );
     } finally {
       await handle.delete();

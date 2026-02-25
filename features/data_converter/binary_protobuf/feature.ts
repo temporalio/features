@@ -1,6 +1,6 @@
+import * as assert from 'assert';
 import { Feature } from '@temporalio/harness';
 import * as proto from '@temporalio/proto';
-import * as assert from 'assert';
 
 // Inject Buffer and Uint8Array from the node context to the workflow context to workaround SDK bug
 // TODO(antlai-temporal) Remove when SDK bug is fixed
@@ -14,7 +14,7 @@ const expectedResult = proto.temporal.api.common.v1.DataBlob.create({
 
 // An "echo" workflow
 export async function workflow(
-  res: proto.temporal.api.common.v1.DataBlob
+  res: proto.temporal.api.common.v1.DataBlob,
 ): Promise<proto.temporal.api.common.v1.DataBlob> {
   return res;
 }

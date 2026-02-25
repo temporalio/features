@@ -120,7 +120,7 @@ requires-python = "~=3.10"
 	}
 	
 	// Create __init__.py files in feature directories to make them proper Python packages
-	if err := executeCommand("find", "../features", "-name", "feature.py", "-execdir", "touch", "__init__.py", ";"); err != nil {
+	if err := executeCommand("find", "../features", "-type", "d", "-exec", "touch", "{}/__init__.py", ";"); err != nil {
 		return nil, fmt.Errorf("failed creating __init__.py files: %w", err)
 	}
 	

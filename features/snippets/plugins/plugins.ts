@@ -25,7 +25,7 @@ import { ActivityInboundCallsInterceptor, ActivityOutboundCallsInterceptor } fro
       async testSyncOp(_, input) {
         return input;
       },
-    }
+    },
   );
   const _plugin = new SimplePlugin({
     name: 'plugin-name',

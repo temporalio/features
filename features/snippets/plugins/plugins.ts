@@ -1,6 +1,7 @@
 import * as nexus from 'nexus-rpc';
+import { Context } from '@temporalio/activity';
 import { SimplePlugin } from '@temporalio/plugin';
-import { PayloadCodec, Payload } from '@temporalio/common';
+import { DataConverter, PayloadCodec, Payload } from '@temporalio/common';
 import { WorkflowClientInterceptor } from '@temporalio/client';
 import { ActivityInboundCallsInterceptor, ActivityOutboundCallsInterceptor } from '@temporalio/worker';
 
@@ -46,7 +47,7 @@ import { ActivityInboundCallsInterceptor, ActivityOutboundCallsInterceptor } fro
   };
   const _plugin = new SimplePlugin({
     name: 'plugin-name',
-    dataConverter: (converter) => ({
+    dataConverter: (converter: DataConverter) => ({
       ...converter,
       payloadCodecs: [...(converter?.payloadCodecs ?? []), codec],
     }),
@@ -75,7 +76,7 @@ import { ActivityInboundCallsInterceptor, ActivityOutboundCallsInterceptor } fro
       },
       workflowModules: [workflowInterceptorsPath],
       activity: [
-        (_) => ({
+        (_: Context) => ({
           inbound: new MyActivityInboundInterceptor(),
           outbound: new MyActivityOutboundInterceptor(),
         }),

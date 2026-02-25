@@ -26,7 +26,7 @@ import { ActivityInboundCallsInterceptor, ActivityOutboundCallsInterceptor } fro
       async testSyncOp(_, input) {
         return input;
       },
-    },
+    }
   );
   const _plugin = new SimplePlugin({
     name: 'plugin-name',
@@ -47,7 +47,7 @@ import { ActivityInboundCallsInterceptor, ActivityOutboundCallsInterceptor } fro
   };
   const _plugin = new SimplePlugin({
     name: 'plugin-name',
-    dataConverter: (converter: DataConverter) => ({
+    dataConverter: (converter: DataConverter | undefined) => ({
       ...converter,
       payloadCodecs: [...(converter?.payloadCodecs ?? []), codec],
     }),

@@ -1,7 +1,6 @@
 import { Context } from '@temporalio/activity';
-import { CancelledFailure } from '@temporalio/common';
+import { ActivityFailure, ApplicationFailure, CancelledFailure } from '@temporalio/common';
 import { Feature, getClient } from '@temporalio/harness';
-import { ActivityFailure, ApplicationFailure } from '@temporalio/common';
 import * as wf from '@temporalio/workflow';
 
 // Allow 4 retries with no backoff
@@ -39,7 +38,7 @@ export async function workflow(): Promise<void> {
 
   // Confirm signal is received saying the activity got the cancel
   const activityResult = await new Promise<string>((resolve) => wf.setHandler(activityResultSignal, resolve));
-  if (activityResult != 'cancelled') {
+  if (activityResult !== 'cancelled') {
     throw ApplicationFailure.nonRetryable(`Expected cancelled, got ${activityResult}`);
   }
 }

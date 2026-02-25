@@ -1,8 +1,8 @@
+import * as assert from 'assert';
 import { status } from '@grpc/grpc-js';
 import * as wf from '@temporalio/workflow';
 import { Feature } from '@temporalio/harness';
 import { ServiceError } from '@temporalio/client';
-import * as assert from 'assert';
 
 const finishSignal = wf.defineSignal('finish');
 const query = wf.defineQuery<boolean>('somequery');

@@ -1,5 +1,5 @@
-import { Feature } from '@temporalio/harness';
 import * as assert from 'assert';
+import { Feature } from '@temporalio/harness';
 import * as wf from '@temporalio/workflow';
 
 const increment = wf.defineUpdate<void>('increment');

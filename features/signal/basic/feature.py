@@ -22,8 +22,8 @@ class Workflow:
 
 
 async def start(runner: Runner) -> WorkflowHandle:
-    handle: WorkflowHandle = await runner.client.start_workflow(
-        Workflow,
+    handle = await runner.client.start_workflow(
+        Workflow.run,
         id="workflow-id",
         task_queue=runner.task_queue,
         execution_timeout=timedelta(minutes=1),

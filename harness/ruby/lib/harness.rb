@@ -7,7 +7,7 @@ module Harness
     :expect_run_result,
     :expect_activity_error,
     :start_callback,
-    :check_result_callback,
+    :check_result_callback
   )
 
   @features = {}

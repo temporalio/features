@@ -56,3 +56,7 @@ Metrics/ParameterLists:
 # We want our require lists to be in order
 Style/RequireOrder:
   Enabled: true
+
+# Feature files may have many classes in the file
+Style/OneClassPerFile:
+  Enabled: false

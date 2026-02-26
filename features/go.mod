@@ -6,12 +6,13 @@ toolchain go1.24.3
 
 require (
 	github.com/google/uuid v1.6.0
+	github.com/nexus-rpc/sdk-go v0.5.1
 	github.com/stretchr/testify v1.10.0
 	github.com/temporalio/features/harness/go v0.0.0-00010101000000-000000000000
 	github.com/uber-go/tally/v4 v4.1.1
 	github.com/urfave/cli/v2 v2.3.0
-	go.temporal.io/api v1.60.0
-	go.temporal.io/sdk v1.37.0
+	go.temporal.io/api v1.62.1
+	go.temporal.io/sdk v1.40.0
 	go.temporal.io/sdk/contrib/tally v0.2.0
 	golang.org/x/mod v0.17.0
 	google.golang.org/grpc v1.67.1

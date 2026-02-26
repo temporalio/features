@@ -4,11 +4,12 @@ import { SimplePlugin } from '@temporalio/plugin';
 import { DataConverter, PayloadCodec, Payload } from '@temporalio/common';
 import { WorkflowClientInterceptor } from '@temporalio/client';
 import { ActivityInboundCallsInterceptor, ActivityOutboundCallsInterceptor } from '@temporalio/worker';
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 {
   // @@@SNIPSTART typescript-plugins-activity
   const activity = async () => 'activity';
-  const _plugin = new SimplePlugin({
+  const plugin = new SimplePlugin({
     name: 'plugin-name',
     activities: {
       pluginActivity: activity,
@@ -28,7 +29,7 @@ import { ActivityInboundCallsInterceptor, ActivityOutboundCallsInterceptor } fro
       },
     },
   );
-  const _plugin = new SimplePlugin({
+  const plugin = new SimplePlugin({
     name: 'plugin-name',
     nexusServices: [testServiceHandler],
   });
@@ -45,7 +46,7 @@ import { ActivityInboundCallsInterceptor, ActivityOutboundCallsInterceptor } fro
       throw new Error();
     },
   };
-  const _plugin = new SimplePlugin({
+  const plugin = new SimplePlugin({
     name: 'plugin-name',
     dataConverter: (converter: DataConverter | undefined) => ({
       ...converter,
@@ -65,7 +66,7 @@ import { ActivityInboundCallsInterceptor, ActivityOutboundCallsInterceptor } fro
 
   const workflowInterceptorsPath = '';
 
-  const _plugin = new SimplePlugin({
+  const plugin = new SimplePlugin({
     name: 'plugin-name',
     clientInterceptors: {
       workflow: [new MyWorkflowClientInterceptor()],

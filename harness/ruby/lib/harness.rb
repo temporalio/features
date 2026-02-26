@@ -8,7 +8,6 @@ module Harness
     :expect_activity_error,
     :start_callback,
     :check_result_callback,
-    keyword_init: true
   )
 
   @features = {}

@@ -10,9 +10,9 @@ class WorkerSnippet {
     WorkflowClient client = WorkflowClient.newInstance(service);
 
     // @@@SNIPSTART java-worker-max-cached-workflows
-    WorkerFactory factory = WorkerFactory.newInstance(
-        client,
-        WorkerFactoryOptions.newBuilder().setWorkflowCacheSize(0).build());
+    WorkerFactory factory =
+        WorkerFactory.newInstance(
+            client, WorkerFactoryOptions.newBuilder().setWorkflowCacheSize(0).build());
     Worker worker = factory.newWorker("task-queue");
     // @@@SNIPEND
 

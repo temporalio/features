@@ -18,7 +18,7 @@ async def some_activity() -> None:
     return None
 
 
-plugin = SimplePlugin("PluginName", activities=[some_activity])
+plugin = SimplePlugin("organization.PluginName", activities=[some_activity])
 # @@@SNIPEND
 
 
@@ -30,7 +30,7 @@ class HelloWorkflow:
         return f"Hello, {name}!"
 
 
-plugin = SimplePlugin("PluginName", workflows=[HelloWorkflow])
+plugin = SimplePlugin("organization.PluginName", workflows=[HelloWorkflow])
 # @@@SNIPEND
 
 
@@ -65,7 +65,9 @@ class WeatherServiceHandler:
         )
 
 
-plugin = SimplePlugin("PluginName", nexus_service_handlers=[WeatherServiceHandler()])
+plugin = SimplePlugin(
+    "organization.PluginName", nexus_service_handlers=[WeatherServiceHandler()]
+)
 # @@@SNIPEND
 
 
@@ -79,7 +81,7 @@ def set_converter(converter: DataConverter | None) -> DataConverter:
     return converter
 
 
-plugin = SimplePlugin("PluginName", data_converter=set_converter)
+plugin = SimplePlugin("organization.PluginName", data_converter=set_converter)
 # @@@SNIPEND
 
 
@@ -93,7 +95,8 @@ class SomeClientInterceptor(temporalio.client.Interceptor):
 
 
 plugin = SimplePlugin(
-    "PluginName", interceptors=[SomeWorkerInterceptor(), SomeClientInterceptor()]
+    "organization.PluginName",
+    interceptors=[SomeWorkerInterceptor(), SomeClientInterceptor()],
 )
 # @@@SNIPEND
 
@@ -112,5 +115,5 @@ def workflow_runner(runner: WorkflowRunner | None) -> WorkflowRunner:
     return runner
 
 
-plugin = SimplePlugin("PluginName", workflow_runner=workflow_runner)
+plugin = SimplePlugin("organization.PluginName", workflow_runner=workflow_runner)
 # @@@SNIPEND

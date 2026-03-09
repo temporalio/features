@@ -9,7 +9,7 @@ dependencies = ["temporalio"]
 
 [dependency-groups]
 dev = [
-    "mypy>=0.961,<0.962",
+    "mypy>=1.0",
     "ruff>=0.9.6",
 ]
 
@@ -36,4 +36,4 @@ lint = [
   {cmd = "uv run ruff format --check"},
   {ref = "lint-types"},
 ]
-lint-types = "mypy --explicit-package-bases --namespace-packages features harness/python"
+lint-types = "mypy --explicit-package-bases --namespace-packages ."

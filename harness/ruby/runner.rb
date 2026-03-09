@@ -84,7 +84,7 @@ module Harness
       when 'tcp'
         TCPSocket.new(uri.host, uri.port)
       when 'file'
-        File.open(uri.path, 'w') # rubocop:disable Style/FileOpen
+        File.open(uri.path, 'w')
       else
         raise "Unsupported summary scheme: #{uri.scheme}"
       end

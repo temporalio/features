@@ -10,7 +10,7 @@ import { ActivityInboundCallsInterceptor, ActivityOutboundCallsInterceptor } fro
   // @@@SNIPSTART typescript-plugins-activity
   const activity = async () => 'activity';
   const plugin = new SimplePlugin({
-    name: 'plugin-name',
+    name: 'organization.PluginName',
     activities: {
       pluginActivity: activity,
     },
@@ -27,10 +27,10 @@ import { ActivityInboundCallsInterceptor, ActivityOutboundCallsInterceptor } fro
       async testSyncOp(_, input) {
         return input;
       },
-    },
+    }
   );
   const plugin = new SimplePlugin({
-    name: 'plugin-name',
+    name: 'organization.PluginName',
     nexusServices: [testServiceHandler],
   });
   // @@@SNIPEND
@@ -47,7 +47,7 @@ import { ActivityInboundCallsInterceptor, ActivityOutboundCallsInterceptor } fro
     },
   };
   const plugin = new SimplePlugin({
-    name: 'plugin-name',
+    name: 'organization.PluginName',
     dataConverter: (converter: DataConverter | undefined) => ({
       ...converter,
       payloadCodecs: [...(converter?.payloadCodecs ?? []), codec],
@@ -67,7 +67,7 @@ import { ActivityInboundCallsInterceptor, ActivityOutboundCallsInterceptor } fro
   const workflowInterceptorsPath = '';
 
   const plugin = new SimplePlugin({
-    name: 'plugin-name',
+    name: 'organization.PluginName',
     clientInterceptors: {
       workflow: [new MyWorkflowClientInterceptor()],
     },

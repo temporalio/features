@@ -59,7 +59,7 @@ class SomeClientInterceptor
 end
 
 plugin = Temporalio::SimplePlugin.new(
-  name: 'PluginName',
+  name: 'organization.PluginName',
   client_interceptors: [SomeClientInterceptor.new],
   worker_interceptors: [SomeWorkerInterceptor.new]
 )

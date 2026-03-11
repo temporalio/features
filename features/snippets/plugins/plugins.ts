@@ -33,7 +33,7 @@ import {
       async testSyncOp(_, input) {
         return input;
       },
-    }
+    },
   );
   const plugin = new SimplePlugin({
     name: 'organization.PluginName',

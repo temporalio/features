@@ -3,7 +3,13 @@ import { Context } from '@temporalio/activity';
 import { SimplePlugin } from '@temporalio/plugin';
 import { DataConverter, PayloadCodec, Payload } from '@temporalio/common';
 import { WorkflowClientInterceptor } from '@temporalio/client';
-import { ActivityInboundCallsInterceptor, ActivityOutboundCallsInterceptor } from '@temporalio/worker';
+import {
+  ActivityInboundCallsInterceptor,
+  ActivityOutboundCallsInterceptor,
+  bundleWorkflowCode,
+  NativeConnection,
+  Worker,
+} from '@temporalio/worker';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 {
@@ -27,7 +33,7 @@ import { ActivityInboundCallsInterceptor, ActivityOutboundCallsInterceptor } fro
       async testSyncOp(_, input) {
         return input;
       },
-    }
+    },
   );
   const plugin = new SimplePlugin({
     name: 'organization.PluginName',
@@ -83,6 +89,27 @@ import { ActivityInboundCallsInterceptor, ActivityOutboundCallsInterceptor } fro
         }),
       ],
     },
+  });
+  // @@@SNIPEND
+}
+
+async function fn() {
+  const connection = await NativeConnection.connect();
+  const plugin = new SimplePlugin({
+    name: 'organization.PluginName',
+  });
+
+  // @@@SNIPSTART typescript-plugins-bundler
+  const bundle = await bundleWorkflowCode({
+    workflowsPath: require.resolve('./workflows'),
+    plugins: [plugin],
+  });
+
+  const worker = await Worker.create({
+    connection,
+    taskQueue: 'my-task-queue',
+    workflowBundle: bundle,
+    plugins: [plugin],
   });
   // @@@SNIPEND
 }

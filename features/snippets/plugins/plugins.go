@@ -19,7 +19,7 @@ func SomeActivity(ctx context.Context) error {
 
 func createActivityPlugin() (*temporal.SimplePlugin, error) {
 	return temporal.NewSimplePlugin(temporal.SimplePluginOptions{
-		Name: "PluginName",
+		Name: "organization.PluginName",
 		RunContextBefore: func(ctx context.Context, options temporal.SimplePluginRunContextBeforeOptions) error {
 			options.Registry.RegisterActivityWithOptions(
 				SomeActivity,
@@ -39,7 +39,7 @@ func HelloWorkflow(ctx workflow.Context, name string) (string, error) {
 
 func createWorkflowPlugin() (*temporal.SimplePlugin, error) {
 	return temporal.NewSimplePlugin(temporal.SimplePluginOptions{
-		Name: "PluginName",
+		Name: "organization.PluginName",
 		RunContextBefore: func(ctx context.Context, options temporal.SimplePluginRunContextBeforeOptions) error {
 			options.Registry.RegisterWorkflowWithOptions(
 				HelloWorkflow,
@@ -78,7 +78,7 @@ var GetWeatherOperation = nexus.NewSyncOperation(
 
 func createNexusPlugin() (*temporal.SimplePlugin, error) {
 	return temporal.NewSimplePlugin(temporal.SimplePluginOptions{
-		Name: "PluginName",
+		Name: "organization.PluginName",
 		RunContextBefore: func(ctx context.Context, options temporal.SimplePluginRunContextBeforeOptions) error {
 			options.Registry.RegisterNexusService(WeatherService)
 			return nil
@@ -91,9 +91,9 @@ func createNexusPlugin() (*temporal.SimplePlugin, error) {
 // @@@SNIPSTART go-plugin-converter
 func createConverterPlugin() (*temporal.SimplePlugin, error) {
 	customConverter := converter.GetDefaultDataConverter() // Or your custom converter
-	
+
 	return temporal.NewSimplePlugin(temporal.SimplePluginOptions{
-		Name:          "PluginName",
+		Name:          "organization.PluginName",
 		DataConverter: customConverter,
 	})
 }
@@ -111,7 +111,7 @@ type SomeClientInterceptor struct {
 
 func createInterceptorPlugin() (*temporal.SimplePlugin, error) {
 	return temporal.NewSimplePlugin(temporal.SimplePluginOptions{
-		Name:               "PluginName",
+		Name:               "organization.PluginName",
 		WorkerInterceptors: []interceptor.WorkerInterceptor{&SomeWorkerInterceptor{}},
 		ClientInterceptors: []interceptor.ClientInterceptor{&SomeClientInterceptor{}},
 	})

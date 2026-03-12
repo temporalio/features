@@ -10,7 +10,7 @@ def some_activity
 end
 
 plugin = Temporalio::SimplePlugin.new(
-  name: 'PluginName',
+  name: 'organization.PluginName',
   activities: [method(:some_activity)]
 )
 # @@@SNIPEND
@@ -23,7 +23,7 @@ class HelloWorkflow < Temporalio::Workflow::Definition
 end
 
 plugin = Temporalio::SimplePlugin.new(
-  name: 'PluginName',
+  name: 'organization.PluginName',
   workflows: [HelloWorkflow]
 )
 # @@@SNIPEND
@@ -34,7 +34,7 @@ custom_converter = Temporalio::Converters::DataConverter.new(
 )
 
 plugin = Temporalio::SimplePlugin.new(
-  name: 'PluginName',
+  name: 'organization.PluginName',
   data_converter: custom_converter
 )
 # @@@SNIPEND
@@ -59,7 +59,7 @@ class SomeClientInterceptor
 end
 
 plugin = Temporalio::SimplePlugin.new(
-  name: 'PluginName',
+  name: 'organization.PluginName',
   client_interceptors: [SomeClientInterceptor.new],
   worker_interceptors: [SomeWorkerInterceptor.new]
 )

@@ -38,7 +38,3 @@ obj
 .settings
 
 /dist/
-
-# Lock files - let package managers resolve latest
-package-lock.json
-uv.lock

@@ -14,9 +14,10 @@ import (
 type BuildRubyProgramOptions struct {
 	// Directory that will have a temporary directory created underneath.
 	BaseDir string
-	// Required version. If it contains a slash it is assumed to be a path to the
-	// Ruby SDK repo. Otherwise it is a specific version (with leading "v"
-	// trimmed if present).
+	// If not set, no version constraint is applied and the package manager
+	// resolves to the latest release. If it contains a slash it is assumed
+	// to be a path to the Ruby SDK repo. Otherwise it is a specific version
+	// (with leading "v" trimmed if present).
 	Version string
 	// If present, this directory is expected to exist beneath base dir. Otherwise
 	// a temporary dir is created.
@@ -39,8 +40,6 @@ var _ Program = (*RubyProgram)(nil)
 func BuildRubyProgram(ctx context.Context, options BuildRubyProgramOptions) (*RubyProgram, error) {
 	if options.BaseDir == "" {
 		return nil, fmt.Errorf("base dir required")
-	} else if options.Version == "" {
-		return nil, fmt.Errorf("version required")
 	}
 
 	sourceDir := filepath.Join(options.BaseDir, "harness", "ruby")
@@ -97,13 +96,20 @@ func BuildRubyProgram(ctx context.Context, options BuildRubyProgramOptions) (*Ru
 gem "temporalio", path: %q
 gem "harness", path: %q
 `, gemPath, sourceDir)
-	} else {
+	} else if options.Version != "" {
 		version := strings.TrimPrefix(options.Version, "v")
 		gemfileContent = fmt.Sprintf(`source "https://rubygems.org"
 
 gem "temporalio", "%s"
 gem "harness", path: %q
 `, version, sourceDir)
+	} else {
+		// No version constraint — Bundler resolves to latest from RubyGems
+		gemfileContent = fmt.Sprintf(`source "https://rubygems.org"
+
+gem "temporalio"
+gem "harness", path: %q
+`, sourceDir)
 	}
 
 	if err := os.WriteFile(filepath.Join(dir, "Gemfile"), []byte(gemfileContent), 0644); err != nil {

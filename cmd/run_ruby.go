@@ -17,7 +17,9 @@ import (
 func (p *Preparer) BuildRubyProgram(ctx context.Context) (sdkbuild.Program, error) {
 	p.log.Info("Building Ruby project", "DirName", p.config.DirName)
 
-	// Get version from harness/ruby/Gemfile if not present
+	// Get version from harness/ruby/Gemfile if not present.
+	// If no version constraint is specified in the Gemfile, version stays empty
+	// and the package manager will resolve to the latest release.
 	version := p.config.Version
 	if version == "" {
 		b, err := os.ReadFile(filepath.Join(p.rootDir, "harness", "ruby", "Gemfile"))
@@ -26,7 +28,7 @@ func (p *Preparer) BuildRubyProgram(ctx context.Context) (sdkbuild.Program, erro
 		}
 		for _, line := range strings.Split(string(b), "\n") {
 			line = strings.TrimSpace(line)
-			if strings.Contains(line, `"temporalio"`) {
+			if strings.Contains(line, `"temporalio"`) || strings.Contains(line, `'temporalio'`) {
 				// Extract version from: gem "temporalio", "~> 1.2"
 				parts := strings.Split(line, ",")
 				if len(parts) >= 2 {
@@ -35,9 +37,6 @@ func (p *Preparer) BuildRubyProgram(ctx context.Context) (sdkbuild.Program, erro
 				}
 				break
 			}
-		}
-		if version == "" {
-			return nil, fmt.Errorf("version not found in harness/ruby/Gemfile")
 		}
 	}
 

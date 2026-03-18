@@ -86,7 +86,7 @@ class Feature : IFeature
             }
 
             // Send result as signal to workflow
-            await client.GetWorkflowHandle<MyWorkflow>(ActivityExecutionContext.Current.Info.WorkflowId).
+            await client.GetWorkflowHandle<MyWorkflow>(ActivityExecutionContext.Current.Info.WorkflowId!).
                 SignalAsync(wf => wf.SetActivityResultAsync(result));
         }
     }

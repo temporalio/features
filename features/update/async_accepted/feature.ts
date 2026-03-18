@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import ms from 'ms';
+import ms from 'ms'; // eslint-disable-line import/no-named-as-default
 import * as wf from '@temporalio/workflow';
 import { Feature } from '@temporalio/harness';
 import { Duration, StringValue } from '@temporalio/common';

@@ -29,6 +29,7 @@ func (p *Preparer) BuildRubyProgram(ctx context.Context) (sdkbuild.Program, erro
 		for _, line := range strings.Split(string(b), "\n") {
 			line = strings.TrimSpace(line)
 			if strings.Contains(line, `"temporalio"`) || strings.Contains(line, `'temporalio'`) {
+				// Extract version from: gem "temporalio", "~> 1.2"
 				parts := strings.Split(line, ",")
 				if len(parts) >= 2 {
 					version = strings.TrimSpace(parts[1])

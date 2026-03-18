@@ -16,7 +16,7 @@ class PluginsSnippet
     static void SomeActivity() => throw new NotImplementedException();
 
     SimplePlugin activityPlugin = new SimplePlugin(
-        "PluginName",
+        "organization.PluginName",
         new SimplePluginOptions() { }.AddActivity(SomeActivity));
     // @@@SNIPEND
 
@@ -29,7 +29,7 @@ class PluginsSnippet
     }
 
     SimplePlugin workflowPlugin = new SimplePlugin(
-        "PluginName",
+        "organization.PluginName",
         new SimplePluginOptions() { }.AddWorkflow<SimpleWorkflow>());
     // @@@SNIPEND
 
@@ -54,7 +54,7 @@ class PluginsSnippet
     }
 
     SimplePlugin nexusPlugin = new SimplePlugin(
-        "PluginName",
+        "organization.PluginName",
         new SimplePluginOptions() { }.AddNexusService(new HandlerFactoryStringService(() =>
             OperationHandler.Sync<string, string>((ctx, name) => $"Hello, {name}")))
     );
@@ -68,7 +68,7 @@ class PluginsSnippet
     }
 
     SimplePlugin converterPlugin = new SimplePlugin(
-        "PluginName",
+        "organization.PluginName",
         new SimplePluginOptions()
         {
             DataConverterOption = new SimplePluginOptions.SimplePluginOption<DataConverter>(
@@ -97,7 +97,7 @@ class PluginsSnippet
     }
 
     SimplePlugin interceptorPlugin = new SimplePlugin(
-        "PluginName",
+        "organization.PluginName",
         new SimplePluginOptions()
         {
             ClientInterceptors = new List<IClientInterceptor>() { new SomeClientInterceptor() },

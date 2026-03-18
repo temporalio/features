@@ -1,7 +1,5 @@
 package io.temporal.sdkfeatures;
 
-import com.google.common.base.Preconditions;
-
 import java.util.Objects;
 
 public class Version {
@@ -20,7 +18,15 @@ public class Version {
   public Version(String str) {
     // Split
     var pieces = str.split("\\.", 3);
-    Preconditions.checkArgument(pieces.length == 3, "must have 3 parts of version");
+    if (pieces.length != 3) {
+      // Non-semver version string (e.g. git hash from a fork build without tags).
+      // Default to 0.0.0 so all past histories are checked.
+      this.major = 0;
+      this.minor = 0;
+      this.patch = 0;
+      this.hasExtra = true;
+      return;
+    }
 
     // Check if it has an extra value and trim off
     var hasExtra = false;
@@ -35,10 +41,22 @@ public class Version {
       pieces[2] = pieces[2].substring(0, extraIndex);
     }
 
-    // Set fields, letting exceptions be thrown on invalid
-    this.major = Integer.parseInt(pieces[0]);
-    this.minor = Integer.parseInt(pieces[1]);
-    this.patch = Integer.parseInt(pieces[2]);
+    // Set fields. Fall back to 0.0.0 if parts aren't valid integers
+    // (e.g. version derived from git describe on a fork without tags).
+    int maj, min, pat;
+    try {
+      maj = Integer.parseInt(pieces[0]);
+      min = Integer.parseInt(pieces[1]);
+      pat = Integer.parseInt(pieces[2]);
+    } catch (NumberFormatException e) {
+      maj = 0;
+      min = 0;
+      pat = 0;
+      hasExtra = true;
+    }
+    this.major = maj;
+    this.minor = min;
+    this.patch = pat;
     this.hasExtra = hasExtra;
   }
 
@@ -62,7 +80,10 @@ public class Version {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     Version version = (Version) o;
-    return major == version.major && minor == version.minor && patch == version.patch && hasExtra == version.hasExtra;
+    return major == version.major
+        && minor == version.minor
+        && patch == version.patch
+        && hasExtra == version.hasExtra;
   }
 
   @Override

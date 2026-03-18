@@ -3,14 +3,20 @@ import { Context } from '@temporalio/activity';
 import { SimplePlugin } from '@temporalio/plugin';
 import { DataConverter, PayloadCodec, Payload } from '@temporalio/common';
 import { WorkflowClientInterceptor } from '@temporalio/client';
-import { ActivityInboundCallsInterceptor, ActivityOutboundCallsInterceptor } from '@temporalio/worker';
+import {
+  ActivityInboundCallsInterceptor,
+  ActivityOutboundCallsInterceptor,
+  Worker,
+  NativeConnection,
+  bundleWorkflowCode,
+} from '@temporalio/worker';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 {
   // @@@SNIPSTART typescript-plugins-activity
   const activity = async () => 'activity';
   const plugin = new SimplePlugin({
-    name: 'plugin-name',
+    name: 'organization.PluginName',
     activities: {
       pluginActivity: activity,
     },
@@ -30,7 +36,7 @@ import { ActivityInboundCallsInterceptor, ActivityOutboundCallsInterceptor } fro
     },
   );
   const plugin = new SimplePlugin({
-    name: 'plugin-name',
+    name: 'organization.PluginName',
     nexusServices: [testServiceHandler],
   });
   // @@@SNIPEND
@@ -47,7 +53,7 @@ import { ActivityInboundCallsInterceptor, ActivityOutboundCallsInterceptor } fro
     },
   };
   const plugin = new SimplePlugin({
-    name: 'plugin-name',
+    name: 'organization.PluginName',
     dataConverter: (converter: DataConverter | undefined) => ({
       ...converter,
       payloadCodecs: [...(converter?.payloadCodecs ?? []), codec],
@@ -67,7 +73,7 @@ import { ActivityInboundCallsInterceptor, ActivityOutboundCallsInterceptor } fro
   const workflowInterceptorsPath = '';
 
   const plugin = new SimplePlugin({
-    name: 'plugin-name',
+    name: 'organization.PluginName',
     clientInterceptors: {
       workflow: [new MyWorkflowClientInterceptor()],
     },
@@ -83,6 +89,27 @@ import { ActivityInboundCallsInterceptor, ActivityOutboundCallsInterceptor } fro
         }),
       ],
     },
+  });
+  // @@@SNIPEND
+}
+
+async function fn() {
+  const connection = await NativeConnection.connect();
+  const plugin = new SimplePlugin({
+    name: 'organization.PluginName',
+  });
+
+  // @@@SNIPSTART typescript-plugins-bundler
+  const bundle = await bundleWorkflowCode({
+    workflowsPath: require.resolve('./workflows'),
+    plugins: [plugin],
+  });
+
+  const worker = await Worker.create({
+    connection,
+    taskQueue: 'my-task-queue',
+    workflowBundle: bundle,
+    plugins: [plugin],
   });
   // @@@SNIPEND
 }

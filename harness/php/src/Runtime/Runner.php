@@ -4,23 +4,21 @@ declare(strict_types=1);
 
 namespace Harness\Runtime;
 
-use Temporal\Testing\Environment;
+use Symfony\Component\Process\Process;
 
 final class Runner
 {
-    private Environment $environment;
-    private bool $started = false;
+    private ?Process $process = null;
 
     public function __construct(
         private State $runtime,
     ) {
-        $this->environment = Environment::create();
         \register_shutdown_function(fn() => $this->stop());
     }
 
     public function start(): void
     {
-        if ($this->started) {
+        if ($this->process?->isRunning()) {
             return;
         }
 
@@ -44,21 +42,18 @@ final class Runner
         $run->tlsKey === null or $rrCommand = [...$rrCommand, '-o', "temporal.tls.key={$run->tlsKey}"];
         $run->tlsCert === null or $rrCommand = [...$rrCommand, '-o', "temporal.tls.cert={$run->tlsCert}"];
         $run->tlsCaCert === null or $rrCommand = [...$rrCommand, '-o', "temporal.tls.ca-cert={$run->tlsCaCert}"];
-        $command = \implode(' ', $rrCommand);
 
-        // echo "\e[1;36mStart RoadRunner with command:\e[0m {$command}\n";
-        $this->environment->startRoadRunner($command);
-        $this->started = true;
+        $this->process = new Process($rrCommand);
+        $this->process->setTimeout(null);
+        $this->process->start();
+        \usleep(500_000);
     }
 
     public function stop(): void
     {
-        if (!$this->started) {
-            return;
+        if ($this->process?->isRunning()) {
+            $this->process->stop();
+            $this->process = null;
         }
-
-        // echo "\e[1;36mStop RoadRunner\e[0m\n";
-        $this->environment->stop();
-        $this->started = false;
     }
 }

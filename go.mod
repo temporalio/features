@@ -10,7 +10,7 @@ require (
 	github.com/temporalio/features/features v0.0.0-00010101000000-000000000000
 	github.com/temporalio/features/harness/go v0.0.0-00010101000000-000000000000
 	github.com/urfave/cli/v2 v2.25.7
-	go.temporal.io/sdk v1.37.0
+	go.temporal.io/sdk v1.41.2-0.20260320032056-e6da72d5340d
 	golang.org/x/mod v0.17.0
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -23,7 +23,7 @@ require (
 	github.com/golang/mock v1.6.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.2 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.22.0 // indirect
-	github.com/nexus-rpc/sdk-go v0.3.0 // indirect
+	github.com/nexus-rpc/sdk-go v0.6.0 // indirect
 	github.com/robfig/cron v1.2.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
@@ -31,7 +31,7 @@ require (
 	github.com/twmb/murmur3 v1.1.8 // indirect
 	github.com/uber-go/tally/v4 v4.1.7 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
-	go.temporal.io/api v1.60.0 // indirect
+	go.temporal.io/api v1.62.5 // indirect
 	go.temporal.io/sdk/contrib/tally v0.2.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect

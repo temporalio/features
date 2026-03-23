@@ -1,0 +1,124 @@
+name: Ruby Features Testing
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+      # When true, the default version will be used (actually it's the latest tag)
+      version-is-repo-ref:
+        required: true
+        type: boolean
+      features-repo-path:
+        type: string
+        default: 'temporalio/features'
+      features-repo-ref:
+        type: string
+        default: 'main'
+      # If set, download the docker image for server from the provided artifact name
+      docker-image-artifact-name:
+        type: string
+        required: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    defaults:
+      run:
+        working-directory: ./features
+    steps:
+      - name: Print git info
+        run: 'echo head_ref: "$GITHUB_HEAD_REF", ref: "$GITHUB_REF", Ruby sdk version: "$INPUT_VERSION"'
+        working-directory: '.'
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+
+      - name: Download docker artifacts
+        if: ${{ inputs.docker-image-artifact-name }}
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.docker-image-artifact-name }}
+          path: /tmp/server-docker
+
+      - name: Load server Docker Images
+        if: ${{ inputs.docker-image-artifact-name }}
+        run: |
+          docker load --input /tmp/server-docker/temporal-server.tar
+          docker load --input /tmp/server-docker/temporal-admin-tools.tar
+        working-directory: '.'
+
+      - name: Override IMAGE_TAG environment variable
+        if: ${{ inputs.docker-image-artifact-name }}
+        run: |
+          image_tag=latest
+          # image_tag won't exist on older builds (like 1.22.0), so default to latest
+          if [ -f /tmp/server-docker/image_tag ]; then
+            image_tag=$(cat /tmp/server-docker/image_tag)
+          fi
+          echo "IMAGE_TAG=${image_tag}" >> $GITHUB_ENV
+        working-directory: '.'
+
+      - name: Checkout SDK features repo
+        uses: actions/checkout@v4
+        with:
+          path: features
+          repository: ${{ inputs.features-repo-path }}
+          ref: ${{ inputs.features-repo-ref }}
+
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '^1.22'
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '4.0'
+
+      - name: Start containerized server and dependencies
+        id: start-server
+        if: inputs.docker-image-artifact-name
+        run: |
+          docker compose \
+            -f ./dockerfiles/docker-compose.yml \
+            up -d cassandra elasticsearch temporal-admin-tools temporal-server temporal-create-namespace
+
+      - name: Show all container logs
+        if: always()
+        run: |
+          echo "=== All container logs ==="
+          docker compose \
+            -f ./dockerfiles/docker-compose.yml \
+            logs
+        working-directory: ./features
+
+      - name: Run SDK-features tests directly
+        if: inputs.docker-image-artifact-name == ''
+        env:
+          INPUT_VERSION: ${{ inputs.version-is-repo-ref && '' || inputs.version }}
+        run: go run . run --lang rb --version "$INPUT_VERSION"
+
+      # Running the tests in their own step keeps the logs readable
+      - name: Run containerized SDK-features tests
+        if: inputs.docker-image-artifact-name
+        run: |
+          docker compose \
+            -f ./dockerfiles/docker-compose.yml \
+            up --no-log-prefix --exit-code-from features-tests-rb features-tests-rb
+
+      - name: Show all container logs before teardown
+        if: always() && inputs.docker-image-artifact-name
+        run: |
+          echo "=== All container logs before teardown ==="
+          docker compose \
+            -f ./dockerfiles/docker-compose.yml \
+            logs
+        working-directory: ./features
+
+      - name: Tear down docker compose
+        if: inputs.docker-image-artifact-name && (success() || failure())
+        run: docker compose -f ./dockerfiles/docker-compose.yml down -v

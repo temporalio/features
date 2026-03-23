@@ -110,7 +110,7 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 		if err != nil {
 			return nil, fmt.Errorf("cannot get absolute path from version path: %w", err)
 		}
-		pkgs := []string{"activity", "client", "common", "proto", "worker", "workflow"}
+		pkgs := []string{"activity", "client", "common", "plugin", "proto", "worker", "workflow"}
 		for _, pkg := range pkgs {
 			pkgPath := "file:" + filepath.Join(localPath, "packages", pkg)
 			packageJSONDepStr += fmt.Sprintf(`"@temporalio/%v": %q,`, pkg, pkgPath)
@@ -118,7 +118,7 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 		}
 	} else {
 		version := strings.TrimPrefix(options.Version, "v")
-		pkgs := []string{"activity", "client", "common", "proto", "worker", "workflow"}
+		pkgs := []string{"activity", "client", "common", "proto", "plugin", "worker", "workflow"}
 		for _, pkg := range pkgs {
 			packageJSONDepStr += fmt.Sprintf(`    "@temporalio/%v": %q,`, pkg, version) + "\n"
 		}
@@ -140,15 +140,14 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
     "@grpc/grpc-js": "^1.12.4",
     "commander": "^8.3.0",
     "ms": "^3.0.0-canary.1",
-    "proto3-json-serializer": "^1.1.1",
-    "uuid": "^8.3.2"
+    "nexus-rpc": "^0.0.1",
+    "proto3-json-serializer": "^1.1.1"
   },
   "devDependencies": {
-    "@tsconfig/node16": "^1.0.0",
-    "@types/node": "^16.11.59",
-    "@types/uuid": "^8.3.4",
+    "@tsconfig/node24": "^24.0.4",
+    "@types/node": "^24.1.0",
     "tsconfig-paths": "^3.12.0",
-    "typescript": "^5.8.3"
+    "typescript": "^5.9.3"
   },
   "overrides": {
 		"protobufjs": "7.5.1"
@@ -190,8 +189,8 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 		quotedExcludes[i] = strconv.Quote(exclude)
 	}
 	tsConfig := `{
-  "extends": "@tsconfig/node16/tsconfig.json",
-  "version": "5.8.3",
+  "extends": "@tsconfig/node24/tsconfig.json",
+  "version": "5.9.3",
   "compilerOptions": {
     "baseUrl": ".",
     "outDir": "./tslib",

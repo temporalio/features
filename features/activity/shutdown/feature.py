@@ -20,12 +20,12 @@ class Workflow:
     async def run(self) -> str:
         handle = workflow.start_activity(
             cancel_success,
-            schedule_to_close_timeout=timedelta(milliseconds=300),
+            schedule_to_close_timeout=timedelta(seconds=30),
             retry_policy=RetryPolicy(maximum_attempts=1),
         )
         handle1 = workflow.start_activity(
             cancel_failure,
-            schedule_to_close_timeout=timedelta(milliseconds=300),
+            schedule_to_close_timeout=timedelta(seconds=30),
             retry_policy=RetryPolicy(maximum_attempts=1),
         )
         handle2 = workflow.start_activity(

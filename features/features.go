@@ -25,6 +25,7 @@ import (
 	data_converter_failure "github.com/temporalio/features/features/data_converter/failure"
 	data_converter_json "github.com/temporalio/features/features/data_converter/json"
 	data_converter_json_protobuf "github.com/temporalio/features/features/data_converter/json_protobuf"
+	deployment_versioning_aa_clean_old_deployments "github.com/temporalio/features/features/deployment_versioning/aa_clean_old_deployments"
 	deployment_versioning_routing_auto_upgrade "github.com/temporalio/features/features/deployment_versioning/routing_auto_upgrade"
 	deployment_versioning_routing_pinned "github.com/temporalio/features/features/deployment_versioning/routing_pinned"
 	deployment_versioning_routing_with_override "github.com/temporalio/features/features/deployment_versioning/routing_with_override"
@@ -84,6 +85,7 @@ func init() {
 		data_converter_failure.Feature,
 		data_converter_json_protobuf.Feature,
 		data_converter_json.Feature,
+		deployment_versioning_aa_clean_old_deployments.Feature,
 		deployment_versioning_routing_auto_upgrade.Feature,
 		deployment_versioning_routing_pinned.Feature,
 		deployment_versioning_routing_with_override.Feature,

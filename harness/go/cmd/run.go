@@ -235,6 +235,7 @@ func (r *Runner) Run(ctx context.Context, run *Run) error {
 				Namespace:      r.config.Namespace,
 				ClientCertPath: r.config.ClientCertPath,
 				ClientKeyPath:  r.config.ClientKeyPath,
+				CACertPath:     r.config.CACertPath,
 				TaskQueue:      runFeature.TaskQueue,
 				Log:            r.log,
 				HTTPProxyURL:   r.config.HTTPProxyURL,

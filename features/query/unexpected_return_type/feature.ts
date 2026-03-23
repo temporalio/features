@@ -1,6 +1,6 @@
+import * as assert from 'assert';
 import * as wf from '@temporalio/workflow';
 import { Feature } from '@temporalio/harness';
-import * as assert from 'assert';
 
 export const finishSignal = wf.defineSignal('finish');
 export const query = wf.defineQuery<string>('qq');

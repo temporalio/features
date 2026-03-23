@@ -6,6 +6,7 @@ import (
 
 	"github.com/temporalio/features/harness/go/harness"
 	enumspb "go.temporal.io/api/enums/v1"
+	"go.temporal.io/api/workflowservice/v1"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
 	"go.temporal.io/sdk/workflow"
@@ -89,8 +90,11 @@ func SetCurrent(r *harness.Runner, ctx context.Context, deploymentName string, v
 		BuildID:       version.BuildID,
 		ConflictToken: response1.ConflictToken,
 	})
+	if err != nil {
+		return err
+	}
 
-	return err
+	return WaitForRoutingConfigPropagation(r, ctx, deploymentName)
 }
 
 func SetRamp(r *harness.Runner, ctx context.Context, deploymentName string, version worker.WorkerDeploymentVersion, percentage float32) error {
@@ -112,10 +116,30 @@ func SetRamp(r *harness.Runner, ctx context.Context, deploymentName string, vers
 	_, err = dHandle.SetRampingVersion(ctx, client.WorkerDeploymentSetRampingVersionOptions{
 		BuildID:       version.BuildID,
 		ConflictToken: response1.ConflictToken,
-		Percentage:    float32(100.0),
+		Percentage:    percentage,
 	})
+	if err != nil {
+		return err
+	}
 
-	return err
+	return WaitForRoutingConfigPropagation(r, ctx, deploymentName)
+}
+
+func WaitForRoutingConfigPropagation(r *harness.Runner, ctx context.Context, deploymentName string) error {
+	return r.DoUntilEventually(ctx, 300*time.Millisecond, 10*time.Second,
+		func() bool {
+			resp, err := r.Client.WorkflowService().DescribeWorkerDeployment(ctx,
+				&workflowservice.DescribeWorkerDeploymentRequest{
+					Namespace:      r.Namespace,
+					DeploymentName: deploymentName,
+				})
+			if err != nil {
+				return false
+			}
+			state := resp.GetWorkerDeploymentInfo().GetRoutingConfigUpdateState()
+			return state == enumspb.ROUTING_CONFIG_UPDATE_STATE_COMPLETED ||
+				state == enumspb.ROUTING_CONFIG_UPDATE_STATE_UNSPECIFIED
+		})
 }
 
 func ServerSupportsDeployments(ctx context.Context, r *harness.Runner) bool {

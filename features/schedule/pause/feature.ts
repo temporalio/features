@@ -1,7 +1,7 @@
-import { Feature } from '@temporalio/harness';
-import { ScheduleClient, Connection } from '@temporalio/client';
 import * as assert from 'assert';
 import { randomUUID } from 'crypto';
+import { Feature } from '@temporalio/harness';
+import { ScheduleClient, Connection } from '@temporalio/client';
 
 export async function workflow(arg: string): Promise<string> {
   return arg;

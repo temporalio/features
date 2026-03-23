@@ -16,9 +16,10 @@ type BuildPythonProgramOptions struct {
 	// Directory that will have a temporary directory created underneath. This
 	// should be a Poetry project with a pyproject.toml.
 	BaseDir string
-	// Required version. If it contains a slash it is assumed to be a path with
-	// a single wheel in the dist directory. Otherwise it is a specific version
-	// (with leading "v" is trimmed if present).
+	// If not set, no version constraint is applied and the package manager
+	// resolves to the latest release. If it contains a slash it is assumed
+	// to be a path with a single wheel in the dist directory. Otherwise it
+	// is a specific version (with leading "v" trimmed if present).
 	Version string
 	// If specified, takes precedence over Version. Is a PEP 508 requirement string, like
 	// `temporalio>=1.13.0,<2`.
@@ -47,8 +48,6 @@ var _ Program = (*PythonProgram)(nil)
 func BuildPythonProgram(ctx context.Context, options BuildPythonProgramOptions) (*PythonProgram, error) {
 	if options.BaseDir == "" {
 		return nil, fmt.Errorf("base dir required")
-	} else if options.Version == "" {
-		return nil, fmt.Errorf("version required")
 	} else if _, err := os.Stat(filepath.Join(options.BaseDir, "pyproject.toml")); err != nil {
 		return nil, fmt.Errorf("failed finding pyproject.toml in base dir: %w", err)
 	}
@@ -105,14 +104,30 @@ requires-python = "~=3.10"
 			return nil, err
 		}
 		executeCommand("uv", "add", wheel)
-	} else {
+	} else if options.Version != "" {
 		executeCommand("uv", "add", fmt.Sprintf("temporalio==%s", strings.TrimPrefix(options.Version, "v")))
+	} else {
+		// No version constraint — uv resolves to latest from PyPI
+		executeCommand("uv", "add", "temporalio")
 	}
 	// Add the `features` python package
 	executeCommand("uv", "add", "--editable", "../")
 
 	if err := executeCommand("uv", "sync"); err != nil {
 		return nil, fmt.Errorf("failed installing: %w", err)
+	}
+	// Install mypy for type checking
+	if err := executeCommand("uv", "add", "--dev", "mypy"); err != nil {
+		return nil, fmt.Errorf("failed installing mypy: %w", err)
+	}
+	
+	// Create __init__.py files in feature directories to make them proper Python packages
+	if err := executeCommand("find", "../features", "-type", "d", "-exec", "touch", "{}/__init__.py", ";"); err != nil {
+		return nil, fmt.Errorf("failed creating __init__.py files: %w", err)
+	}
+	
+	if err := executeCommand("uv", "run", "mypy", "--explicit-package-bases", "../features"); err != nil {
+		return nil, fmt.Errorf("failed type checking: %w", err)
 	}
 
 	success = true

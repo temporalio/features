@@ -4,34 +4,39 @@
   "scripts": {
     "format": "prettier --write \"**/*.ts\"",
     "build": "tsc --build",
-    "lint": "eslint features harness/ts --ext .ts --no-error-on-unmatched-pattern && prettier --end-of-line auto --check \"**/*.ts\"",
+    "lint": "eslint features harness/ts && prettier --end-of-line auto --check \"**/*.ts\"",
     "start": "ts-node -r tsconfig-paths/register harness/ts/main.ts"
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.12.4",
     "@protobuf-ts/protoc": "^2.8.1",
-    "@temporalio/activity": "^1.11.8",
-    "@temporalio/client": "^1.11.8",
-    "@temporalio/common": "^1.11.8",
-    "@temporalio/proto": "^1.11.8",
-    "@temporalio/worker": "^1.11.8",
-    "@temporalio/workflow": "^1.11.8",
-    "protobufjs": "7.5.1",
+    "@temporalio/activity": "latest",
+    "@temporalio/client": "latest",
+    "@temporalio/common": "latest",
+    "@temporalio/plugin": "latest",
+    "@temporalio/proto": "latest",
+    "@temporalio/worker": "latest",
+    "@temporalio/workflow": "latest",
     "commander": "^8.3.0",
     "ms": "^3.0.0-canary.1",
-    "proto3-json-serializer": "^1.1.1"
+    "nexus-rpc": "^0.0.1",
+    "proto3-json-serializer": "^1.1.1",
+    "protobufjs": "7.5.1"
   },
   "devDependencies": {
-    "@tsconfig/node16": "^1.0.0",
-    "@typescript-eslint/eslint-plugin": "^4.30.0",
-    "@typescript-eslint/parser": "^4.30.0",
-    "eslint": "^7.32.0",
-    "eslint-config-prettier": "^8.3.0",
-    "eslint-plugin-deprecation": "^2.0.0",
-    "eslint-plugin-tsdoc": "^0.2.14",
-    "prettier": "^2.3.2",
+    "@tsconfig/node24": "^24.0.4",
+    "@types/ms": "^2.1.0",
+    "@types/node": "^24.1.0",
+    "@typescript-eslint/eslint-plugin": "^8.10.0",
+    "@typescript-eslint/parser": "^8.10.0",
+    "eslint": "^9.26.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-import-resolver-typescript": "^3.6.1",
+    "eslint-plugin-import": "^2.31.0",
+    "prettier": "^3.1.1",
     "ts-node": "^10.4.0",
     "tsconfig-paths": "^3.12.0",
-    "typescript": "^5.8.3"
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.10.0"
   }
 }

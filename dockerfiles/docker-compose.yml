@@ -190,3 +190,12 @@ services:
     depends_on:
       temporal-create-namespace:
         condition: service_completed_successfully
+
+  features-tests-rb:
+    image: temporaliotest/features:rb
+    environment:
+      - WAIT_EXTRA_FOR_NAMESPACE
+    command: ['--server', 'temporal-server:7233', '--namespace', 'default']
+    depends_on:
+      temporal-create-namespace:
+        condition: service_completed_successfully

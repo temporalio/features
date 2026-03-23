@@ -1,6 +1,6 @@
+import * as assert from 'assert';
 import { Feature } from '@temporalio/harness';
 import * as wf from '@temporalio/workflow';
-import * as assert from 'assert';
 
 const myUpdate = wf.defineUpdate<void>('myUpdate');
 const activityCount = 5;

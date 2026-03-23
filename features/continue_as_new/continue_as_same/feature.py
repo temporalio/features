@@ -22,9 +22,9 @@ class Workflow:
 
 async def start(runner: Runner) -> WorkflowHandle:
     return await runner.client.start_workflow(
-        Workflow,
+        Workflow.run,
+        INPUT_DATA,
         id=WORKFLOW_ID,
-        arg=INPUT_DATA,
         memo={
             MEMO_KEY: MEMO_VALUE,
         },

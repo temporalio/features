@@ -25,6 +25,9 @@ on:
       cs-ver:
         description: .NET SDK ver to build. Skipped if not specified. Must start with v.
         type: string
+      rb-ver:
+        description: Ruby SDK ver to build. Skipped if not specified. Must start with v.
+        type: string
       do-push:
         description: If set, push the built images to Docker Hub.
         type: boolean
@@ -57,6 +60,9 @@ on:
         type: string
       cs-ver:
         description: .NET SDK ver to build. Skipped if not specified. Must start with v.
+        type: string
+      rb-ver:
+        description: Ruby SDK ver to build. Skipped if not specified. Must start with v.
         type: string
       do-push:
         description: If set, push the built images to Docker Hub.
@@ -134,6 +140,17 @@ jobs:
     with:
       lang: cs
       sdk-version: ${{ inputs.cs-ver }}
+      semver-latest: major
+      do-push: ${{ inputs.do-push }}
+      skip-cloud: ${{ inputs.skip-cloud }}
+
+  build-rb-docker-images:
+    if: inputs.rb-ver
+    uses: ./.github/workflows/docker-images.yaml
+    secrets: inherit
+    with:
+      lang: rb
+      sdk-version: ${{ inputs.rb-ver }}
       semver-latest: major
       do-push: ${{ inputs.do-push }}
       skip-cloud: ${{ inputs.skip-cloud }}

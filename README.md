@@ -31,6 +31,7 @@ Prerequisites:
 - [.NET](https://dotnet.microsoft.com) 7+
 - [PHP](https://www.php.net/) 8.1+
   - [Composer](https://getcomposer.org/)
+- [Ruby](https://www.ruby-lang.org/) 4.0+
 
 Command:
 
@@ -38,7 +39,7 @@ Command:
 
 Note, `go run .` can be used in place of `go build` + `temporal-features` to save on the build step.
 
-`LANG` can be `go`, `java`, `ts`, `php`, `py`, or `cs`. `VERSION` is per SDK and if left off, uses the latest version set for
+`LANG` can be `go`, `java`, `ts`, `php`, `py`, `cs`, or `rb`. `VERSION` is per SDK and if left off, uses the latest version set for
 the language in this repository.
 
 `PATTERN` must match either the features relative directory _or_ the relative directory + `/feature.<ext>` via
@@ -118,6 +119,26 @@ settings are:
 There are also files in the `history/` subdirectory which contain history files used during run. See the
 "History Checking" and "Generating History" sections for more info.
 
+### Writing snippets for documentation
+
+The repo can also be used as a way to author buildable/testable example snippets for our documentation. This is done
+using Snipsync as described in the 
+[documentation repo](https://github.com/temporalio/documentation/blob/main/CONTRIBUTING.md#snipsync).
+
+Snippets may be sourced from normal features, or, if writen purely for usage as a docs snippet they should be placed
+in `features/snippets/snippet_name`. Beyond the path prefix, the folder contents should follow the same practices
+as for a normal feature.
+
+To define a snippet, use syntax like the following, where hellouniverse is the snippet identifier.
+
+```
+// @@@SNIPSTART hellouniverse
+func HelloUniverse() {
+	fmt.Println("Hello Universe!")
+}
+// @@@SNIPEND
+```
+
 ### Best Practices
 
 - Try to only demonstrate/test one feature per feature directory.
@@ -133,6 +154,7 @@ There are also files in the `history/` subdirectory which contain history files 
   mind when writing features.
 
 - A Python feature should be in `feature.py`.
+- A Ruby feature should be in `feature.rb`.
 - Add a README.md to each feature directory.
   - README should have a title summarizing the feature (only first letter needs to be in title case), then a short
     paragraph explaining the feature and its purpose, and then optionally another paragraph explaining details of the

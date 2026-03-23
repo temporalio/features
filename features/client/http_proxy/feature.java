@@ -40,14 +40,25 @@ public interface feature extends Feature {
       var proxyAddr = proxyAddrBuilder.build();
 
       // Build a client that uses the HTTP proxy
-      var service =
-          WorkflowServiceStubs.newServiceStubs(
-              WorkflowServiceStubsOptions.newBuilder()
-                  .setTarget(runner.config.serverHostPort)
-                  .setSslContext(runner.config.sslContext)
-                  .setMetricsScope(runner.config.metricsScope)
-                  .setChannelInitializer(builder -> builder.proxyDetector(addr -> proxyAddr))
-                  .build());
+      var serviceBuilder =
+          WorkflowServiceStubsOptions.newBuilder()
+              .setTarget(runner.config.serverHostPort)
+              .setSslContext(runner.config.sslContext)
+              .setMetricsScope(runner.config.metricsScope);
+
+      var tlsServerName = runner.config.tlsServerName;
+      serviceBuilder.setChannelInitializer(
+          builder -> {
+            builder.proxyDetector(addr -> proxyAddr);
+            // Override authority for TLS verification if server name is specified
+            if (runner.config.sslContext != null
+                && tlsServerName != null
+                && !tlsServerName.isEmpty()) {
+              builder.overrideAuthority(tlsServerName);
+            }
+          });
+
+      var service = WorkflowServiceStubs.newServiceStubs(serviceBuilder.build());
       var client =
           WorkflowClient.newInstance(
               service,

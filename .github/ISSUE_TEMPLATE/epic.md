@@ -23,10 +23,10 @@ assignees: ''
 
 - [ ] Go - 
 - [ ] Java - 
-- [ ] Core - 
 - [ ] TypeScript - 
 - [ ] Python - 
 - [ ] .NET - 
 - [ ] Ruby - 
+- [ ] Rust - 
 - [ ] PHP - 
 - [ ] Temporal CLI - 

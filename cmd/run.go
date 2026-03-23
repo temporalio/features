@@ -3,7 +3,6 @@ package cmd
 import (
 	"bufio"
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -301,15 +300,16 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 				err = r.RunGoExternal(ctx, run)
 			}
 		} else {
-			err = cmd.NewRunner(cmd.RunConfig{
-				Server:         r.config.Server,
-				Namespace:      r.config.Namespace,
-				ClientCertPath: r.config.ClientCertPath,
-				ClientKeyPath:  r.config.ClientKeyPath,
-				TLSServerName:  r.config.TLSServerName,
-				SummaryURI:     r.config.SummaryURI,
-				HTTPProxyURL:   r.config.HTTPProxyURL,
-			}).Run(ctx, run)
+		err = cmd.NewRunner(cmd.RunConfig{
+			Server:         r.config.Server,
+			Namespace:      r.config.Namespace,
+			ClientCertPath: r.config.ClientCertPath,
+			ClientKeyPath:  r.config.ClientKeyPath,
+			CACertPath:     r.config.CACertPath,
+			TLSServerName:  r.config.TLSServerName,
+			SummaryURI:     r.config.SummaryURI,
+			HTTPProxyURL:   r.config.HTTPProxyURL,
+		}).Run(ctx, run)
 		}
 	case "java":
 		if r.config.DirName != "" {
@@ -348,6 +348,16 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 		}
 		if err == nil {
 			err = r.RunDotNetExternal(ctx, run)
+		}
+	case "rb":
+		if r.config.DirName != "" {
+			r.program, err = sdkbuild.RubyProgramFromDir(
+				filepath.Join(r.rootDir, r.config.DirName),
+				r.rootDir,
+			)
+		}
+		if err == nil {
+			err = r.RunRubyExternal(ctx, run)
 		}
 	default:
 		err = fmt.Errorf("unrecognized language")
@@ -428,14 +438,16 @@ func (r *Runner) handleHistory(ctx context.Context, run *cmd.Run, summary Summar
 				Namespace: r.config.Namespace,
 				Logger:    r.log,
 			}
-			if r.config.ClientCertPath != "" {
-				cert, err := tls.LoadX509KeyPair(r.config.ClientCertPath, r.config.ClientKeyPath)
-				if err != nil {
-					return fmt.Errorf("failed to load certs: %s", err)
-				}
-				opts.ConnectionOptions.TLS = &tls.Config{Certificates: []tls.Certificate{cert}}
+			tlsCfg, err := harness.LoadTLSConfig(
+				r.config.ClientCertPath,
+				r.config.ClientKeyPath,
+				r.config.CACertPath,
+				r.config.TLSServerName,
+			)
+			if err != nil {
+				return fmt.Errorf("failed to load TLS config: %w", err)
 			}
-			var err error
+			opts.ConnectionOptions.TLS = tlsCfg
 			if cl, err = client.Dial(opts); err != nil {
 				return fmt.Errorf("failed creating client: %w", err)
 			}
@@ -585,15 +597,17 @@ func (r *Runner) destroyTempDir() {
 func normalizeLangName(lang string) (string, error) {
 	// Normalize to file extension
 	switch lang {
-	case "go", "java", "ts", "php", "py", "cs":
+	case "go", "java", "ts", "php", "py", "cs", "rb":
 	case "typescript":
 		lang = "ts"
 	case "python":
 		lang = "py"
 	case "dotnet", "csharp":
 		lang = "cs"
+	case "ruby":
+		lang = "rb"
 	default:
-		return "", fmt.Errorf("invalid language %q, must be one of: go or java or ts or py or cs", lang)
+		return "", fmt.Errorf("invalid language %q, must be one of: go or java or ts or py or cs or rb", lang)
 	}
 	return lang, nil
 }
@@ -601,15 +615,17 @@ func normalizeLangName(lang string) (string, error) {
 func expandLangName(lang string) (string, error) {
 	// Expand to lang name
 	switch lang {
-	case "go", "java", "typescript", "php", "python":
+	case "go", "java", "typescript", "php", "python", "ruby":
 	case "ts":
 		lang = "typescript"
 	case "py":
 		lang = "python"
 	case "cs":
 		lang = "dotnet"
+	case "rb":
+		lang = "ruby"
 	default:
-		return "", fmt.Errorf("invalid language %q, must be one of: go or java or ts or py or cs", lang)
+		return "", fmt.Errorf("invalid language %q, must be one of: go or java or ts or py or cs or rb", lang)
 	}
 	return lang, nil
 }
@@ -617,7 +633,7 @@ func expandLangName(lang string) (string, error) {
 func langFlag(destination *string) *cli.StringFlag {
 	return &cli.StringFlag{
 		Name:        "lang",
-		Usage:       "SDK language to run ('go' or 'java' or 'ts' or 'py' or 'cs')",
+		Usage:       "SDK language to run ('go' or 'java' or 'ts' or 'py' or 'cs' or 'rb')",
 		Required:    true,
 		Destination: destination,
 	}

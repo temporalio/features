@@ -353,7 +353,7 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 		if r.config.DirName != "" {
 			r.program, err = sdkbuild.RubyProgramFromDir(
 				filepath.Join(r.rootDir, r.config.DirName),
-				r.rootDir,
+				filepath.Join(r.rootDir, "harness", "ruby"),
 			)
 		}
 		if err == nil {

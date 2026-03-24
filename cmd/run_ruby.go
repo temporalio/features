@@ -20,9 +20,10 @@ func (p *Preparer) BuildRubyProgram(ctx context.Context) (sdkbuild.Program, erro
 	// Get version from harness/ruby/Gemfile if not present.
 	// If no version constraint is specified in the Gemfile, version stays empty
 	// and the package manager will resolve to the latest release.
+	rubyDir := filepath.Join(p.rootDir, "harness", "ruby")
 	version := p.config.Version
 	if version == "" {
-		b, err := os.ReadFile(filepath.Join(p.rootDir, "harness", "ruby", "Gemfile"))
+		b, err := os.ReadFile(filepath.Join(rubyDir, "Gemfile"))
 		if err != nil {
 			return nil, fmt.Errorf("failed reading harness/ruby/Gemfile: %w", err)
 		}
@@ -41,9 +42,10 @@ func (p *Preparer) BuildRubyProgram(ctx context.Context) (sdkbuild.Program, erro
 	}
 
 	prog, err := sdkbuild.BuildRubyProgram(ctx, sdkbuild.BuildRubyProgramOptions{
-		BaseDir: p.rootDir,
-		DirName: p.config.DirName,
-		Version: version,
+		BaseDir:   p.rootDir,
+		SourceDir: rubyDir,
+		DirName:   p.config.DirName,
+		Version:   version,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed preparing: %w", err)

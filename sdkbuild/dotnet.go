@@ -51,6 +51,8 @@ func BuildDotNetProgram(ctx context.Context, options BuildDotNetProgramOptions) 
 		return nil, fmt.Errorf("program contents required")
 	} else if options.CsprojContents == "" {
 		return nil, fmt.Errorf("csproj contents required")
+	} else if options.Configuration != "" && options.Configuration != "Debug" && options.Configuration != "Release" {
+		return nil, fmt.Errorf("configuration must be empty, \"Debug\", or \"Release\", got %q", options.Configuration)
 	}
 
 	// Create temp dir if needed that we will remove if creating is unsuccessful

@@ -110,7 +110,7 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 		if err != nil {
 			return nil, fmt.Errorf("cannot get absolute path from version path: %w", err)
 		}
-		pkgs := []string{"activity", "client", "common", "plugin", "proto", "worker", "workflow"}
+		pkgs := []string{"activity", "client", "common", "plugin", "worker", "workflow"}
 		for _, pkg := range pkgs {
 			pkgPath := "file:" + filepath.Join(localPath, "packages", pkg)
 			packageJSONDepStr += fmt.Sprintf(`"@temporalio/%v": %q,`, pkg, pkgPath)
@@ -149,8 +149,10 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
     "tsconfig-paths": "^3.12.0",
     "typescript": "^5.9.3"
   },
-  "overrides": {
-		"protobufjs": "7.5.1"
+  "pnpm": {
+		"overrides": {
+			"protobufjs": "7.5.1"
+		}
   }
 }`
 	if err := os.WriteFile(filepath.Join(dir, "package.json"), []byte(packageJSON), 0644); err != nil {

@@ -112,7 +112,7 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 		}
 		pkgs := []string{"activity", "client", "common", "plugin", "worker", "workflow"}
 		for _, pkg := range pkgs {
-			pkgPath := "file:" + filepath.Join(localPath, "packages", pkg)
+			pkgPath := "link:" + filepath.Join(localPath, "packages", pkg)
 			packageJSONDepStr += fmt.Sprintf(`"@temporalio/%v": %q,`, pkg, pkgPath)
 			packageJSONDepStr += "\n    "
 		}

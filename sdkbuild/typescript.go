@@ -110,7 +110,7 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 		if err != nil {
 			return nil, fmt.Errorf("cannot get absolute path from version path: %w", err)
 		}
-		pkgs := []string{"activity", "client", "common", "plugin", "worker", "workflow"}
+		pkgs := []string{"activity", "client", "common", "proto", "plugin", "worker", "workflow"}
 		for _, pkg := range pkgs {
 			pkgPath := "link:" + filepath.Join(localPath, "packages", pkg)
 			packageJSONDepStr += fmt.Sprintf(`"@temporalio/%v": %q,`, pkg, pkgPath)

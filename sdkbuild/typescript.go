@@ -97,7 +97,7 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 			}
 
 			// Build the SDK, ignore the unused `create` package as a mostly insignificant micro optimisation.
-			cmd = exec.CommandContext(ctx, "corepack", "pnpm", "run", "build", "--", "--ignore", "@temporalio/create")
+			cmd = exec.CommandContext(ctx, "corepack", "pnpm", "--filter", "!@temporalio/create", "run", "build")
 			cmd.Dir = options.Version
 			cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 			if err := cmd.Run(); err != nil {

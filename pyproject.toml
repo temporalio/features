@@ -5,11 +5,11 @@ description = "Temporal SDK Features"
 authors = [{ name = "Temporal Technologies Inc", email = "sdk@temporal.io" }]
 requires-python = ">=3.10"
 license = "MIT"
-dependencies = ["temporalio>=1.23.0,<2"]
+dependencies = ["temporalio"]
 
 [dependency-groups]
 dev = [
-    "mypy>=0.961,<0.962",
+    "mypy>=1.0",
     "ruff>=0.9.6",
 ]
 

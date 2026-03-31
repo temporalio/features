@@ -17,7 +17,9 @@ import (
 func (p *Preparer) BuildPythonProgram(ctx context.Context) (sdkbuild.Program, error) {
 	p.log.Info("Building Python project", "DirName", p.config.DirName)
 
-	// Get version from pyproject.toml if not present
+	// Get version from pyproject.toml if not present.
+	// If no version constraint is specified, version stays empty
+	// and the package manager will resolve to the latest release.
 	version := p.config.Version
 	versionFromPyProj := ""
 	if version == "" {
@@ -28,14 +30,16 @@ func (p *Preparer) BuildPythonProgram(ctx context.Context) (sdkbuild.Program, er
 		for _, line := range strings.Split(string(b), "\n") {
 			line = strings.TrimSpace(line)
 			if strings.Contains(line, "temporalio") {
-				version = line[strings.Index(line, `"`)+1 : strings.LastIndex(line, `"`)]
+				extracted := line[strings.Index(line, `"`)+1 : strings.LastIndex(line, `"`)]
+				// Only treat as a version constraint if it contains specifiers.
+				// A bare package name like "temporalio" means no constraint.
+				if extracted != "temporalio" {
+					version = extracted
+					versionFromPyProj = version
+				}
 				break
 			}
 		}
-		if version == "" {
-			return nil, fmt.Errorf("version not found in pyproject.toml")
-		}
-		versionFromPyProj = version
 	}
 
 	prog, err := sdkbuild.BuildPythonProgram(ctx, sdkbuild.BuildPythonProgramOptions{

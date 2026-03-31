@@ -267,8 +267,9 @@ class Runner:
         """Wait for an activity task scheduled event."""
         return await self.wait_for_event(
             handle,
-            lambda event: event.event_type
-            == EventType.EVENT_TYPE_ACTIVITY_TASK_SCHEDULED,
+            lambda event: (
+                event.event_type == EventType.EVENT_TYPE_ACTIVITY_TASK_SCHEDULED
+            ),
             timeout,
         )
 

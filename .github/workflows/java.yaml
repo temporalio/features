@@ -1,5 +1,24 @@
 name: Java Features Testing
 on:
+  workflow_dispatch:
+    inputs:
+      java-repo-path:
+        type: string
+        default: 'temporalio/sdk-java'
+      version:
+        required: true
+        type: string
+      # When true, the version refers to a repo tag/ref. When false, package version downloaded via
+      # gradle.
+      version-is-repo-ref:
+        required: true
+        type: boolean
+        default: true
+      features-repo-path:
+        type: string
+        default: 'temporalio/features'
+      features-repo-ref:
+        type: string
   workflow_call:
     inputs:
       java-repo-path:

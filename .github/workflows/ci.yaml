@@ -135,6 +135,11 @@ jobs:
       - uses: actions/setup-node@v4
 
       - run: npm ci
+      - name: Update Temporal SDK to latest
+        run: >
+          npm update
+          @temporalio/activity @temporalio/client @temporalio/common
+          @temporalio/plugin @temporalio/proto @temporalio/worker @temporalio/workflow
       - run: npm run build
       - run: npm run lint
 
@@ -153,6 +158,8 @@ jobs:
           python-version: '3.10'
       - uses: astral-sh/setup-uv@v5
       - run: uv tool install poethepoet
+      - name: Update Temporal SDK to latest
+        run: uv lock --upgrade-package temporalio
       - run: uv sync
       - run: poe lint
 
@@ -188,7 +195,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '23'
 
       - run: ./gradlew build
 

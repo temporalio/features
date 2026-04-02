@@ -89,7 +89,7 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 		// Have to build the local repo
 		if st, err := os.Stat(filepath.Join(options.Version, "node_modules")); err != nil || !st.IsDir() {
 			// Only install dependencies, avoid triggerring any post install build scripts
-			cmd := exec.CommandContext(ctx, "npm", "ci", "--ignore-scripts")
+			cmd := exec.CommandContext(ctx, "corepack", "pnpm", "install", "--frozen-lockfile", "--ignore-scripts")
 			cmd.Dir = options.Version
 			cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 			if err := cmd.Run(); err != nil {
@@ -97,7 +97,7 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 			}
 
 			// Build the SDK, ignore the unused `create` package as a mostly insignificant micro optimisation.
-			cmd = exec.CommandContext(ctx, "npm", "run", "build", "--", "--ignore", "@temporalio/create")
+			cmd = exec.CommandContext(ctx, "corepack", "pnpm", "--filter", "!@temporalio/create", "run", "build")
 			cmd.Dir = options.Version
 			cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 			if err := cmd.Run(); err != nil {
@@ -110,15 +110,15 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 		if err != nil {
 			return nil, fmt.Errorf("cannot get absolute path from version path: %w", err)
 		}
-		pkgs := []string{"activity", "client", "common", "plugin", "proto", "worker", "workflow"}
+		pkgs := []string{"activity", "client", "common", "proto", "plugin", "worker", "workflow"}
 		for _, pkg := range pkgs {
-			pkgPath := "file:" + filepath.Join(localPath, "packages", pkg)
+			pkgPath := "link:" + filepath.Join(localPath, "packages", pkg)
 			packageJSONDepStr += fmt.Sprintf(`"@temporalio/%v": %q,`, pkg, pkgPath)
 			packageJSONDepStr += "\n    "
 		}
 	} else {
 		version := strings.TrimPrefix(options.Version, "v")
-		pkgs := []string{"activity", "client", "common", "plugin", "worker", "workflow"}
+		pkgs := []string{"activity", "client", "common", "proto", "plugin", "worker", "workflow"}
 		for _, pkg := range pkgs {
 			packageJSONDepStr += fmt.Sprintf(`    "@temporalio/%v": %q,`, pkg, version) + "\n"
 		}
@@ -149,8 +149,10 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
     "tsconfig-paths": "^3.12.0",
     "typescript": "^5.9.3"
   },
-  "overrides": {
-		"protobufjs": "7.5.1"
+  "pnpm": {
+		"overrides": {
+			"protobufjs": "7.5.1"
+		}
   }
 }`
 	if err := os.WriteFile(filepath.Join(dir, "package.json"), []byte(packageJSON), 0644); err != nil {
@@ -216,7 +218,7 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 	}
 
 	// Install
-	cmd := exec.CommandContext(ctx, "npm", "install")
+	cmd := exec.CommandContext(ctx, "corepack", "pnpm", "install")
 	cmd.Dir = dir
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	if options.ApplyToCommand != nil {
@@ -229,7 +231,7 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 	}
 
 	// Compile
-	cmd = exec.CommandContext(ctx, "npm", "run", "build")
+	cmd = exec.CommandContext(ctx, "corepack", "pnpm", "run", "build")
 	cmd.Dir = dir
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	if options.ApplyToCommand != nil {

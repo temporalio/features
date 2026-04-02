@@ -29,6 +29,9 @@ type BuildDotNetProgramOptions struct {
 	// Required csproj content. This should not contain a dependency on Temporalio
 	// because this adds a package/project reference near the end.
 	CsprojContents string
+	// Optional build configuration (e.g., "Release", "Debug"). If empty,
+	// uses the .NET default (Debug).
+	Configuration string
 	// If present, custom writers that will capture stdout/stderr.
 	Stdout io.Writer
 	Stderr io.Writer
@@ -48,6 +51,8 @@ func BuildDotNetProgram(ctx context.Context, options BuildDotNetProgramOptions) 
 		return nil, fmt.Errorf("program contents required")
 	} else if options.CsprojContents == "" {
 		return nil, fmt.Errorf("csproj contents required")
+	} else if options.Configuration != "" && options.Configuration != "Debug" && options.Configuration != "Release" {
+		return nil, fmt.Errorf("configuration must be empty, \"Debug\", or \"Release\", got %q", options.Configuration)
 	}
 
 	// Create temp dir if needed that we will remove if creating is unsuccessful
@@ -80,7 +85,11 @@ func BuildDotNetProgram(ctx context.Context, options BuildDotNetProgramOptions) 
 			return nil, fmt.Errorf("cannot find version path of %v: %w", absCsproj, err)
 		}
 		// Need to build this csproj first
-		cmd := exec.CommandContext(ctx, "dotnet", "build", absCsproj)
+		csprojArgs := []string{"build", absCsproj}
+		if options.Configuration != "" {
+			csprojArgs = append(csprojArgs, "--configuration", options.Configuration)
+		}
+		cmd := exec.CommandContext(ctx, "dotnet", csprojArgs...)
 		cmd.Dir = dir
 		setupCommandIO(cmd, options.Stdout, options.Stderr)
 		if err := cmd.Run(); err != nil {
@@ -103,6 +112,9 @@ func BuildDotNetProgram(ctx context.Context, options BuildDotNetProgramOptions) 
 
 	// Build it into build folder
 	cmdArgs := []string{"build", "--output", "build"}
+	if options.Configuration != "" {
+		cmdArgs = append(cmdArgs, "--configuration", options.Configuration)
+	}
 	if versionArg != "" {
 		cmdArgs = append(cmdArgs, versionArg)
 	}

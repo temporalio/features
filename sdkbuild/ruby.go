@@ -14,9 +14,12 @@ import (
 type BuildRubyProgramOptions struct {
 	// Directory that will have a temporary directory created underneath.
 	BaseDir string
-	// Required version. If it contains a slash it is assumed to be a path to the
-	// Ruby SDK repo. Otherwise it is a specific version (with leading "v"
-	// trimmed if present).
+	// Directory containing the Ruby source (gemspec + runner.rb).
+	SourceDir string
+	// If not set, no version constraint is applied and the package manager
+	// resolves to the latest release. If it contains a slash it is assumed
+	// to be a path to the Ruby SDK repo. Otherwise it is a specific version
+	// (with leading "v" trimmed if present).
 	Version string
 	// If present, this directory is expected to exist beneath base dir. Otherwise
 	// a temporary dir is created.
@@ -39,11 +42,9 @@ var _ Program = (*RubyProgram)(nil)
 func BuildRubyProgram(ctx context.Context, options BuildRubyProgramOptions) (*RubyProgram, error) {
 	if options.BaseDir == "" {
 		return nil, fmt.Errorf("base dir required")
-	} else if options.Version == "" {
-		return nil, fmt.Errorf("version required")
 	}
 
-	sourceDir := filepath.Join(options.BaseDir, "harness", "ruby")
+	sourceDir := options.SourceDir
 
 	// Create temp dir if needed that we will remove if creating is unsuccessful
 	success := false
@@ -75,7 +76,9 @@ func BuildRubyProgram(ctx context.Context, options BuildRubyProgramOptions) (*Ru
 		return cmd.Run()
 	}
 
-	// Build the Gemfile content
+	// Build the Gemfile content. We use Bundler's `gemspec` directive to
+	// auto-discover the gemspec in the source directory (via path: option).
+	// This works for any gem name (harness, omes, etc.).
 	var gemfileContent string
 	if strings.ContainsAny(options.Version, `/\`) {
 		// It's a path to a local SDK repo
@@ -95,15 +98,21 @@ func BuildRubyProgram(ctx context.Context, options BuildRubyProgramOptions) (*Ru
 		gemfileContent = fmt.Sprintf(`source "https://rubygems.org"
 
 gem "temporalio", path: %q
-gem "harness", path: %q
+gemspec path: %q
 `, gemPath, sourceDir)
-	} else {
+	} else if options.Version != "" {
 		version := strings.TrimPrefix(options.Version, "v")
 		gemfileContent = fmt.Sprintf(`source "https://rubygems.org"
 
 gem "temporalio", "%s"
-gem "harness", path: %q
+gemspec path: %q
 `, version, sourceDir)
+	} else {
+		// No version constraint — Bundler resolves to latest from RubyGems
+		gemfileContent = fmt.Sprintf(`source "https://rubygems.org"
+
+gemspec path: %q
+`, sourceDir)
 	}
 
 	if err := os.WriteFile(filepath.Join(dir, "Gemfile"), []byte(gemfileContent), 0644); err != nil {
@@ -149,13 +158,13 @@ gem "harness", path: %q
 }
 
 // RubyProgramFromDir recreates the Ruby program from a Dir() result of a
-// BuildRubyProgram(). Note, the base directory of dir when it was built must
-// also be present.
-func RubyProgramFromDir(dir string, rootDir string) (*RubyProgram, error) {
+// BuildRubyProgram(). The sourceDir should point to the directory containing
+// the gemspec and runner.rb.
+func RubyProgramFromDir(dir string, sourceDir string) (*RubyProgram, error) {
 	if _, err := os.Stat(filepath.Join(dir, "Gemfile")); err != nil {
 		return nil, fmt.Errorf("failed finding Gemfile in dir: %w", err)
 	}
-	return &RubyProgram{dir: dir, source: filepath.Join(rootDir, "harness", "ruby")}, nil
+	return &RubyProgram{dir: dir, source: sourceDir}, nil
 }
 
 // Dir is the directory to run in.

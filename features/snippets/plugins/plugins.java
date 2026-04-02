@@ -23,7 +23,7 @@ class PluginsSnippet {
   }
 
   SimplePlugin activityPlugin =
-      SimplePlugin.newBuilder("PluginName")
+      SimplePlugin.newBuilder("organization.PluginName")
           .registerActivitiesImplementations(new SomeActivityImpl())
           .build();
   // @@@SNIPEND
@@ -43,7 +43,7 @@ class PluginsSnippet {
   }
 
   SimplePlugin workflowPlugin =
-      SimplePlugin.newBuilder("PluginName")
+      SimplePlugin.newBuilder("organization.PluginName")
           .registerWorkflowImplementationTypes(HelloWorkflowImpl.class)
           .build();
   // @@@SNIPEND
@@ -83,14 +83,14 @@ class PluginsSnippet {
   }
 
   SimplePlugin nexusPlugin =
-      SimplePlugin.newBuilder("PluginName")
+      SimplePlugin.newBuilder("organization.PluginName")
           .registerNexusServiceImplementation(new WeatherService())
           .build();
   // @@@SNIPEND
 
   // @@@SNIPSTART java-plugin-converter
   SimplePlugin converterPlugin =
-      SimplePlugin.newBuilder("PluginName")
+      SimplePlugin.newBuilder("organization.PluginName")
           .customizeDataConverter(
               existingConverter -> {
                 // Customize the data converter
@@ -111,7 +111,7 @@ class PluginsSnippet {
   }
 
   SimplePlugin interceptorPlugin =
-      SimplePlugin.newBuilder("PluginName")
+      SimplePlugin.newBuilder("organization.PluginName")
           .addWorkerInterceptors(new SomeWorkerInterceptor())
           .addClientInterceptors(new SomeClientInterceptor())
           .build();

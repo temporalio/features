@@ -1,5 +1,5 @@
 # Build in a full featured container
-FROM eclipse-temurin:11 as build
+FROM eclipse-temurin:23 as build
 
 # Install protobuf compiler & git (needed if building SDK, rather than pulling it as dep)
 RUN apt-get update \
@@ -39,7 +39,7 @@ RUN CGO_ENABLED=0 ./temporal-features prepare --lang java --dir prepared --versi
 
 # Copy the CLI and prepared feature to a "run" container. Distroless isn't used here since we run
 # through Gradle and it's more annoying than it's worth to get its deps to line up
-FROM eclipse-temurin:11
+FROM eclipse-temurin:23
 ENV GRADLE_USER_HOME="/gradle"
 
 COPY --from=build /app/temporal-features /app/temporal-features

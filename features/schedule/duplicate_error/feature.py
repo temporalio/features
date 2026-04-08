@@ -24,43 +24,28 @@ class Workflow:
 
 async def start(runner: Runner) -> WorkflowHandle:
     schedule_id = f"schedule-duplicate-error-{uuid.uuid4()}"
-    handle = await runner.client.create_schedule(
-        schedule_id,
-        Schedule(
-            action=ScheduleActionStartWorkflow(
-                Workflow.run,
-                id=f"wf-{uuid.uuid4()}",
-                task_queue=runner.task_queue,
-            ),
-            spec=ScheduleSpec(
-                intervals=[ScheduleIntervalSpec(every=timedelta(hours=1))]
-            ),
-            state=ScheduleState(paused=True),
+    schedule = Schedule(
+        action=ScheduleActionStartWorkflow(
+            Workflow.run,
+            id=f"wf-{uuid.uuid4()}",
+            task_queue=runner.task_queue,
         ),
+        spec=ScheduleSpec(
+            intervals=[ScheduleIntervalSpec(every=timedelta(hours=1))]
+        ),
+        state=ScheduleState(paused=True),
     )
+
+    handle = await runner.client.create_schedule(schedule_id, schedule)
 
     try:
         # Creating again with the same schedule ID should raise ScheduleAlreadyRunningError.
-        raised = False
         try:
-            await runner.client.create_schedule(
-                schedule_id,
-                Schedule(
-                    action=ScheduleActionStartWorkflow(
-                        Workflow.run,
-                        id=f"wf-{uuid.uuid4()}",
-                        task_queue=runner.task_queue,
-                    ),
-                    spec=ScheduleSpec(
-                        intervals=[ScheduleIntervalSpec(every=timedelta(hours=1))]
-                    ),
-                    state=ScheduleState(paused=True),
-                ),
-            )
+            await runner.client.create_schedule(schedule_id, schedule)
         except ScheduleAlreadyRunningError:
-            raised = True
-
-        assert raised, "expected ScheduleAlreadyRunningError"
+            pass
+        else:
+            assert False, "expected ScheduleAlreadyRunningError"
     finally:
         await handle.delete()
 

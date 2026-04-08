@@ -41,6 +41,7 @@ import (
 	schedule_backfill "github.com/temporalio/features/features/schedule/backfill"
 	schedule_basic "github.com/temporalio/features/features/schedule/basic"
 	schedule_cron "github.com/temporalio/features/features/schedule/cron"
+	schedule_duplicate_error "github.com/temporalio/features/features/schedule/duplicate_error"
 	schedule_pause "github.com/temporalio/features/features/schedule/pause"
 	schedule_trigger "github.com/temporalio/features/features/schedule/trigger"
 	signal_external "github.com/temporalio/features/features/signal/external"
@@ -101,6 +102,7 @@ func init() {
 		schedule_backfill.Feature,
 		schedule_basic.Feature,
 		schedule_cron.Feature,
+		schedule_duplicate_error.Feature,
 		schedule_pause.Feature,
 		schedule_trigger.Feature,
 		signal_external.Feature,

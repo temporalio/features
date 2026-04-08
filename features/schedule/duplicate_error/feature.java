@@ -5,13 +5,18 @@ import io.temporal.client.schedules.*;
 import io.temporal.sdkfeatures.Feature;
 import io.temporal.sdkfeatures.Run;
 import io.temporal.sdkfeatures.Runner;
-import io.temporal.sdkfeatures.SimpleWorkflow;
+import io.temporal.workflow.WorkflowInterface;
+import io.temporal.workflow.WorkflowMethod;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.UUID;
 import org.junit.jupiter.api.Assertions;
 
-public interface feature extends Feature, SimpleWorkflow {
+@WorkflowInterface
+public interface feature extends Feature {
+
+  @WorkflowMethod
+  void workflow();
 
   class Impl implements feature {
     @Override

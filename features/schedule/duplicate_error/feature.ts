@@ -52,10 +52,7 @@ export const feature = new Feature({
             },
           }),
         (err) => {
-          assert.ok(
-            err instanceof ScheduleAlreadyRunning,
-            `expected ScheduleAlreadyRunning, got: ${err}`,
-          );
+          assert.ok(err instanceof ScheduleAlreadyRunning, `expected ScheduleAlreadyRunning, got: ${err}`);
           return true;
         },
       );

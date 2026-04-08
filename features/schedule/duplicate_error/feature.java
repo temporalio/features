@@ -38,8 +38,7 @@ public interface feature extends Feature, SimpleWorkflow {
                       .build())
               .setSpec(
                   ScheduleSpec.newBuilder()
-                      .setIntervals(
-                          Arrays.asList(new ScheduleIntervalSpec(Duration.ofHours(1))))
+                      .setIntervals(Arrays.asList(new ScheduleIntervalSpec(Duration.ofHours(1))))
                       .build())
               .setState(ScheduleState.newBuilder().setPaused(true).build())
               .build();
@@ -51,7 +50,8 @@ public interface feature extends Feature, SimpleWorkflow {
         // Creating again with the same schedule ID should throw ScheduleAlreadyRunningException.
         Assertions.assertThrows(
             ScheduleAlreadyRunningException.class,
-            () -> client.createSchedule(scheduleId, schedule, ScheduleOptions.newBuilder().build()));
+            () ->
+                client.createSchedule(scheduleId, schedule, ScheduleOptions.newBuilder().build()));
       } finally {
         handle.delete();
       }

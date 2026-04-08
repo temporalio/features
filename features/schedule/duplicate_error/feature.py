@@ -30,9 +30,7 @@ async def start(runner: Runner) -> WorkflowHandle:
             id=f"wf-{uuid.uuid4()}",
             task_queue=runner.task_queue,
         ),
-        spec=ScheduleSpec(
-            intervals=[ScheduleIntervalSpec(every=timedelta(hours=1))]
-        ),
+        spec=ScheduleSpec(intervals=[ScheduleIntervalSpec(every=timedelta(hours=1))]),
         state=ScheduleState(paused=True),
     )
 

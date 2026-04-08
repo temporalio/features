@@ -17,26 +17,16 @@ export const feature = new Feature({
       connection,
       namespace: runner.options.namespace,
     });
-    const createOpts = {
-      scheduleId: `schedule-duplicate-error-${randomUUID()}`,
-      spec: {
-        intervals: [{ every: '1h' }],
-      },
-      action: {
-        type: 'startWorkflow' as const,
-        workflowType: workflow,
-        taskQueue: runner.options.taskQueue,
-      },
-      state: {
-        paused: true,
-      },
-    };
-    const handle = await client.create(createOpts);
+    const scheduleId = `schedule-duplicate-error-${randomUUID()}`;
+    const spec = { intervals: [{ every: '1h' }] };
+    const action = { type: 'startWorkflow' as const, workflowType: workflow, taskQueue: runner.options.taskQueue };
+    const state = { paused: true };
+    const handle = await client.create({ scheduleId, spec, action, state });
 
     try {
       // Creating again with the same schedule ID should throw ScheduleAlreadyRunning.
       await assert.rejects(
-        () => client.create(createOpts),
+        () => client.create({ scheduleId, spec, action, state }),
         (err) => {
           assert.ok(err instanceof ScheduleAlreadyRunning, `expected ScheduleAlreadyRunning, got: ${err}`);
           return true;

@@ -30,6 +30,7 @@ public class PreparedFeature {
           schedule.backfill.feature.Impl.class,
           schedule.basic.feature.Impl.class,
           schedule.cron.feature.Impl.class,
+          schedule.duplicate_error.feature.Impl.class,
           schedule.pause.feature.Impl.class,
           schedule.trigger.feature.Impl.class,
           signal.external.feature.Impl.class,

@@ -1,6 +1,6 @@
 import os
 
-import aioboto3
+import aioboto3  # type: ignore[import-not-found]
 from temporalio.contrib.aws.s3driver import S3StorageDriver
 from temporalio.contrib.aws.s3driver.aioboto3 import new_aioboto3_client
 
@@ -16,5 +16,5 @@ async def create_s3_driver():
             client=new_aioboto3_client(s3_client),
             bucket="my-temporal-payloads",
         )
-    # @@@SNIPEND
+        # @@@SNIPEND
         return driver

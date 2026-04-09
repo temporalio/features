@@ -6,8 +6,8 @@ from temporalio.api.common.v1 import Payload
 from temporalio.converter import (
     StorageDriver,
     StorageDriverClaim,
-    StorageDriverStoreContext,
     StorageDriverRetrieveContext,
+    StorageDriverStoreContext,
     StorageDriverWorkflowInfo,
 )
 
@@ -39,7 +39,7 @@ class LocalDiskStorageDriver(StorageDriver):
             file_path = os.path.join(prefix, key)
             with open(file_path, "wb") as f:
                 f.write(payload.SerializeToString())
-            claims.append(StorageDriverClaim(data={"path": file_path}))
+            claims.append(StorageDriverClaim(claim_data={"path": file_path}))
         return claims
 
     async def retrieve(
@@ -49,11 +49,13 @@ class LocalDiskStorageDriver(StorageDriver):
     ) -> list[Payload]:
         payloads = []
         for claim in claims:
-            file_path = claim.data["path"]
+            file_path = claim.claim_data["path"]
             with open(file_path, "rb") as f:
                 raw = f.read()
             payload = Payload()
             payload.ParseFromString(raw)
             payloads.append(payload)
         return payloads
+
+
 # @@@SNIPEND

@@ -1,6 +1,5 @@
-from temporalio.converter import ExternalStorage
-
 from temporalio.contrib.aws.s3driver import S3StorageDriver
+from temporalio.converter import ExternalStorage
 
 
 def configure(s3_client, legacy_driver):

@@ -1,8 +1,9 @@
 import dataclasses
 
+from custom_storage_driver import (  # type: ignore[import-not-found]
+    LocalDiskStorageDriver,
+)
 from temporalio.converter import DataConverter, ExternalStorage
-
-from custom_storage_driver import LocalDiskStorageDriver
 
 
 def configure():

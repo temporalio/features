@@ -16,12 +16,12 @@ type LocalDiskStorageDriver struct {
 	storeDir string
 }
 
-func NewLocalDiskStorageDriver(storeDir string) *LocalDiskStorageDriver {
+func NewLocalDiskStorageDriver(storeDir string) converter.StorageDriver {
 	return &LocalDiskStorageDriver{storeDir: storeDir}
 }
 
 func (d *LocalDiskStorageDriver) Name() string {
-	return "local-disk"
+	return "my-local-disk"
 }
 
 func (d *LocalDiskStorageDriver) Type() string {

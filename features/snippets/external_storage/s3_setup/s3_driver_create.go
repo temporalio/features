@@ -5,7 +5,7 @@ import (
 	"log"
 
 	"github.com/aws/aws-sdk-go-v2/config"
-	awss3 "github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"go.temporal.io/sdk/contrib/aws/s3driver"
 	"go.temporal.io/sdk/contrib/aws/s3driver/awssdkv2"
 	"go.temporal.io/sdk/converter"
@@ -21,7 +21,7 @@ func CreateS3Driver() converter.StorageDriver {
 	}
 
 	driver, err := s3driver.NewDriver(s3driver.Options{
-		Client: awssdkv2.NewClient(awss3.NewFromConfig(cfg)),
+		Client: awssdkv2.NewClient(s3.NewFromConfig(cfg)),
 		Bucket: s3driver.StaticBucket("my-temporal-payloads"),
 	})
 	if err != nil {

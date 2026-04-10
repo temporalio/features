@@ -12,7 +12,7 @@ func ThresholdConfig(driver converter.StorageDriver) {
 	c, err := client.Dial(client.Options{
 		ExternalStorage: converter.ExternalStorage{
 			Drivers:              []converter.StorageDriver{driver},
-			PayloadSizeThreshold: 0,
+			PayloadSizeThreshold: 1,
 		},
 	})
 	// @@@SNIPEND

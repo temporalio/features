@@ -33,8 +33,15 @@ func (d *LocalDiskStorageDriver) Store(
 	payloads []*commonpb.Payload,
 ) ([]converter.StorageDriverClaim, error) {
 	dir := d.storeDir
-	if info, ok := ctx.Target.(converter.StorageDriverWorkflowInfo); ok && info.WorkflowID != "" {
-		dir = filepath.Join(d.storeDir, info.Namespace, info.WorkflowID)
+	switch info := ctx.Target.(type) {
+	case converter.StorageDriverWorkflowInfo:
+		if info.WorkflowID != "" {
+			dir = filepath.Join(d.storeDir, info.Namespace, info.WorkflowID)
+		}
+	case converter.StorageDriverActivityInfo:
+		if info.ActivityID != "" {
+			dir = filepath.Join(d.storeDir, info.Namespace, info.ActivityID)
+		}
 	}
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return nil, fmt.Errorf("create store directory: %w", err)
@@ -79,5 +86,4 @@ func (d *LocalDiskStorageDriver) Retrieve(
 	}
 	return payloads, nil
 }
-
 // @@@SNIPEND

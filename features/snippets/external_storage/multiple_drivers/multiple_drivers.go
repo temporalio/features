@@ -23,5 +23,4 @@ func MultipleDriversSetup(preferredDriver, legacyDriver converter.StorageDriver)
 		DriverSelector: &PreferredSelector{preferred: preferredDriver},
 	}
 }
-
 // @@@SNIPEND

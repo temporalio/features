@@ -41,7 +41,7 @@ jobs:
 
       - name: Download docker artifacts
         if: ${{ inputs.docker-image-artifact-name }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: ${{ inputs.docker-image-artifact-name }}
           path: /tmp/server-docker
@@ -65,17 +65,17 @@ jobs:
         working-directory: '.'
 
       - name: Checkout SDK features repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           path: features
           repository: ${{ inputs.features-repo-path }}
           ref: ${{ inputs.features-repo-ref }}
 
-      - uses: actions/setup-go@v2
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
         with:
           go-version: '^1.22'
       - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@ba696adf55506673e48342a66e30f1f53cadeae0 # v1
         with:
           ruby-version: '4.0'
 

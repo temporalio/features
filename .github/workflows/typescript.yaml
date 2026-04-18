@@ -44,7 +44,7 @@ jobs:
 
       - name: Download docker artifacts
         if: ${{ inputs.docker-image-artifact-name }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: ${{ inputs.docker-image-artifact-name }}
           path: /tmp/server-docker
@@ -68,14 +68,14 @@ jobs:
         working-directory: '.'
 
       - name: Checkout SDK features repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           path: features
           repository: ${{ inputs.features-repo-path }}
           ref: ${{ inputs.features-repo-ref }}
       - name: Checkout typescript SDK repo
         if: ${{ inputs.version-is-repo-ref }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           repository: ${{ inputs.typescript-repo-path }}
           submodules: recursive
@@ -83,30 +83,30 @@ jobs:
           ref: ${{ inputs.version }}
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
         with:
           version: '10'
           run_install: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version: 24
 
       - name: Install protoc
         if: ${{ inputs.version-is-repo-ref }}
-        uses: arduino/setup-protoc@v3
+        uses: arduino/setup-protoc@c65c819552d16ad3c9b72d9dfd5ba5237b9c906b # v3
         with:
           # TODO: Upgrade proto once https://github.com/arduino/setup-protoc/issues/99 is fixed
           version: '23.x'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
         with:
           go-version: '^1.21'
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
 
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         if: ${{ inputs.version-is-repo-ref }}
         with:
           workspaces: sdk-ts/packages/core-bridge

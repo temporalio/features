@@ -24,9 +24,18 @@ type BuildRubyProgramOptions struct {
 	// If present, this directory is expected to exist beneath base dir. Otherwise
 	// a temporary dir is created.
 	DirName string
+	// If present, additional gems to add to the generated Gemfile.
+	MoreDependencies []RubyDependency
 	// If present, custom writers that will capture stdout/stderr.
 	Stdout io.Writer
 	Stderr io.Writer
+}
+
+// RubyDependency is an additional gem dependency for the generated Gemfile.
+type RubyDependency struct {
+	Name    string
+	Version string
+	Path    string
 }
 
 // RubyProgram is a Ruby-specific implementation of Program.
@@ -79,7 +88,7 @@ func BuildRubyProgram(ctx context.Context, options BuildRubyProgramOptions) (*Ru
 	// Build the Gemfile content. We use Bundler's `gemspec` directive to
 	// auto-discover the gemspec in the source directory (via path: option).
 	// This works for any gem name (harness, omes, etc.).
-	var gemfileContent string
+	gemfileLines := []string{`source "https://rubygems.org"`, ""}
 	if strings.ContainsAny(options.Version, `/\`) {
 		// It's a path to a local SDK repo
 		sdkPath, err := filepath.Abs(options.Version)
@@ -95,25 +104,22 @@ func BuildRubyProgram(ctx context.Context, options BuildRubyProgramOptions) (*Ru
 				return nil, fmt.Errorf("failed finding temporalio.gemspec in version dir: %w", err)
 			}
 		}
-		gemfileContent = fmt.Sprintf(`source "https://rubygems.org"
-
-gem "temporalio", path: %q
-gemspec path: %q
-`, gemPath, sourceDir)
+		gemfileLines = append(gemfileLines, fmt.Sprintf(`gem "temporalio", path: %q`, gemPath))
 	} else if options.Version != "" {
 		version := strings.TrimPrefix(options.Version, "v")
-		gemfileContent = fmt.Sprintf(`source "https://rubygems.org"
-
-gem "temporalio", "%s"
-gemspec path: %q
-`, version, sourceDir)
-	} else {
-		// No version constraint — Bundler resolves to latest from RubyGems
-		gemfileContent = fmt.Sprintf(`source "https://rubygems.org"
-
-gemspec path: %q
-`, sourceDir)
+		gemfileLines = append(gemfileLines, fmt.Sprintf(`gem "temporalio", %q`, version))
 	}
+
+	moreDependencyLines, err := renderRubyDependencies(options.MoreDependencies)
+	if err != nil {
+		return nil, err
+	}
+	if len(moreDependencyLines) > 0 {
+		gemfileLines = append(gemfileLines, moreDependencyLines...)
+		gemfileLines = append(gemfileLines, "")
+	}
+	gemfileLines = append(gemfileLines, fmt.Sprintf(`gemspec path: %q`, sourceDir), "")
+	gemfileContent := strings.Join(gemfileLines, "\n")
 
 	if err := os.WriteFile(filepath.Join(dir, "Gemfile"), []byte(gemfileContent), 0644); err != nil {
 		return nil, fmt.Errorf("failed writing Gemfile: %w", err)
@@ -155,6 +161,26 @@ gemspec path: %q
 
 	success = true
 	return &RubyProgram{dir: dir, source: sourceDir}, nil
+}
+
+func renderRubyDependencies(dependencies []RubyDependency) ([]string, error) {
+	lines := make([]string, 0, len(dependencies))
+	for _, dependency := range dependencies {
+		if dependency.Name == "" {
+			return nil, fmt.Errorf("ruby dependency name required")
+		}
+		if dependency.Path != "" && dependency.Version != "" {
+			return nil, fmt.Errorf("ruby dependency %q cannot have both path and version", dependency.Name)
+		}
+		if dependency.Path != "" {
+			lines = append(lines, fmt.Sprintf(`gem %q, path: %q`, dependency.Name, dependency.Path))
+		} else if dependency.Version != "" {
+			lines = append(lines, fmt.Sprintf(`gem %q, %q`, dependency.Name, dependency.Version))
+		} else {
+			lines = append(lines, fmt.Sprintf(`gem %q`, dependency.Name))
+		}
+	}
+	return lines, nil
 }
 
 // RubyProgramFromDir recreates the Ruby program from a Dir() result of a

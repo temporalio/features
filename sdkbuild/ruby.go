@@ -108,15 +108,14 @@ func BuildRubyProgram(ctx context.Context, options BuildRubyProgramOptions) (*Ru
 	} else if options.Version != "" {
 		version := strings.TrimPrefix(options.Version, "v")
 		gemfileLines = append(gemfileLines, fmt.Sprintf(`gem "temporalio", %q`, version))
-	} else {
-		// No version constraint — keep relying on the source gemspec.
 	}
+
 	moreDependencyLines, err := renderRubyDependencies(options.MoreDependencies)
 	if err != nil {
 		return nil, err
 	}
-	gemfileLines = append(gemfileLines, moreDependencyLines...)
 	if len(moreDependencyLines) > 0 {
+		gemfileLines = append(gemfileLines, moreDependencyLines...)
 		gemfileLines = append(gemfileLines, "")
 	}
 	gemfileLines = append(gemfileLines, fmt.Sprintf(`gemspec path: %q`, sourceDir), "")

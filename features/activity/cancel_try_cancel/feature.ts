@@ -68,7 +68,7 @@ const activitiesImpl = {
 
     // Send to signal
     await client.workflow
-      .getHandle(Context.current().info.workflowExecution.workflowId)
+      .getHandle(Context.current().info.workflowExecution!.workflowId)
       .signal(activityResultSignal, result);
   },
 };

@@ -217,10 +217,6 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 		return nil, fmt.Errorf("failed writing tsconfig.json: %w", err)
 	}
 
-	// Install — `--ignore-scripts` mirrors the SDK install above and avoids
-	// pnpm 10's strict-builds rejection (`ERR_PNPM_IGNORED_BUILDS`) when
-	// transitive deps such as @swc/core or protobufjs ship postinstall
-	// scripts. The harness only needs the deps on disk for tsc/runtime.
 	cmd := exec.CommandContext(ctx, "corepack", "pnpm", "install", "--ignore-scripts")
 	cmd.Dir = dir
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr

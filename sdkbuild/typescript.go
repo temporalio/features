@@ -218,7 +218,7 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 	}
 
 	// Install
-	cmd := exec.CommandContext(ctx, "corepack", "pnpm", "install")
+	cmd := exec.CommandContext(ctx, "corepack", "pnpm", "install", "--ignore-scripts")
 	cmd.Dir = dir
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	if options.ApplyToCommand != nil {

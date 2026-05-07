@@ -152,7 +152,11 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
   "pnpm": {
 		"overrides": {
 			"protobufjs": "7.5.1"
-		}
+		},
+		"onlyBuiltDependencies": [
+			"@swc/core",
+			"protobufjs"
+		]
   }
 }`
 	if err := os.WriteFile(filepath.Join(dir, "package.json"), []byte(packageJSON), 0644); err != nil {

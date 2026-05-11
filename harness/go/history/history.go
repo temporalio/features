@@ -170,6 +170,7 @@ func scrubRunSpecificScalars(v interface{}) {
 		v.Version = 0 // This field is used for global namespaces and replication conflict resolution, ignore it
 		v.EventTime = nil
 		v.TaskId = 0
+		v.Principal = nil
 	case *history.WorkflowExecutionStartedEventAttributes:
 		v.OriginalExecutionRunId = ""
 		v.Identity = ""

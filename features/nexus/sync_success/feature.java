@@ -1,6 +1,8 @@
 package nexus.sync_success;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.nexusrpc.Operation;
 import io.nexusrpc.Service;
@@ -66,8 +68,16 @@ public interface feature extends Feature {
     }
 
     @Override
-    public void checkHistory(Runner runner, Run run) {
-      // History scrubbing does not cover the Nexus endpoint name; skip for now.
+    public void checkHistory(Runner runner, Run run) throws Exception {
+      // Assert that the sync operation transitioned straight from Scheduled to
+      // Completed with no Started event.
+      var events = runner.getWorkflowHistory(run).getEventsList();
+      assertTrue(
+          events.stream().anyMatch(e -> e.hasNexusOperationCompletedEventAttributes()),
+          "expected NexusOperationCompleted event in history");
+      assertFalse(
+          events.stream().anyMatch(e -> e.hasNexusOperationStartedEventAttributes()),
+          "unexpected NexusOperationStarted event for sync operation");
     }
   }
 

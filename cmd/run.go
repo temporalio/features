@@ -649,8 +649,11 @@ func (r *Runner) createNexusEndpoints(ctx context.Context, run *cmd.Run) (func()
 		cl.Close()
 	}
 
+	// Nexus endpoint names have stricter, DNS-style validation than task queues, so / and _
+	// in the feature dir must be normalized to -.
+	sanitize := strings.NewReplacer("/", "-", "_", "-")
 	for _, feature := range nexusFeatures {
-		name := "features-nexus-" + feature.TaskQueue
+		name := "features-nexus-" + sanitize.Replace(feature.Dir) + "-" + uuid.NewString()
 		createCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 		res, err := cl.OperatorService().CreateNexusEndpoint(createCtx, &operatorservice.CreateNexusEndpointRequest{
 			Spec: &nexuspb.EndpointSpec{

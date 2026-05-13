@@ -41,6 +41,9 @@ public class Runner implements Closeable {
     public String serverHostPort;
     public String namespace;
     public String taskQueue;
+    // Pre-created Nexus endpoint name targeting this run's namespace and task queue. Null for
+    // features outside of features/nexus.
+    public String nexusEndpoint;
     public Scope metricsScope = new NoopScope();
     public SslContext sslContext;
     public String httpProxyUrl;
@@ -52,6 +55,9 @@ public class Runner implements Closeable {
   public final Feature feature;
   public final WorkflowServiceStubs service;
   public final WorkflowClient client;
+  // Pre-created Nexus endpoint name from config, targeting this run's namespace and task queue.
+  // Null for features outside of features/nexus.
+  public final String nexusEndpoint;
   private WorkerFactory workerFactory;
   private Worker worker;
 
@@ -90,6 +96,7 @@ public class Runner implements Closeable {
       service.shutdownNow();
       throw e;
     }
+    nexusEndpoint = config.nexusEndpoint;
   }
 
   /**
@@ -112,6 +119,12 @@ public class Runner implements Closeable {
     if (Arrays.stream(feature.getClass().getInterfaces())
         .anyMatch(i -> i.isAnnotationPresent(ActivityInterface.class))) {
       worker.registerActivitiesImplementations(feature);
+    }
+
+    // Register Nexus service implementations if any
+    var nexusServices = feature.nexusServiceImplementations();
+    if (nexusServices.length > 0) {
+      worker.registerNexusServiceImplementation(nexusServices);
     }
 
     // Start the worker factory

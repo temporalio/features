@@ -50,6 +50,9 @@ func (r *Run) ToArgs() []string {
 	ret := make([]string, len(r.Features))
 	for i, feature := range r.Features {
 		ret[i] = feature.Dir + ":" + feature.TaskQueue
+		if feature.NexusEndpoint != "" {
+			ret[i] += ":" + feature.NexusEndpoint
+		}
 	}
 	return ret
 }
@@ -57,11 +60,15 @@ func (r *Run) ToArgs() []string {
 // FromArgs converts the given arguments to features to run.
 func (r *Run) FromArgs(args []string) error {
 	for _, arg := range args {
-		colonIndex := strings.Index(arg, ":")
-		if colonIndex == -1 {
+		pieces := strings.SplitN(arg, ":", 3)
+		if len(pieces) < 2 {
 			return fmt.Errorf("feature %v missing task queue", arg)
 		}
-		r.Features = append(r.Features, RunFeature{Dir: arg[:colonIndex], TaskQueue: arg[colonIndex+1:]})
+		runFeature := RunFeature{Dir: pieces[0], TaskQueue: pieces[1]}
+		if len(pieces) == 3 {
+			runFeature.NexusEndpoint = pieces[2]
+		}
+		r.Features = append(r.Features, runFeature)
 	}
 	return nil
 }
@@ -70,7 +77,10 @@ func (r *Run) FromArgs(args []string) error {
 type RunFeature struct {
 	Dir       string
 	TaskQueue string
-	Config    RunFeatureConfig
+	// NexusEndpoint is the pre-created Nexus endpoint name targeting this feature's namespace
+	// and task queue. Set by the top-level runner for features under features/nexus.
+	NexusEndpoint string
+	Config        RunFeatureConfig
 }
 
 // RunFeatureConfig is config from .config.json.
@@ -237,6 +247,7 @@ func (r *Runner) Run(ctx context.Context, run *Run) error {
 				ClientKeyPath:  r.config.ClientKeyPath,
 				CACertPath:     r.config.CACertPath,
 				TaskQueue:      runFeature.TaskQueue,
+				NexusEndpoint:  runFeature.NexusEndpoint,
 				Log:            r.log,
 				HTTPProxyURL:   r.config.HTTPProxyURL,
 				TLSServerName:  r.config.TLSServerName,

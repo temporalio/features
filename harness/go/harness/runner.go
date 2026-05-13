@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"go.temporal.io/api/enums/v1"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"sync"
 	"time"
+
+	"go.temporal.io/api/enums/v1"
 
 	"golang.org/x/mod/semver"
 
@@ -51,6 +52,9 @@ type RunnerConfig struct {
 	ServerHostPort string
 	Namespace      string
 	TaskQueue      string
+	// NexusEndpoint, if set, is the pre-created Nexus endpoint name targeting this run's
+	// namespace and task queue. Set by the top-level runner for features under features/nexus.
+	NexusEndpoint  string
 	ClientCertPath string
 	ClientKeyPath  string
 	CACertPath     string
@@ -457,6 +461,9 @@ func (r *Runner) StartWorker() error {
 		default:
 			r.Worker.RegisterActivity(activity)
 		}
+	}
+	for _, service := range r.Feature.NexusServices {
+		r.Worker.RegisterNexusService(service)
 	}
 
 	// Start the worker

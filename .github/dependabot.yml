@@ -1,0 +1,64 @@
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 14
+
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 14
+
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 14
+
+  - package-ecosystem: "gomod"
+    directory: "/features"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 14
+
+  - package-ecosystem: "gomod"
+    directory: "/harness/go"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 14
+
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 14
+
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 14
+
+  - package-ecosystem: "bundler"
+    directory: "/harness/ruby"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 14
+
+  - package-ecosystem: "composer"
+    directory: "/harness/php"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 14

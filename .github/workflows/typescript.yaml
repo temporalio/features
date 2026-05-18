@@ -109,6 +109,7 @@ jobs:
       - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         if: ${{ inputs.version-is-repo-ref }}
         with:
+          cache-bin: false
           workspaces: sdk-ts/packages/core-bridge
 
       # Build TS SDK if using repo

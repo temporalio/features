@@ -60,17 +60,25 @@ func (r *Run) ToArgs() []string {
 // FromArgs converts the given arguments to features to run.
 func (r *Run) FromArgs(args []string) error {
 	for _, arg := range args {
-		pieces := strings.SplitN(arg, ":", 3)
-		if len(pieces) < 2 {
-			return fmt.Errorf("feature %v missing task queue", arg)
+		feature, err := parseRunFeature(arg)
+		if err != nil {
+			return fmt.Errorf("parsing argument %q: %w", arg, err)
 		}
-		runFeature := RunFeature{Dir: pieces[0], TaskQueue: pieces[1]}
-		if len(pieces) == 3 {
-			runFeature.NexusEndpoint = pieces[2]
-		}
-		r.Features = append(r.Features, runFeature)
+		r.Features = append(r.Features, feature)
 	}
 	return nil
+}
+
+func parseRunFeature(arg string) (RunFeature, error) {
+	pieces := strings.SplitN(arg, ":", 3)
+	if len(pieces) < 2 {
+		return RunFeature{}, fmt.Errorf("missing task queue")
+	}
+	feature := RunFeature{Dir: pieces[0], TaskQueue: pieces[1]}
+	if len(pieces) == 3 {
+		feature.NexusEndpoint = pieces[2]
+	}
+	return feature, nil
 }
 
 // RunFeature is a feature to run.

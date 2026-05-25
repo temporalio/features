@@ -28,7 +28,7 @@ public interface feature extends Feature {
   @Service
   interface TestService {
     @Operation
-    String sayHello(String name);
+    String syncOperation(String name);
   }
 
   class Impl implements feature {
@@ -43,7 +43,7 @@ public interface feature extends Feature {
                       .build())
               .build();
       TestService stub = Workflow.newNexusServiceStub(TestService.class, serviceOptions);
-      return stub.sayHello("world");
+      return stub.syncOperation("world");
     }
 
     @Override
@@ -73,6 +73,9 @@ public interface feature extends Feature {
       // Completed with no Started event.
       var events = runner.getWorkflowHistory(run).getEventsList();
       assertTrue(
+          events.stream().anyMatch(e -> e.hasNexusOperationScheduledEventAttributes()),
+          "expected NexusOperationScheduled event in history");
+      assertTrue(
           events.stream().anyMatch(e -> e.hasNexusOperationCompletedEventAttributes()),
           "expected NexusOperationCompleted event in history");
       assertFalse(
@@ -84,7 +87,7 @@ public interface feature extends Feature {
   @ServiceImpl(service = TestService.class)
   class TestServiceImpl {
     @OperationImpl
-    public OperationHandler<String, String> sayHello() {
+    public OperationHandler<String, String> syncOperation() {
       return OperationHandler.sync((ctx, details, name) -> "Hello, " + name + "!");
     }
   }

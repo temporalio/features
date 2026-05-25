@@ -15,7 +15,7 @@ import (
 
 const ServiceName = "test-service"
 
-var SayHelloOperation = nexus.NewSyncOperation(
+var SyncOperation = nexus.NewSyncOperation(
 	"say-hello",
 	func(ctx context.Context, name string, options nexus.StartOperationOptions) (string, error) {
 		return "Hello, " + name + "!", nil
@@ -24,13 +24,13 @@ var SayHelloOperation = nexus.NewSyncOperation(
 
 var Service = func() *nexus.Service {
 	s := nexus.NewService(ServiceName)
-	s.MustRegister(SayHelloOperation)
+	s.MustRegister(SyncOperation)
 	return s
 }()
 
 func Workflow(ctx workflow.Context, endpoint string) (string, error) {
 	nc := workflow.NewNexusClient(endpoint, ServiceName)
-	fut := nc.ExecuteOperation(ctx, SayHelloOperation, "world", workflow.NexusOperationOptions{
+	fut := nc.ExecuteOperation(ctx, SyncOperation, "world", workflow.NexusOperationOptions{
 		ScheduleToCloseTimeout: time.Minute,
 	})
 	var result string
@@ -58,6 +58,11 @@ var Feature = harness.Feature{
 			hist := runner.Client.GetWorkflowHistory(ctx, run.GetID(), run.GetRunID(), false, enumspb.HISTORY_EVENT_FILTER_TYPE_ALL_EVENT)
 			ev, err := harness.FindEvent(hist, func(ev *historypb.HistoryEvent) bool { return ev.EventType == t })
 			return ev != nil, err
+		}
+		if ok, err := hasEvent(enumspb.EVENT_TYPE_NEXUS_OPERATION_SCHEDULED); err != nil {
+			return err
+		} else if !ok {
+			return fmt.Errorf("did not find NexusOperationScheduled event in history")
 		}
 		if ok, err := hasEvent(enumspb.EVENT_TYPE_NEXUS_OPERATION_COMPLETED); err != nil {
 			return err

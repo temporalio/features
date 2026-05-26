@@ -24,14 +24,16 @@ go build -o temporal-features # or temporal-features.exe on Windows
 
 Prerequisites:
 
-- [Go](https://golang.org/) 1.17+
-- [JDK](https://adoptium.net/?variant=openjdk11&jvmVariant=hotspot) 11+
-- [Node](https://nodejs.org) 16+
+Install versions of these runtimes and package managers that are compatible with the checked-in project files
+and lockfiles:
+
+- [Go](https://golang.org/)
+- [JDK](https://adoptium.net/)
+- [Node](https://nodejs.org)
 - [uv](https://docs.astral.sh/uv/)
-- [.NET](https://dotnet.microsoft.com) 7+
-- [PHP](https://www.php.net/) 8.1+
-  - [Composer](https://getcomposer.org/)
-- [Ruby](https://www.ruby-lang.org/) 4.0+
+- [.NET](https://dotnet.microsoft.com)
+- [PHP](https://www.php.net/) / [Composer](https://getcomposer.org/)
+- [Ruby](https://www.ruby-lang.org/)
 
 Command:
 

@@ -8,8 +8,8 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/stretchr/testify v1.10.0
 	github.com/urfave/cli/v2 v2.3.0
-	go.temporal.io/api v1.62.7
-	go.temporal.io/sdk v1.42.0
+	go.temporal.io/api v1.62.12
+	go.temporal.io/sdk v1.44.0
 	go.uber.org/zap v1.19.1
 	golang.org/x/mod v0.31.0
 	google.golang.org/protobuf v1.36.11

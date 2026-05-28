@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/nexus-rpc/sdk-go/nexus"
 	"github.com/urfave/cli/v2"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/client"
@@ -33,6 +34,11 @@ type Feature struct {
 	// Set of activities to register. This can be a single activity or a slice. You can provide
 	// a function pointer, or ActivityWithOptions.
 	Activities interface{}
+
+	// Set of Nexus services to register on the worker. This can be a single *nexus.Service or
+	// a slice. Features placed under the features/nexus directory automatically get a Nexus
+	// endpoint created targeting their task queue, accessible via Runner.NexusEndpoint.
+	NexusServices interface{}
 
 	// If present, expects workflow to fail with this activity error string.
 	ExpectActivityError string
@@ -94,9 +100,10 @@ type PreparedFeature struct {
 	// This is the relative directory beneath features/ and uses only slashes.
 	Dir string
 	// This is the absolute directory using platform-dependent separators.
-	AbsDir     string
-	Workflows  []interface{}
-	Activities []interface{}
+	AbsDir        string
+	Workflows     []interface{}
+	Activities    []interface{}
+	NexusServices []*nexus.Service
 }
 
 func (p *PreparedFeature) GetPrimaryWorkflow() (*WorkflowWithOptions, error) {
@@ -147,6 +154,13 @@ func PrepareFeature(feature Feature) (*PreparedFeature, error) {
 		Feature:    feature,
 		Workflows:  rawToSlice(feature.Workflows),
 		Activities: rawToSlice(feature.Activities),
+	}
+	for _, raw := range rawToSlice(feature.NexusServices) {
+		svc, ok := raw.(*nexus.Service)
+		if !ok {
+			return nil, fmt.Errorf("nexus service must be *nexus.Service, got %T", raw)
+		}
+		p.NexusServices = append(p.NexusServices, svc)
 	}
 	// If it's skipped, just return it
 	if p.SkipReason != "" {

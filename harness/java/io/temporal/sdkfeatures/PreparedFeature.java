@@ -22,6 +22,7 @@ public class PreparedFeature {
           data_converter.json.feature.Impl.class,
           data_converter.json_protobuf.feature.Impl.class,
           eager_activity.non_remote_activities_worker.feature.Impl.class,
+          nexus.sync_success.feature.Impl.class,
           query.successful_query.feature.Impl.class,
           query.timeout_due_to_no_active_workers.feature.Impl.class,
           query.unexpected_arguments.feature.Impl.class,

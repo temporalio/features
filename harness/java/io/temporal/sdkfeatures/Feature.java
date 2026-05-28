@@ -44,4 +44,11 @@ public interface Feature {
 
   // This may be used to e.g. register additional workflow classes
   default void prepareWorker(Worker worker) {}
+
+  // Nexus service implementations to register on the worker. Features placed under
+  // features/nexus automatically get a Nexus endpoint created targeting their task queue,
+  // accessible via Runner.nexusEndpoint.
+  default Object[] nexusServiceImplementations() {
+    return new Object[0];
+  }
 }

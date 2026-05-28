@@ -93,6 +93,10 @@ feature runs and a namespace is dynamically generated. To not start the embedded
 address of a server to use. Similarly, to not use a dynamic namespace (that may not be registered on the external
 server), use `--namespace`.
 
+Note: features under `features/nexus/` are not supported against Temporal Cloud — they
+require `OperatorService.CreateNexusEndpoint`, which is only exposed on self-hosted
+servers (e.g. the dev server).
+
 ### History Checking
 
 History files are present at `features/<path/to/feature>/history/history.<lang>.<version>.json`. By default, three

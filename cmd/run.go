@@ -23,11 +23,16 @@ import (
 	"github.com/temporalio/features/harness/go/history"
 	"github.com/temporalio/features/sdkbuild"
 	"github.com/urfave/cli/v2"
+	nexuspb "go.temporal.io/api/nexus/v1"
+	"go.temporal.io/api/operatorservice/v1"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/log"
 	"go.temporal.io/sdk/testsuite"
 	"gopkg.in/yaml.v3"
 )
+
+// nexusFeatureDirPrefix marks features that require a per-test Nexus endpoint.
+const nexusFeatureDirPrefix = "nexus/"
 
 const (
 	summaryListenAddr = "127.0.0.1:0"
@@ -267,6 +272,15 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 		defer proxyServer.Close()
 	}
 
+	// Create a Nexus endpoint per feature under features/nexus/ targeting that feature's task
+	// queue. Endpoint names are passed to the lang harness through RunFeature.NexusEndpoint and
+	// the endpoints are deleted once the lang harness completes.
+	deleteEndpoints, err := r.createNexusEndpoints(ctx, run)
+	if err != nil {
+		return err
+	}
+	defer deleteEndpoints()
+
 	// Ensure any created temp dir is cleaned on ctrl-c or normal exit
 	if r.config.DirName == "" && !r.config.RetainTempDir {
 		c := make(chan os.Signal, 1)
@@ -300,16 +314,16 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 				err = r.RunGoExternal(ctx, run)
 			}
 		} else {
-		err = cmd.NewRunner(cmd.RunConfig{
-			Server:         r.config.Server,
-			Namespace:      r.config.Namespace,
-			ClientCertPath: r.config.ClientCertPath,
-			ClientKeyPath:  r.config.ClientKeyPath,
-			CACertPath:     r.config.CACertPath,
-			TLSServerName:  r.config.TLSServerName,
-			SummaryURI:     r.config.SummaryURI,
-			HTTPProxyURL:   r.config.HTTPProxyURL,
-		}).Run(ctx, run)
+			err = cmd.NewRunner(cmd.RunConfig{
+				Server:         r.config.Server,
+				Namespace:      r.config.Namespace,
+				ClientCertPath: r.config.ClientCertPath,
+				ClientKeyPath:  r.config.ClientKeyPath,
+				CACertPath:     r.config.CACertPath,
+				TLSServerName:  r.config.TLSServerName,
+				SummaryURI:     r.config.SummaryURI,
+				HTTPProxyURL:   r.config.HTTPProxyURL,
+			}).Run(ctx, run)
 		}
 	case "java":
 		if r.config.DirName != "" {
@@ -586,6 +600,83 @@ func (r *Runner) summaryServer(l net.Listener, out chan<- Summary) {
 func rootDir() string {
 	_, currFile, _, _ := runtime.Caller(0)
 	return filepath.Dir(filepath.Dir(currFile))
+}
+
+// createNexusEndpoints creates a Nexus endpoint per RunFeature whose Dir is under
+// features/nexus, populating RunFeature.NexusEndpoint. It returns a cleanup function that
+// deletes the created endpoints. The cleanup function is always safe to call.
+func (r *Runner) createNexusEndpoints(ctx context.Context, run *cmd.Run) (func(), error) {
+	noop := func() {}
+	var nexusFeatures []*cmd.RunFeature
+	for i := range run.Features {
+		if strings.HasPrefix(run.Features[i].Dir, nexusFeatureDirPrefix) {
+			nexusFeatures = append(nexusFeatures, &run.Features[i])
+		}
+	}
+	if len(nexusFeatures) == 0 {
+		return noop, nil
+	}
+
+	opts := client.Options{HostPort: r.config.Server, Namespace: r.config.Namespace, Logger: r.log}
+	tlsCfg, err := harness.LoadTLSConfig(r.config.ClientCertPath, r.config.ClientKeyPath, r.config.CACertPath, r.config.TLSServerName)
+	if err != nil {
+		return noop, fmt.Errorf("failed to load TLS config: %w", err)
+	}
+	opts.ConnectionOptions.TLS = tlsCfg
+	cl, err := client.Dial(opts)
+	if err != nil {
+		return noop, fmt.Errorf("failed creating client for nexus endpoint setup: %w", err)
+	}
+
+	type createdEndpoint struct {
+		ID      string
+		Version int64
+		Name    string
+	}
+	var created []createdEndpoint
+	cleanup := func() {
+		for _, ep := range created {
+			delCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			_, err := cl.OperatorService().DeleteNexusEndpoint(delCtx, &operatorservice.DeleteNexusEndpointRequest{
+				Id:      ep.ID,
+				Version: ep.Version,
+			})
+			cancel()
+			if err != nil {
+				r.log.Warn("Failed deleting nexus endpoint", "Endpoint", ep.Name, "Error", err)
+			}
+		}
+		cl.Close()
+	}
+
+	// Nexus endpoint names have stricter, DNS-style validation than task queues, so / and _
+	// in the feature dir must be normalized to -.
+	sanitize := strings.NewReplacer("/", "-", "_", "-")
+	for _, feature := range nexusFeatures {
+		name := "features-nexus-" + sanitize.Replace(feature.Dir) + "-" + uuid.NewString()
+		createCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		res, err := cl.OperatorService().CreateNexusEndpoint(createCtx, &operatorservice.CreateNexusEndpointRequest{
+			Spec: &nexuspb.EndpointSpec{
+				Name: name,
+				Target: &nexuspb.EndpointTarget{
+					Variant: &nexuspb.EndpointTarget_Worker_{
+						Worker: &nexuspb.EndpointTarget_Worker{
+							Namespace: r.config.Namespace,
+							TaskQueue: feature.TaskQueue,
+						},
+					},
+				},
+			},
+		})
+		cancel()
+		if err != nil {
+			cleanup()
+			return noop, fmt.Errorf("failed creating nexus endpoint for %v: %w", feature.Dir, err)
+		}
+		feature.NexusEndpoint = name
+		created = append(created, createdEndpoint{ID: res.Endpoint.Id, Version: res.Endpoint.Version, Name: name})
+	}
+	return cleanup, nil
 }
 
 func (r *Runner) destroyTempDir() {

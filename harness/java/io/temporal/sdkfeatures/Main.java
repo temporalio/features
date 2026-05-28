@@ -154,7 +154,7 @@ public class Main implements Runnable {
       var failureCount = 0;
       var failedFeatures = new StringBuilder();
       for (var featureWithTaskQueue : features) {
-        var pieces = featureWithTaskQueue.split(":", 2);
+        var pieces = featureWithTaskQueue.split(":", 3);
         // Find feature
         var feature =
             Arrays.stream(PreparedFeature.ALL)
@@ -175,6 +175,9 @@ public class Main implements Runnable {
         config.sslContext = sslContext;
         config.tlsServerName = tlsServerName;
         config.taskQueue = pieces[1];
+        if (pieces.length == 3) {
+          config.nexusEndpoint = pieces[2];
+        }
         Outcome outcome = Outcome.PASSED;
         String message = "";
         try {

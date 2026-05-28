@@ -25,6 +25,6 @@ frontend.workerVersioningWorkflowAPIs:
 nexusoperation.enableStandalone:
   - value: true
     constraints: {}
-history.enableChasmCallbacks:
+history.enableCHASMCallbacks:
   - value: true
     constraints: {}

@@ -108,6 +108,8 @@ func BuildRubyProgram(ctx context.Context, options BuildRubyProgramOptions) (*Ru
 	} else if options.Version != "" {
 		version := strings.TrimPrefix(options.Version, "v")
 		gemfileLines = append(gemfileLines, fmt.Sprintf(`gem "temporalio", %q`, version))
+	} else {
+		gemfileLines = append(gemfileLines, `gem "temporalio"`)
 	}
 
 	moreDependencyLines, err := renderRubyDependencies(options.MoreDependencies)

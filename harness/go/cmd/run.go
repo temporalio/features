@@ -126,6 +126,10 @@ type RunVariantConfig struct {
 	// DynamicConfig is merged over the default dynamic config when starting the
 	// embedded dev server for this variant.
 	DynamicConfig map[string]any `json:"dynamicConfig"`
+	// ExpectNamespaceCapabilities asserts namespace capability values after the
+	// variant's server has started and before the feature runs. Keys must match
+	// DescribeNamespace capability field names.
+	ExpectNamespaceCapabilities map[string]bool `json:"expectNamespaceCapabilities"`
 }
 
 // RunFeatureConfigGo is go-specific configuration in the JSON file.

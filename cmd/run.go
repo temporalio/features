@@ -24,12 +24,15 @@ import (
 	"github.com/temporalio/features/harness/go/history"
 	"github.com/temporalio/features/sdkbuild"
 	"github.com/urfave/cli/v2"
+	namespacepb "go.temporal.io/api/namespace/v1"
 	nexuspb "go.temporal.io/api/nexus/v1"
 	"go.temporal.io/api/operatorservice/v1"
 	"go.temporal.io/api/serviceerror"
+	"go.temporal.io/api/workflowservice/v1"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/log"
 	"go.temporal.io/sdk/testsuite"
+	"google.golang.org/protobuf/reflect/protoreflect"
 	"gopkg.in/yaml.v3"
 )
 
@@ -37,8 +40,10 @@ import (
 const nexusFeatureDirPrefix = "nexus/"
 
 const (
-	summaryListenAddr = "127.0.0.1:0"
-	FeaturePassed     = "PASSED"
+	summaryListenAddr               = "127.0.0.1:0"
+	FeaturePassed                   = "PASSED"
+	featureRunVariantEnv            = "FEATURE_RUN_VARIANT"
+	featureNamespaceCapabilitiesEnv = "FEATURE_NAMESPACE_CAPABILITIES"
 )
 
 func runCmd() *cli.Command {
@@ -75,6 +80,7 @@ type RunConfig struct {
 	RetainTempDir       bool
 	SummaryURI          string
 	HTTPProxyURL        string
+	Env                 map[string]string
 }
 
 // dockerRunFlags are a subset of flags that apply when running in a docker container
@@ -159,6 +165,8 @@ type runBatch struct {
 	Run           *cmd.Run
 	VariantName   string
 	DynamicConfig map[string]any
+	Capabilities  map[string]bool
+	Env           map[string]string
 	ExpectsProxy  bool
 }
 
@@ -201,6 +209,8 @@ func (r *Runner) makeRunBatches(features []*RunFeature) ([]runBatch, error) {
 				}},
 				VariantName:   variant.Name,
 				DynamicConfig: variant.DynamicConfig,
+				Capabilities:  variant.ExpectNamespaceCapabilities,
+				Env:           variantEnv(variant.Name, variant.ExpectNamespaceCapabilities),
 				ExpectsProxy:  feature.Config.ExpectUnauthedProxyCount > 0 || feature.Config.ExpectAuthedProxyCount > 0,
 			})
 		}
@@ -256,6 +266,59 @@ func (r *Runner) dynamicConfigArgs(overrides map[string]any) ([]string, error) {
 	return dynamicConfigArgs, nil
 }
 
+func (r *Runner) assertNamespaceCapabilities(ctx context.Context, config RunConfig, expected map[string]bool) error {
+	if len(expected) == 0 {
+		return nil
+	}
+	tlsConfig, err := harness.LoadTLSConfig(
+		config.ClientCertPath,
+		config.ClientKeyPath,
+		config.CACertPath,
+		config.TLSServerName,
+	)
+	if err != nil {
+		return err
+	}
+	c, err := client.Dial(client.Options{
+		HostPort:  config.Server,
+		Namespace: config.Namespace,
+		ConnectionOptions: client.ConnectionOptions{
+			TLS: tlsConfig,
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("failed creating capability check client: %w", err)
+	}
+	defer c.Close()
+
+	resp, err := c.WorkflowService().DescribeNamespace(ctx, &workflowservice.DescribeNamespaceRequest{
+		Namespace: config.Namespace,
+	})
+	if err != nil {
+		return fmt.Errorf("failed describing namespace for capability check: %w", err)
+	}
+	capabilities := resp.GetNamespaceInfo().GetCapabilities()
+	if capabilities == nil {
+		capabilities = &namespacepb.NamespaceInfo_Capabilities{}
+	}
+	fields := capabilities.ProtoReflect().Descriptor().Fields()
+	for name, expectedValue := range expected {
+		field := fields.ByJSONName(name)
+		if field == nil {
+			return fmt.Errorf("unknown namespace capability %q", name)
+		}
+		if field.Kind() != protoreflect.BoolKind {
+			return fmt.Errorf("namespace capability %q is %s, expected bool", name, field.Kind())
+		}
+		actualValue := capabilities.ProtoReflect().Get(field).Bool()
+		if actualValue != expectedValue {
+			return fmt.Errorf("namespace capability %q = %t, expected %t", name, actualValue, expectedValue)
+		}
+	}
+	r.log.Info("Namespace capabilities matched", "Namespace", config.Namespace, "Capabilities", expected)
+	return nil
+}
+
 // Run runs all matching features for the given patterns (or all if no patterns
 // given).
 func (r *Runner) Run(ctx context.Context, patterns []string) error {
@@ -298,19 +361,6 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 		}
 	}
 
-	// Create a Nexus endpoint per feature under features/nexus/ targeting that feature's task
-	// queue. Endpoint names are passed to the lang harness through RunFeature.NexusEndpoint and
-	// the endpoints are deleted once the lang harness completes.
-	deleteEndpoints, err := r.createNexusEndpoints(ctx, run)
-	if err != nil {
-		return err
-	}
-	defer deleteEndpoints()
-	if len(run.Features) == 0 {
-		r.log.Info("No features left to run after Nexus skip; treating run as successful")
-		return nil
-	}
-
 	// Ensure any created temp dir is cleaned on ctrl-c or normal exit
 	if r.config.DirName == "" && !r.config.RetainTempDir {
 		c := make(chan os.Signal, 1)
@@ -327,7 +377,10 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 	if err != nil {
 		return err
 	}
-	for _, batch := range batches {
+	for i, batch := range batches {
+		if i > 0 {
+			fmt.Println()
+		}
 		if err := r.runBatch(ctx, batch); err != nil {
 			return err
 		}
@@ -337,6 +390,7 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 
 func (r *Runner) runBatch(ctx context.Context, batch runBatch) error {
 	config := r.config
+	config.Env = batch.Env
 	if config.Namespace == "" {
 		config.Namespace = "features-ns-" + uuid.NewString()
 	}
@@ -344,6 +398,9 @@ func (r *Runner) runBatch(ctx context.Context, batch runBatch) error {
 	if batch.VariantName != "" {
 		label = batch.VariantName
 	}
+
+	fmt.Printf("Running feature batch variant=%s features=%s dynamicConfigOverrides=%s\n",
+		label, strings.Join(featureSummaryNames(batch.Run.Features), ","), formatMap(batch.DynamicConfig))
 
 	if config.Server == "" {
 		dynamicConfigArgs, err := r.dynamicConfigArgs(batch.DynamicConfig)
@@ -371,6 +428,22 @@ func (r *Runner) runBatch(ctx context.Context, batch runBatch) error {
 			return err
 		}
 	}
+	if err := r.assertNamespaceCapabilities(ctx, config, batch.Capabilities); err != nil {
+		return err
+	}
+
+	// Create a Nexus endpoint per feature under features/nexus/ targeting that feature's task
+	// queue. Endpoint names are passed to the lang harness through RunFeature.NexusEndpoint and
+	// the endpoints are deleted once the lang harness completes.
+	deleteEndpoints, err := r.createNexusEndpoints(ctx, config, batch.Run)
+	if err != nil {
+		return err
+	}
+	defer deleteEndpoints()
+	if len(batch.Run.Features) == 0 {
+		r.log.Info("No features left to run after Nexus skip; treating batch as successful")
+		return nil
+	}
 
 	var proxyServer *harness.HTTPConnectProxyServer
 	if batch.ExpectsProxy {
@@ -393,11 +466,13 @@ func (r *Runner) runBatch(ctx context.Context, batch runBatch) error {
 	go r.summaryServer(l, summaryChan)
 	config.SummaryURI = "tcp://" + l.Addr().String()
 
-	r.log.Info("Running feature batch", "Variant", label, "Features", len(batch.Run.Features))
+	r.log.Info("Running feature batch", "Variant", label, "Features", featureSummaryNames(batch.Run.Features))
 
 	origConfig := r.config
 	r.config = config
+	restoreEnv := setProcessEnv(config.Env)
 	defer func() {
+		restoreEnv()
 		r.config = origConfig
 	}()
 
@@ -488,6 +563,7 @@ func (r *Runner) runBatch(ctx context.Context, batch runBatch) error {
 	} else if batch.VariantName != "" {
 		summary = rewriteVariantSummary(summary, batch.Run.Features)
 	}
+	r.logFeatureSummary(label, summary)
 
 	// For features that expected proxy connections, count how many expected
 	// ignoring skips and compare count with actual. If any failed we don't need
@@ -525,6 +601,40 @@ func (r *Runner) runBatch(ctx context.Context, batch runBatch) error {
 	}
 
 	return r.handleHistory(ctx, batch.Run, summary)
+}
+
+func featureSummaryNames(features []cmd.RunFeature) []string {
+	names := make([]string, 0, len(features))
+	for _, feature := range features {
+		names = append(names, feature.SummaryName())
+	}
+	return names
+}
+
+func (r *Runner) logFeatureSummary(variant string, summary Summary) {
+	for _, entry := range summary {
+		if entry.Message == "" {
+			fmt.Printf("Feature result variant=%s feature=%s outcome=%s\n", variant, entry.Name, entry.Outcome)
+		} else {
+			fmt.Printf("Feature result variant=%s feature=%s outcome=%s message=%q\n", variant, entry.Name, entry.Outcome, entry.Message)
+		}
+		if entry.Message == "" {
+			r.log.Info("Feature result", "Variant", variant, "Feature", entry.Name, "Outcome", entry.Outcome)
+		} else {
+			r.log.Info("Feature result", "Variant", variant, "Feature", entry.Name, "Outcome", entry.Outcome, "Message", entry.Message)
+		}
+	}
+}
+
+func formatMap(values map[string]any) string {
+	if len(values) == 0 {
+		return "{}"
+	}
+	bytes, err := json.Marshal(values)
+	if err != nil {
+		return fmt.Sprint(values)
+	}
+	return string(bytes)
 }
 
 func rewriteVariantSummary(summary Summary, features []cmd.RunFeature) Summary {
@@ -718,7 +828,7 @@ func rootDir() string {
 // createNexusEndpoints creates a Nexus endpoint per RunFeature whose Dir is under
 // features/nexus, populating RunFeature.NexusEndpoint. It returns a cleanup function that
 // deletes the created endpoints. The cleanup function is always safe to call.
-func (r *Runner) createNexusEndpoints(ctx context.Context, run *cmd.Run) (func(), error) {
+func (r *Runner) createNexusEndpoints(ctx context.Context, config RunConfig, run *cmd.Run) (func(), error) {
 	noop := func() {}
 	var nexusFeatures []*cmd.RunFeature
 	for i := range run.Features {
@@ -730,8 +840,8 @@ func (r *Runner) createNexusEndpoints(ctx context.Context, run *cmd.Run) (func()
 		return noop, nil
 	}
 
-	opts := client.Options{HostPort: r.config.Server, Namespace: r.config.Namespace, Logger: r.log}
-	tlsCfg, err := harness.LoadTLSConfig(r.config.ClientCertPath, r.config.ClientKeyPath, r.config.CACertPath, r.config.TLSServerName)
+	opts := client.Options{HostPort: config.Server, Namespace: config.Namespace, Logger: r.log}
+	tlsCfg, err := harness.LoadTLSConfig(config.ClientCertPath, config.ClientKeyPath, config.CACertPath, config.TLSServerName)
 	if err != nil {
 		return noop, fmt.Errorf("failed to load TLS config: %w", err)
 	}
@@ -774,7 +884,7 @@ func (r *Runner) createNexusEndpoints(ctx context.Context, run *cmd.Run) (func()
 				Target: &nexuspb.EndpointTarget{
 					Variant: &nexuspb.EndpointTarget_Worker_{
 						Worker: &nexuspb.EndpointTarget_Worker{
-							Namespace: r.config.Namespace,
+							Namespace: config.Namespace,
 							TaskQueue: feature.TaskQueue,
 						},
 					},

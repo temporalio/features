@@ -57,6 +57,7 @@ import (
 	update_task_failure "github.com/temporalio/features/features/update/task_failure"
 	update_validation_replay "github.com/temporalio/features/features/update/validation_replay"
 	update_worker_restart "github.com/temporalio/features/features/update/worker_restart"
+	worker_shutdown_poll_complete_on_shutdown "github.com/temporalio/features/features/worker_shutdown/poll_complete_on_shutdown"
 	harness "github.com/temporalio/features/harness/go/harness"
 )
 
@@ -119,5 +120,6 @@ func init() {
 		update_task_failure.Feature,
 		update_validation_replay.Feature,
 		update_worker_restart.Feature,
+		worker_shutdown_poll_complete_on_shutdown.Feature,
 	)
 }

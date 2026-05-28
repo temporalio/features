@@ -97,6 +97,7 @@ func (r *Runner) RunTypeScriptExternal(ctx context.Context, run *cmd.Run) error 
 	// Run
 	cmd, err := r.program.NewCommand(ctx, args...)
 	if err == nil {
+		applyCommandEnv(cmd, r.config.Env)
 		r.log.Debug("Running TypeScript separately", "Args", cmd.Args)
 		err = cmd.Run()
 	}

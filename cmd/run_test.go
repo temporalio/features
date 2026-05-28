@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"context"
+	"os"
+	"os/exec"
 	"strings"
 	"testing"
 
@@ -38,12 +40,14 @@ func TestMakeRunBatchesExpandsVariants(t *testing.T) {
 						DynamicConfig: map[string]any{
 							"frontend.enableCancelWorkerPollsOnShutdown": true,
 						},
+						ExpectNamespaceCapabilities: map[string]bool{"workerPollCompleteOnShutdown": true},
 					},
 					{
 						Name: "disabled",
 						DynamicConfig: map[string]any{
 							"frontend.enableCancelWorkerPollsOnShutdown": false,
 						},
+						ExpectNamespaceCapabilities: map[string]bool{"workerPollCompleteOnShutdown": false},
 					},
 				},
 			},
@@ -63,6 +67,15 @@ func TestMakeRunBatchesExpandsVariants(t *testing.T) {
 		}
 		if got := batches[i].Run.Features[0].SummaryName(); got != "worker_shutdown/poll_complete_on_shutdown#"+want {
 			t.Fatalf("batch %d summary name = %q", i, got)
+		}
+		if got := batches[i].Capabilities["workerPollCompleteOnShutdown"]; got != (want == "enabled") {
+			t.Fatalf("batch %d capability expectation = %t", i, got)
+		}
+		if got := batches[i].Env[featureRunVariantEnv]; got != want {
+			t.Fatalf("batch %d env variant = %q, want %q", i, got, want)
+		}
+		if got := batches[i].Env[featureNamespaceCapabilitiesEnv]; !strings.Contains(got, `"workerPollCompleteOnShutdown"`) {
+			t.Fatalf("batch %d capabilities env missing capability: %q", i, got)
 		}
 	}
 }
@@ -90,5 +103,54 @@ func TestRunBatchRejectsVariantWithExternalServer(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "requires the embedded dev server") {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestApplyCommandEnv(t *testing.T) {
+	cmd := exec.Command("feature-test")
+	cmd.Env = []string{
+		featureRunVariantEnv + "=old",
+		"KEEP=value",
+	}
+	applyCommandEnv(cmd, map[string]string{
+		featureRunVariantEnv:            "new",
+		featureNamespaceCapabilitiesEnv: `{"workerPollCompleteOnShutdown":true}`,
+	})
+
+	joined := strings.Join(cmd.Env, "\n")
+	if strings.Contains(joined, featureRunVariantEnv+"=old") {
+		t.Fatalf("old variant env was not replaced: %v", cmd.Env)
+	}
+	for _, want := range []string{
+		"KEEP=value",
+		featureRunVariantEnv + "=new",
+		featureNamespaceCapabilitiesEnv + `={"workerPollCompleteOnShutdown":true}`,
+	} {
+		if !strings.Contains(joined, want) {
+			t.Fatalf("env missing %q: %v", want, cmd.Env)
+		}
+	}
+}
+
+func TestSetProcessEnvRestoresPreviousValues(t *testing.T) {
+	t.Setenv(featureRunVariantEnv, "old")
+	restore := setProcessEnv(map[string]string{
+		featureRunVariantEnv:            "new",
+		featureNamespaceCapabilitiesEnv: `{"workerPollCompleteOnShutdown":false}`,
+	})
+	if got := os.Getenv(featureRunVariantEnv); got != "new" {
+		t.Fatalf("variant env = %q, want new", got)
+	}
+	if got := os.Getenv(featureNamespaceCapabilitiesEnv); got == "" {
+		t.Fatal("capabilities env was not set")
+	}
+
+	restore()
+
+	if got := os.Getenv(featureRunVariantEnv); got != "old" {
+		t.Fatalf("variant env after restore = %q, want old", got)
+	}
+	if got := os.Getenv(featureNamespaceCapabilitiesEnv); got != "" {
+		t.Fatalf("capabilities env after restore = %q, want unset", got)
 	}
 }

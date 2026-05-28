@@ -43,7 +43,8 @@ public class PreparedFeature {
           update.task_failure.feature.Impl.class,
           update.worker_restart.feature.Impl.class,
           update.validation_replay.feature.Impl.class,
-          update.self.feature.Impl.class);
+          update.self.feature.Impl.class,
+          worker_shutdown.poll_complete_on_shutdown.feature.Impl.class);
 
   @SafeVarargs
   static PreparedFeature[] prepareFeatures(Class<? extends Feature>... classes) {

@@ -44,6 +44,13 @@ Note, `go run .` can be used in place of `go build` + `temporal-features` to sav
 `LANG` can be `go`, `java`, `ts`, `php`, `py`, `cs`, or `rb`. `VERSION` is per SDK and if left off, uses the latest version set for
 the language in this repository.
 
+`VERSION` may also be a path to a local checkout of the matching SDK repository. This is useful for sanity checking a
+feature against unreleased SDK changes before cutting a release:
+
+```bash
+go run . run --lang go --version ../sdk-go --no-history-check worker_shutdown/poll_complete_on_shutdown
+```
+
 `PATTERN` must match either the features relative directory _or_ the relative directory + `/feature.<ext>` via
 [Go path match rules](https://pkg.go.dev/path#Match) which notably does not include recursive depth matching. If
 `PATTERN` arguments are not present, the default is to run all features.
@@ -127,6 +134,10 @@ settings are:
     `feature/path#variant-name`.
   - `dynamicConfig` - Optional map of Temporal dynamic config values to apply when starting the embedded dev server for
     this variant. These values override `dockerfiles/dynamicconfig/docker.yaml` for this variant only.
+  - `expectNamespaceCapabilities` - Optional map of namespace capability field names to expected boolean values. The
+    runner checks these with `DescribeNamespace` after the variant's server starts and before the feature runs. Keys
+    must match `DescribeNamespace` capability field names. When set, the validated values are also available to the
+    feature process as JSON in `FEATURE_NAMESPACE_CAPABILITIES` for variant-specific assertions.
 
 For example:
 
@@ -137,12 +148,18 @@ For example:
       "name": "feature-enabled",
       "dynamicConfig": {
         "frontend.someFeatureFlag": true
+      },
+      "expectNamespaceCapabilities": {
+        "someFeatureCapability": true
       }
     },
     {
       "name": "feature-disabled",
       "dynamicConfig": {
         "frontend.someFeatureFlag": false
+      },
+      "expectNamespaceCapabilities": {
+        "someFeatureCapability": false
       }
     }
   ]

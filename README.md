@@ -121,6 +121,36 @@ settings are:
 
 - `go`
   - `minVersion` - Minimum version in Go this feature should be run in. The feature will be skipped in older versions.
+- `runVariants` - Optional list of named ways to run the feature. If present, the runner executes the feature once per
+  variant. Each variant gets a fresh embedded dev server, namespace, and task queue.
+  - `name` - Required stable name for the variant. It is included in logs and summary output as
+    `feature/path#variant-name`.
+  - `dynamicConfig` - Optional map of Temporal dynamic config values to apply when starting the embedded dev server for
+    this variant. These values override `dockerfiles/dynamicconfig/docker.yaml` for this variant only.
+
+For example:
+
+```json
+{
+  "runVariants": [
+    {
+      "name": "feature-enabled",
+      "dynamicConfig": {
+        "frontend.someFeatureFlag": true
+      }
+    },
+    {
+      "name": "feature-disabled",
+      "dynamicConfig": {
+        "frontend.someFeatureFlag": false
+      }
+    }
+  ]
+}
+```
+
+Run variants require the runner to start the embedded dev server so it can apply each variant's dynamic config. They
+cannot be used with `--server`, which points the runner at an already-running external server.
 
 There are also files in the `history/` subdirectory which contain history files used during run. See the
 "History Checking" and "Generating History" sections for more info.

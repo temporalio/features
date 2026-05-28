@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/temporalio/features/harness/go/harness"
@@ -53,6 +54,12 @@ func (r *Run) ToArgs() []string {
 		if feature.NexusEndpoint != "" {
 			ret[i] += ":" + feature.NexusEndpoint
 		}
+		if feature.VariantName != "" {
+			if feature.NexusEndpoint == "" {
+				ret[i] += ":"
+			}
+			ret[i] += ":" + feature.VariantName
+		}
 	}
 	return ret
 }
@@ -70,13 +77,16 @@ func (r *Run) FromArgs(args []string) error {
 }
 
 func parseRunFeature(arg string) (RunFeature, error) {
-	pieces := strings.SplitN(arg, ":", 3)
+	pieces := strings.SplitN(arg, ":", 4)
 	if len(pieces) < 2 {
 		return RunFeature{}, fmt.Errorf("missing task queue")
 	}
 	feature := RunFeature{Dir: pieces[0], TaskQueue: pieces[1]}
 	if len(pieces) == 3 {
 		feature.NexusEndpoint = pieces[2]
+	} else if len(pieces) == 4 {
+		feature.NexusEndpoint = pieces[2]
+		feature.VariantName = pieces[3]
 	}
 	return feature, nil
 }
@@ -89,6 +99,14 @@ type RunFeature struct {
 	// and task queue. Set by the top-level runner for features under features/nexus.
 	NexusEndpoint string
 	Config        RunFeatureConfig
+	VariantName   string
+}
+
+func (r RunFeature) SummaryName() string {
+	if r.VariantName == "" {
+		return r.Dir
+	}
+	return r.Dir + "#" + r.VariantName
 }
 
 // RunFeatureConfig is config from .config.json.
@@ -97,6 +115,17 @@ type RunFeatureConfig struct {
 	Go                       RunFeatureConfigGo `json:"go"`
 	ExpectUnauthedProxyCount int                `json:"expectUnauthedProxyCount"`
 	ExpectAuthedProxyCount   int                `json:"expectAuthedProxyCount"`
+	RunVariants              []RunVariantConfig `json:"runVariants"`
+}
+
+// RunVariantConfig describes one named way to run a feature. Variants are
+// expanded by the top-level runner, not by language harnesses directly.
+type RunVariantConfig struct {
+	// Name is included in logs and summary output as feature/path#name.
+	Name string `json:"name"`
+	// DynamicConfig is merged over the default dynamic config when starting the
+	// embedded dev server for this variant.
+	DynamicConfig map[string]any `json:"dynamicConfig"`
 }
 
 // RunFeatureConfigGo is go-specific configuration in the JSON file.
@@ -229,7 +258,7 @@ func (r *Runner) Run(ctx context.Context, run *Run) error {
 				Outcome string `json:"outcome"`
 				Message string `json:"message"`
 			}{
-				Name:    runFeature.Dir,
+				Name:    runFeature.SummaryName(),
 				Outcome: FeaturePassed,
 			}
 			defer func() {
@@ -260,6 +289,10 @@ func (r *Runner) Run(ctx context.Context, run *Run) error {
 				HTTPProxyURL:   r.config.HTTPProxyURL,
 				TLSServerName:  r.config.TLSServerName,
 			}
+			if runFeature.VariantName != "" {
+				r.log.Info("Running feature variant", "Feature", feature.Dir, "Variant", runFeature.VariantName)
+			}
+
 			err := r.runFeature(ctx, runnerConfig, feature)
 
 			if skip, reason := harness.IsSkipError(err); skip {
@@ -316,5 +349,27 @@ func (r *RunFeatureConfig) LoadFromDir(dir string) error {
 	} else {
 		err = json.Unmarshal(b, r)
 	}
-	return err
+	if err != nil {
+		return err
+	}
+	return r.Validate()
+}
+
+var runVariantNameRe = regexp.MustCompile(`^[a-zA-Z0-9._-]+$`)
+
+func (r *RunFeatureConfig) Validate() error {
+	seen := make(map[string]struct{}, len(r.RunVariants))
+	for _, variant := range r.RunVariants {
+		if variant.Name == "" {
+			return fmt.Errorf("runVariants entries must have a non-empty name")
+		}
+		if !runVariantNameRe.MatchString(variant.Name) {
+			return fmt.Errorf("run variant %q has invalid name, expected only letters, numbers, '.', '_', and '-'", variant.Name)
+		}
+		if _, ok := seen[variant.Name]; ok {
+			return fmt.Errorf("duplicate run variant name %q", variant.Name)
+		}
+		seen[variant.Name] = struct{}{}
+	}
+	return nil
 }

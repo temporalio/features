@@ -28,6 +28,33 @@ func TestDynamicConfigArgsAppliesOverrides(t *testing.T) {
 	}
 }
 
+func TestDynamicConfigArgsMissingBaseUsesOverrides(t *testing.T) {
+	r := NewRunner(RunConfig{})
+	r.rootDir = t.TempDir()
+	args, err := r.dynamicConfigArgs(map[string]any{
+		"frontend.enableCancelWorkerPollsOnShutdown": false,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	joined := strings.Join(args, "\n")
+	if !strings.Contains(joined, "frontend.enableCancelWorkerPollsOnShutdown=false") {
+		t.Fatalf("dynamic config override missing from args:\n%s", joined)
+	}
+}
+
+func TestDynamicConfigArgsMissingBaseWithoutOverridesIsEmpty(t *testing.T) {
+	r := NewRunner(RunConfig{})
+	r.rootDir = t.TempDir()
+	args, err := r.dynamicConfigArgs(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(args) != 0 {
+		t.Fatalf("expected no dynamic config args, got %v", args)
+	}
+}
+
 func TestMakeRunBatchesExpandsVariants(t *testing.T) {
 	r := NewRunner(RunConfig{})
 	features := []*RunFeature{

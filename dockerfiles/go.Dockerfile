@@ -8,6 +8,7 @@ COPY features ./features
 COPY harness ./harness
 COPY sdkbuild ./sdkbuild
 COPY cmd ./cmd
+COPY dockerfiles/dynamicconfig ./dockerfiles/dynamicconfig
 COPY go.mod go.sum main.go ./
 
 # Build the CLI
@@ -28,6 +29,7 @@ RUN CGO_ENABLED=0 ./temporal-features prepare --lang go --dir prepared --version
 FROM gcr.io/distroless/static-debian11:nonroot
 
 COPY --from=build /app/temporal-features /app/temporal-features
+COPY --from=build /app/dockerfiles/dynamicconfig /app/dockerfiles/dynamicconfig
 COPY --from=build /app/features /app/features
 COPY --from=build /app/prepared /app/prepared
 # # Use entrypoint instead of command to "bake" the default command options

@@ -237,11 +237,18 @@ func (r *Runner) dynamicConfigArgs(overrides map[string]any) ([]string, error) {
 	cfgPath := filepath.Join(r.rootDir, "dockerfiles", "dynamicconfig", "docker.yaml")
 	yamlBytes, err := os.ReadFile(cfgPath)
 	if err != nil {
-		return nil, fmt.Errorf("unable to read dynamic config: %w", err)
+		if !errors.Is(err, os.ErrNotExist) {
+			return nil, fmt.Errorf("unable to read dynamic config: %w", err)
+		}
 	}
 	var yamlValues map[string][]dynamicConfigValue
-	if err = yaml.Unmarshal(yamlBytes, &yamlValues); err != nil {
-		return nil, fmt.Errorf("unable to decode dynamic config: %w", err)
+	if len(yamlBytes) > 0 {
+		if err = yaml.Unmarshal(yamlBytes, &yamlValues); err != nil {
+			return nil, fmt.Errorf("unable to decode dynamic config: %w", err)
+		}
+	}
+	if yamlValues == nil {
+		yamlValues = map[string][]dynamicConfigValue{}
 	}
 	for key, value := range overrides {
 		yamlValues[key] = []dynamicConfigValue{{Constraints: map[string]any{}, Value: value}}

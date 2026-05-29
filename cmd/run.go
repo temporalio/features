@@ -282,6 +282,10 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 		return err
 	}
 	defer deleteEndpoints()
+	if len(run.Features) == 0 {
+		r.log.Info("No features left to run after Nexus skip; treating run as successful")
+		return nil
+	}
 
 	// Ensure any created temp dir is cleaned on ctrl-c or normal exit
 	if r.config.DirName == "" && !r.config.RetainTempDir {
@@ -673,10 +677,10 @@ func (r *Runner) createNexusEndpoints(ctx context.Context, run *cmd.Run) (func()
 		cancel()
 		if err != nil {
 			// Only skip when the server signals that Nexus endpoint management is unavailable
-			// (e.g. Temporal Cloud returns PermissionDenied/Unimplemented). Other errors are
-			// real failures and must surface.
+			// (e.g. Temporal Cloud returns Unauthenticated/PermissionDenied/Unimplemented).
+			// Other errors are real failures and must be surfaced.
 			code := status.Code(err)
-			if code != codes.PermissionDenied && code != codes.Unimplemented {
+			if code != codes.Unauthenticated && code != codes.PermissionDenied && code != codes.Unimplemented {
 				cleanup()
 				return noop, fmt.Errorf("failed creating nexus endpoint for %v: %w", feature.Dir, err)
 			}
@@ -690,9 +694,6 @@ func (r *Runner) createNexusEndpoints(ctx context.Context, run *cmd.Run) (func()
 				}
 			}
 			run.Features = kept
-			if len(run.Features) == 0 {
-				return noop, fmt.Errorf("all features skipped: server does not support Nexus endpoint creation")
-			}
 			return noop, nil
 		}
 		feature.NexusEndpoint = name

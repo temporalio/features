@@ -25,11 +25,10 @@ import (
 	"github.com/urfave/cli/v2"
 	nexuspb "go.temporal.io/api/nexus/v1"
 	"go.temporal.io/api/operatorservice/v1"
+	"go.temporal.io/api/serviceerror"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/log"
 	"go.temporal.io/sdk/testsuite"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"gopkg.in/yaml.v3"
 )
 
@@ -676,16 +675,14 @@ func (r *Runner) createNexusEndpoints(ctx context.Context, run *cmd.Run) (func()
 		})
 		cancel()
 		if err != nil {
-			// Only skip when the server signals that Nexus endpoint management is unavailable
-			// (e.g. Temporal Cloud returns Unauthenticated/PermissionDenied/Unimplemented).
-			// Other errors are real failures and must be surfaced.
-			code := status.Code(err)
-			if code != codes.Unauthenticated && code != codes.PermissionDenied && code != codes.Unimplemented {
+			// Only skip when the server signals that Nexus endpoint management is unavailable.
+			var permDenied *serviceerror.PermissionDenied
+			if !errors.As(err, &permDenied) {
 				cleanup()
 				return noop, fmt.Errorf("failed creating nexus endpoint for %v: %w", feature.Dir, err)
 			}
 			r.log.Warn("Skipping Nexus features: server does not support Nexus endpoint creation",
-				"Feature", feature.Dir, "Code", code, "Error", err)
+				"Feature", feature.Dir, "Error", err)
 			cleanup()
 			kept := run.Features[:0]
 			for _, f := range run.Features {

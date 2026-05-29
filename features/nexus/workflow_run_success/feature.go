@@ -26,7 +26,7 @@ var AsyncWorkflowOperation = temporalnexus.NewWorkflowRunOperation(
 	HandlerWorkflow,
 	func(ctx context.Context, input string, opts nexus.StartOperationOptions) (client.StartWorkflowOptions, error) {
 		// Use the request ID so retried start requests resolve to the same workflow.
-		return client.StartWorkflowOptions{ID: "nexus-async-workflow-" + opts.RequestID}, nil
+		return client.StartWorkflowOptions{ID: opts.RequestID}, nil
 	},
 )
 
@@ -91,6 +91,18 @@ var Feature = harness.Feature{
 		if handlerLink == nil {
 			return fmt.Errorf("NexusOperationStarted is missing a link to the handler WorkflowExecutionStarted event")
 		}
+		if handlerLink.GetNamespace() != runner.Namespace {
+			return fmt.Errorf("handler link namespace = %q, want %q", handlerLink.GetNamespace(), runner.Namespace)
+		}
+		// WorkflowExecutionStarted is always event ID 1.
+		if handlerLink.GetEventRef().GetEventId() != 1 {
+			return fmt.Errorf("handler link eventId = %d, want 1", handlerLink.GetEventRef().GetEventId())
+		}
+		// The handler workflow ID is set to the Nexus operation request ID by the operation impl.
+		wantHandlerWorkflowID := scheduled.GetNexusOperationScheduledEventAttributes().GetRequestId()
+		if handlerLink.GetWorkflowId() != wantHandlerWorkflowID {
+			return fmt.Errorf("handler link workflowId = %q, want %q", handlerLink.GetWorkflowId(), wantHandlerWorkflowID)
+		}
 
 		// The handler workflow's WorkflowExecutionStarted event carries the Nexus completion
 		// callback, whose link points back to the caller's NexusOperationScheduled event.
@@ -105,7 +117,13 @@ var Feature = harness.Feature{
 		if handlerStarted == nil {
 			return fmt.Errorf("did not find WorkflowExecutionStarted event in handler history")
 		}
-		callbacks := handlerStarted.GetWorkflowExecutionStartedEventAttributes().GetCompletionCallbacks()
+		handlerAttrs := handlerStarted.GetWorkflowExecutionStartedEventAttributes()
+		// Cross-check the run ID embedded in the caller's link against the handler's own attrs.
+		if handlerLink.GetRunId() != handlerAttrs.GetFirstExecutionRunId() {
+			return fmt.Errorf("handler link runId = %q, want %q (firstExecutionRunId)",
+				handlerLink.GetRunId(), handlerAttrs.GetFirstExecutionRunId())
+		}
+		callbacks := handlerAttrs.GetCompletionCallbacks()
 		if len(callbacks) == 0 {
 			return fmt.Errorf("handler WorkflowExecutionStarted has no completion callbacks")
 		}
@@ -113,9 +131,15 @@ var Feature = harness.Feature{
 		if callerLink == nil {
 			return fmt.Errorf("handler completion callback is missing a link to the caller NexusOperationScheduled event")
 		}
+		if callerLink.GetNamespace() != runner.Namespace {
+			return fmt.Errorf("caller link namespace = %q, want %q", callerLink.GetNamespace(), runner.Namespace)
+		}
 		if callerLink.GetWorkflowId() != run.GetID() || callerLink.GetRunId() != run.GetRunID() {
 			return fmt.Errorf("handler callback link references %s/%s, expected caller %s/%s",
 				callerLink.GetWorkflowId(), callerLink.GetRunId(), run.GetID(), run.GetRunID())
+		}
+		if callerLink.GetEventRef().GetEventId() != scheduled.GetEventId() {
+			return fmt.Errorf("caller link eventId = %d, want %d", callerLink.GetEventRef().GetEventId(), scheduled.GetEventId())
 		}
 		return nil
 	},

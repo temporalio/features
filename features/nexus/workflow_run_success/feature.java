@@ -105,9 +105,8 @@ public interface feature extends Feature {
       assertNotNull(scheduled, "expected NexusOperationScheduled event in history");
       var started = findEvent(events, e -> e.hasNexusOperationStartedEventAttributes());
       assertNotNull(started, "expected NexusOperationStarted event in history");
-      assertTrue(
-          events.stream().anyMatch(e -> e.hasNexusOperationCompletedEventAttributes()),
-          "expected NexusOperationCompleted event in history");
+      var completed = findEvent(events, e -> e.hasNexusOperationCompletedEventAttributes());
+      assertNotNull(completed, "expected NexusOperationCompleted event in history");
 
       // The caller's NexusOperationStarted event must link to the handler workflow's
       // WorkflowExecutionStarted event.
@@ -117,6 +116,13 @@ public interface feature extends Feature {
       assertNotNull(
           handlerLink,
           "NexusOperationStarted is missing a link to the handler WorkflowExecutionStarted event");
+      assertEquals(runner.config.namespace, handlerLink.getNamespace());
+      // WorkflowExecutionStarted is always event ID 1.
+      assertEquals(1L, handlerLink.getEventRef().getEventId());
+      // The handler workflow ID is set to the Nexus operation request ID by the operation impl.
+      assertEquals(
+          scheduled.getNexusOperationScheduledEventAttributes().getRequestId(),
+          handlerLink.getWorkflowId());
 
       // The handler workflow's WorkflowExecutionStarted event carries the Nexus completion
       // callback, whose link points back to the caller's NexusOperationScheduled event.
@@ -135,6 +141,8 @@ public interface feature extends Feature {
           findEvent(handlerEvents, e -> e.hasWorkflowExecutionStartedEventAttributes());
       assertNotNull(handlerStarted, "expected WorkflowExecutionStarted event in handler history");
       var attrs = handlerStarted.getWorkflowExecutionStartedEventAttributes();
+      // Cross-check the run ID embedded in the caller's link against the handler's own attrs.
+      assertEquals(attrs.getFirstExecutionRunId(), handlerLink.getRunId());
       assertTrue(
           attrs.getCompletionCallbacksCount() > 0,
           "handler WorkflowExecutionStarted has no completion callbacks");
@@ -145,8 +153,10 @@ public interface feature extends Feature {
       assertNotNull(
           callerLink,
           "handler completion callback is missing a link to the caller NexusOperationScheduled event");
+      assertEquals(runner.config.namespace, callerLink.getNamespace());
       assertEquals(run.execution.getWorkflowId(), callerLink.getWorkflowId());
       assertEquals(run.execution.getRunId(), callerLink.getRunId());
+      assertEquals(scheduled.getEventId(), callerLink.getEventRef().getEventId());
     }
 
     private static HistoryEvent findEvent(

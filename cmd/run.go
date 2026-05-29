@@ -28,6 +28,8 @@ import (
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/log"
 	"go.temporal.io/sdk/testsuite"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"gopkg.in/yaml.v3"
 )
 
@@ -670,8 +672,28 @@ func (r *Runner) createNexusEndpoints(ctx context.Context, run *cmd.Run) (func()
 		})
 		cancel()
 		if err != nil {
+			// Only skip when the server signals that Nexus endpoint management is unavailable
+			// (e.g. Temporal Cloud returns PermissionDenied/Unimplemented). Other errors are
+			// real failures and must surface.
+			code := status.Code(err)
+			if code != codes.PermissionDenied && code != codes.Unimplemented {
+				cleanup()
+				return noop, fmt.Errorf("failed creating nexus endpoint for %v: %w", feature.Dir, err)
+			}
+			r.log.Warn("Skipping Nexus features: server does not support Nexus endpoint creation",
+				"Feature", feature.Dir, "Code", code, "Error", err)
 			cleanup()
-			return noop, fmt.Errorf("failed creating nexus endpoint for %v: %w", feature.Dir, err)
+			kept := run.Features[:0]
+			for _, f := range run.Features {
+				if !strings.HasPrefix(f.Dir, nexusFeatureDirPrefix) {
+					kept = append(kept, f)
+				}
+			}
+			run.Features = kept
+			if len(run.Features) == 0 {
+				return noop, fmt.Errorf("all features skipped: server does not support Nexus endpoint creation")
+			}
+			return noop, nil
 		}
 		feature.NexusEndpoint = name
 		created = append(created, createdEndpoint{ID: res.Endpoint.Id, Version: res.Endpoint.Version, Name: name})

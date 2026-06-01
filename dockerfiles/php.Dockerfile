@@ -5,7 +5,8 @@ FROM php:8.2-cli as build
 RUN apt-get update \
  && DEBIAN_FRONTEND=noninteractive \
     apt-get install --no-install-recommends --assume-yes \
-      protobuf-compiler=3.* libprotobuf-dev=3.* wget=* git=*
+      protobuf-compiler=3.* libprotobuf-dev=3.* wget=* git=* \
+ && docker-php-ext-install sockets
 
 # Get go compiler
 ARG PLATFORM=amd64

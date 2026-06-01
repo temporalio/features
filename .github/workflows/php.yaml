@@ -105,7 +105,13 @@ jobs:
         if: inputs.docker-image-artifact-name == ''
         env:
           INPUT_VERSION: ${{ inputs.version }}
-        run: go run . run --lang php ${{ inputs.docker-image-artifact-name && '--server localhost:7233 --namespace default' || ''}} --version "${{ inputs.version-is-repo-ref && '' || '$INPUT_VERSION' }}"
+          INPUT_VERSION_IS_REPO_REF: ${{ inputs.version-is-repo-ref }}
+        run: |
+          if [ "$INPUT_VERSION_IS_REPO_REF" = "true" ]; then
+            go run . run --lang php --version ""
+          else
+            go run . run --lang php --version "$INPUT_VERSION"
+          fi
 
       # Running the tests in their own step keeps the logs readable
       - name: Run containerized SDK-features tests

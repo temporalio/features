@@ -53,7 +53,9 @@ jobs:
         with:
           go-version: '^1.21'
       - name: Lint dockerfile
-        run: docker run --rm -i hadolint/hadolint < dockerfiles/${{inputs.lang}}.Dockerfile
+        env:
+          INPUT_LANG: ${{ inputs.lang }}
+        run: docker run --rm -i hadolint/hadolint < "dockerfiles/$INPUT_LANG.Dockerfile"
 
       # Download the certs to be mounted as a volume in the running container
       - name: Download certs to temporary directory
@@ -70,15 +72,28 @@ jobs:
       - name: Build docker image
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_LANG: ${{ inputs.lang }}
+          INPUT_SDK_REPO_REF: ${{ inputs.sdk-repo-ref }}
+          INPUT_SDK_REPO_URL: ${{ inputs.sdk-repo-url }}
+          INPUT_SDK_VERSION: ${{ inputs.sdk-version }}
+          INPUT_SEMVER_LATEST: ${{ inputs.semver-latest }}
         run: |
-          go run . build-image --lang ${{ inputs.lang }} \
-          ${{ inputs.sdk-repo-ref && format('--repo-ref {0}', inputs.sdk-repo-ref) || '' }} \
-          ${{ inputs.sdk-repo-ref && inputs.sdk-repo-url && format('--repo-url {0}', inputs.sdk-repo-url) || '' }} \
-          ${{ !inputs.sdk-repo-ref && format('--version {0}', inputs.sdk-version) || '' }} \
-          ${{ inputs.semver-latest != 'none' && format('--semver-latest {0}', inputs.semver-latest) || '' }}
+          args=(--lang "$INPUT_LANG")
+          if [ -n "$INPUT_SDK_REPO_REF" ]; then
+            args+=(--repo-ref "$INPUT_SDK_REPO_REF")
+            if [ -n "$INPUT_SDK_REPO_URL" ]; then
+              args+=(--repo-url "$INPUT_SDK_REPO_URL")
+            fi
+          else
+            args+=(--version "$INPUT_SDK_VERSION")
+          fi
+          if [ "$INPUT_SEMVER_LATEST" != "none" ]; then
+            args+=(--semver-latest "$INPUT_SEMVER_LATEST")
+          fi
+          go run . build-image "${args[@]}"
 
       - name: Test with Dev Server
-        run: docker run --rm -i -v /tmp/temporal-certs:/certs ${{ env.FEATURES_BUILT_IMAGE_TAG }}
+        run: docker run --rm -i -v /tmp/temporal-certs:/certs "$FEATURES_BUILT_IMAGE_TAG"
 
       - name: Test with Cloud
         # Only supported in non-fork runs
@@ -91,7 +106,7 @@ jobs:
             docker run --rm -i \
             -v /tmp/temporal-certs:/certs \
             --env TEMPORAL_FEATURES_DISABLE_WORKFLOW_COMPLETION_CHECK=true \
-            ${{ env.FEATURES_BUILT_IMAGE_TAG }} \
+            "$FEATURES_BUILT_IMAGE_TAG" \
             --server $TEMPORAL_CLOUD_ADDRESS \
             --namespace $TEMPORAL_CLOUD_NAMESPACE \
             --client-cert-path /certs/client.pem \

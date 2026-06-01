@@ -39,8 +39,10 @@ jobs:
         working-directory: ./features
     steps:
       - name: Print git info
-        run: 'echo head_ref: "$GITHUB_HEAD_REF", ref: "$GITHUB_REF", python sdk version: ${{ inputs.version }}'
+        run: 'echo head_ref: "$GITHUB_HEAD_REF", ref: "$GITHUB_REF", python sdk version: "$INPUT_VERSION"'
         working-directory: '.'
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
 
       - name: Download docker artifacts
         if: ${{ inputs.docker-image-artifact-name }}
@@ -140,7 +142,15 @@ jobs:
 
       - name: Run SDK-features tests directly
         if: inputs.docker-image-artifact-name == ''
-        run: go run . run --lang python ${{ inputs.docker-image-artifact-name && '--server localhost:7233 --namespace default' || ''}} --version "${{ inputs.version-is-repo-ref && '$(realpath ../sdk-python)' || inputs.version }}"
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_VERSION_IS_REPO_REF: ${{ inputs.version-is-repo-ref }}
+        run: |
+          if [ "$INPUT_VERSION_IS_REPO_REF" = "true" ]; then
+            go run . run --lang python --version "$(realpath ../sdk-python)"
+          else
+            go run . run --lang python --version "$INPUT_VERSION"
+          fi
 
       # Running the tests in their own step keeps the logs readable
       - name: Run containerized SDK-features tests

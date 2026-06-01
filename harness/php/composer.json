@@ -5,6 +5,7 @@
     "keywords": ["temporal", "sdk", "harness"],
     "license": "MIT",
     "require": {
+        "php": "^8.2",
         "buggregator/trap": "^1.9",
         "spiral/core": "^3.13",
         "symfony/process": ">=6.4",

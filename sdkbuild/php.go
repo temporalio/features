@@ -78,7 +78,7 @@ func BuildPhpProgram(ctx context.Context, options BuildPhpProgramOptions) (*PhpP
 	var cmd *exec.Cmd
 	// Setup required SDK version if specified
 	if options.Version != "" {
-		cmd = exec.CommandContext(ctx, "composer", "req", "temporal/sdk", options.Version, "-W", "--no-install", "--ignore-platform-reqs")
+		cmd = exec.CommandContext(ctx, "composer", "req", "temporal/sdk", options.Version, "-W", "--no-install")
 		cmd.Dir = dir
 		setupCommandIO(cmd, options.Stdout, options.Stderr)
 		if err := cmd.Run(); err != nil {
@@ -87,7 +87,7 @@ func BuildPhpProgram(ctx context.Context, options BuildPhpProgramOptions) (*PhpP
 	}
 
 	// Install dependencies via composer
-	cmd = exec.CommandContext(ctx, "composer", "i", "-n", "-o", "-q", "--no-scripts", "--ignore-platform-reqs")
+	cmd = exec.CommandContext(ctx, "composer", "i", "-n", "-o", "-q", "--no-scripts")
 	cmd.Dir = dir
 	setupCommandIO(cmd, options.Stdout, options.Stderr)
 	if err := cmd.Run(); err != nil {

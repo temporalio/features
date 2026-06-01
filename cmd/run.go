@@ -25,6 +25,7 @@ import (
 	"github.com/urfave/cli/v2"
 	nexuspb "go.temporal.io/api/nexus/v1"
 	"go.temporal.io/api/operatorservice/v1"
+	"go.temporal.io/api/serviceerror"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/log"
 	"go.temporal.io/sdk/testsuite"
@@ -280,6 +281,10 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 		return err
 	}
 	defer deleteEndpoints()
+	if len(run.Features) == 0 {
+		r.log.Info("No features left to run after Nexus skip; treating run as successful")
+		return nil
+	}
 
 	// Ensure any created temp dir is cleaned on ctrl-c or normal exit
 	if r.config.DirName == "" && !r.config.RetainTempDir {
@@ -670,8 +675,23 @@ func (r *Runner) createNexusEndpoints(ctx context.Context, run *cmd.Run) (func()
 		})
 		cancel()
 		if err != nil {
+			// Only skip when the server signals that Nexus endpoint management is unavailable.
+			var permDenied *serviceerror.PermissionDenied
+			if !errors.As(err, &permDenied) {
+				cleanup()
+				return noop, fmt.Errorf("failed creating nexus endpoint for %v: %w", feature.Dir, err)
+			}
+			r.log.Warn("Skipping Nexus features: server does not support Nexus endpoint creation",
+				"Feature", feature.Dir, "Error", err)
 			cleanup()
-			return noop, fmt.Errorf("failed creating nexus endpoint for %v: %w", feature.Dir, err)
+			kept := run.Features[:0]
+			for _, f := range run.Features {
+				if !strings.HasPrefix(f.Dir, nexusFeatureDirPrefix) {
+					kept = append(kept, f)
+				}
+			}
+			run.Features = kept
+			return noop, nil
 		}
 		feature.NexusEndpoint = name
 		created = append(created, createdEndpoint{ID: res.Endpoint.Id, Version: res.Endpoint.Version, Name: name})

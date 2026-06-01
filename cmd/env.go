@@ -7,24 +7,18 @@ import (
 	"strings"
 )
 
-func variantEnv(variant string, capabilities map[string]bool) map[string]string {
-	if variant == "" && len(capabilities) == 0 {
-		return nil
+func namespaceCapabilitiesEnv(capabilities map[string]bool) string {
+	if len(capabilities) == 0 {
+		return ""
 	}
-	env := make(map[string]string, 2)
-	if variant != "" {
-		env[featureRunVariantEnv] = variant
-	}
-	if len(capabilities) > 0 {
-		capabilitiesJSON, _ := json.Marshal(capabilities)
-		env[featureNamespaceCapabilitiesEnv] = string(capabilitiesJSON)
-	}
-	return env
+	capabilitiesJSON, _ := json.Marshal(capabilities)
+	return string(capabilitiesJSON)
 }
 
-// applyCommandEnv adds harness-owned feature metadata to a subprocess.
-func applyCommandEnv(cmd *exec.Cmd, env map[string]string) {
-	if len(env) == 0 {
+// applyNamespaceCapabilitiesEnv adds validated namespace capabilities metadata
+// to a subprocess.
+func applyNamespaceCapabilitiesEnv(cmd *exec.Cmd, capabilitiesJSON string) {
+	if capabilitiesJSON == "" {
 		return
 	}
 	if len(cmd.Env) == 0 {
@@ -32,43 +26,30 @@ func applyCommandEnv(cmd *exec.Cmd, env map[string]string) {
 	} else {
 		cmd.Env = append([]string(nil), cmd.Env...)
 	}
-	for key := range env {
-		prefix := key + "="
-		filtered := cmd.Env[:0]
-		for _, entry := range cmd.Env {
-			if !strings.HasPrefix(entry, prefix) {
-				filtered = append(filtered, entry)
-			}
+
+	prefix := featureNamespaceCapabilitiesEnv + "="
+	filtered := cmd.Env[:0]
+	for _, entry := range cmd.Env {
+		if !strings.HasPrefix(entry, prefix) {
+			filtered = append(filtered, entry)
 		}
-		cmd.Env = filtered
 	}
-	for key, value := range env {
-		cmd.Env = append(cmd.Env, key+"="+value)
-	}
+	cmd.Env = append(filtered, prefix+capabilitiesJSON)
 }
 
-// setProcessEnv temporarily adds harness-owned feature metadata for in-process feature runs.
-func setProcessEnv(env map[string]string) func() {
-	if len(env) == 0 {
+// setNamespaceCapabilitiesEnv temporarily adds validated namespace capabilities
+// metadata for in-process feature runs.
+func setNamespaceCapabilitiesEnv(capabilitiesJSON string) func() {
+	if capabilitiesJSON == "" {
 		return func() {}
 	}
-	type prevValue struct {
-		value string
-		ok    bool
-	}
-	prev := make(map[string]prevValue, len(env))
-	for key, value := range env {
-		oldValue, ok := os.LookupEnv(key)
-		prev[key] = prevValue{value: oldValue, ok: ok}
-		_ = os.Setenv(key, value)
-	}
+	oldValue, ok := os.LookupEnv(featureNamespaceCapabilitiesEnv)
+	_ = os.Setenv(featureNamespaceCapabilitiesEnv, capabilitiesJSON)
 	return func() {
-		for key, value := range prev {
-			if value.ok {
-				_ = os.Setenv(key, value.value)
-			} else {
-				_ = os.Unsetenv(key)
-			}
+		if ok {
+			_ = os.Setenv(featureNamespaceCapabilitiesEnv, oldValue)
+		} else {
+			_ = os.Unsetenv(featureNamespaceCapabilitiesEnv)
 		}
 	}
 }

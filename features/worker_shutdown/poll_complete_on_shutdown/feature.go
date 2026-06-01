@@ -8,7 +8,6 @@ import (
 	"time"
 
 	enumspb "go.temporal.io/api/enums/v1"
-	historypb "go.temporal.io/api/history/v1"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/worker"
@@ -21,6 +20,7 @@ import (
 const (
 	workflowCount   = 5
 	shutdownTimeout = 5 * time.Second
+	historyTimeout  = 15 * time.Second
 )
 
 var Feature = harness.Feature{
@@ -76,6 +76,8 @@ func Execute(ctx context.Context, r *harness.Runner) (client.WorkflowRun, error)
 				return nil, err
 			}
 		}
+	} else if err := waitForAnyWorkflowTaskProblem(ctx, r, runs, historyTimeout); err != nil {
+		return nil, err
 	}
 	return nil, nil
 }
@@ -103,18 +105,52 @@ func NoopActivity(context.Context) error {
 }
 
 func assertNoWorkflowTaskProblems(ctx context.Context, r *harness.Runner, run client.WorkflowRun) error {
+	hasProblem, err := hasWorkflowTaskProblem(ctx, r, run)
+	if err != nil {
+		return err
+	}
+	if hasProblem {
+		return fmt.Errorf("unexpected workflow task problem in %s", run.GetID())
+	}
+	return nil
+}
+
+func waitForAnyWorkflowTaskProblem(ctx context.Context, r *harness.Runner, runs []client.WorkflowRun, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	for {
+		for _, run := range runs {
+			hasProblem, err := hasWorkflowTaskProblem(ctx, r, run)
+			if err != nil {
+				return err
+			}
+			if hasProblem {
+				return nil
+			}
+		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("expected a workflow task failure or timeout within %s", timeout)
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(200 * time.Millisecond):
+		}
+	}
+}
+
+func hasWorkflowTaskProblem(ctx context.Context, r *harness.Runner, run client.WorkflowRun) (bool, error) {
 	iter := r.Client.GetWorkflowHistory(ctx, run.GetID(), run.GetRunID(), false, enumspb.HISTORY_EVENT_FILTER_TYPE_ALL_EVENT)
 	for iter.HasNext() {
 		event, err := iter.Next()
 		if err != nil {
-			return err
+			return false, err
 		}
 		switch event.GetEventType() {
 		case enumspb.EVENT_TYPE_WORKFLOW_TASK_FAILED, enumspb.EVENT_TYPE_WORKFLOW_TASK_TIMED_OUT:
-			return fmt.Errorf("unexpected workflow task problem in %s: %s", run.GetID(), eventSummary(event))
+			return true, nil
 		}
 	}
-	return nil
+	return false, nil
 }
 
 func expectWorkerPollCompleteOnShutdown() (bool, error) {
@@ -131,14 +167,4 @@ func expectWorkerPollCompleteOnShutdown() (bool, error) {
 		return false, fmt.Errorf("FEATURE_NAMESPACE_CAPABILITIES missing workerPollCompleteOnShutdown")
 	}
 	return value, nil
-}
-
-func eventSummary(event *historypb.HistoryEvent) string {
-	if failed := event.GetWorkflowTaskFailedEventAttributes(); failed != nil {
-		return failed.String()
-	}
-	if timedOut := event.GetWorkflowTaskTimedOutEventAttributes(); timedOut != nil {
-		return timedOut.String()
-	}
-	return event.String()
 }

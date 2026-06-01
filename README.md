@@ -167,7 +167,8 @@ For example:
 ```
 
 Run variants require the runner to start the embedded dev server so it can apply each variant's dynamic config. They
-cannot be used with `--server`, which points the runner at an already-running external server.
+cannot be used with `--server`, which points the runner at an already-running external server. When `--server` is used
+without explicit feature patterns, the runner skips features with `runVariants`.
 
 There are also files in the `history/` subdirectory which contain history files used during run. See the
 "History Checking" and "Generating History" sections for more info.

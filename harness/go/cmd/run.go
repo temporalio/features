@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/temporalio/features/harness/go/harness"
@@ -54,12 +53,6 @@ func (r *Run) ToArgs() []string {
 		if feature.NexusEndpoint != "" {
 			ret[i] += ":" + feature.NexusEndpoint
 		}
-		if feature.VariantName != "" {
-			if feature.NexusEndpoint == "" {
-				ret[i] += ":"
-			}
-			ret[i] += ":" + feature.VariantName
-		}
 	}
 	return ret
 }
@@ -77,16 +70,13 @@ func (r *Run) FromArgs(args []string) error {
 }
 
 func parseRunFeature(arg string) (RunFeature, error) {
-	pieces := strings.SplitN(arg, ":", 4)
+	pieces := strings.SplitN(arg, ":", 3)
 	if len(pieces) < 2 {
 		return RunFeature{}, fmt.Errorf("missing task queue")
 	}
 	feature := RunFeature{Dir: pieces[0], TaskQueue: pieces[1]}
 	if len(pieces) == 3 {
 		feature.NexusEndpoint = pieces[2]
-	} else if len(pieces) == 4 {
-		feature.NexusEndpoint = pieces[2]
-		feature.VariantName = pieces[3]
 	}
 	return feature, nil
 }
@@ -359,16 +349,11 @@ func (r *RunFeatureConfig) LoadFromDir(dir string) error {
 	return r.Validate()
 }
 
-var runVariantNameRe = regexp.MustCompile(`^[a-zA-Z0-9._-]+$`)
-
 func (r *RunFeatureConfig) Validate() error {
 	seen := make(map[string]struct{}, len(r.RunVariants))
 	for _, variant := range r.RunVariants {
 		if variant.Name == "" {
 			return fmt.Errorf("runVariants entries must have a non-empty name")
-		}
-		if !runVariantNameRe.MatchString(variant.Name) {
-			return fmt.Errorf("run variant %q has invalid name, expected only letters, numbers, '.', '_', and '-'", variant.Name)
 		}
 		if _, ok := seen[variant.Name]; ok {
 			return fmt.Errorf("duplicate run variant name %q", variant.Name)

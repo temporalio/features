@@ -8,9 +8,7 @@ import (
 func TestRunToArgsAndFromArgsRoundTrip(t *testing.T) {
 	run := Run{Features: []RunFeature{
 		{Dir: "activity/basic", TaskQueue: "tq-basic"},
-		{Dir: "worker_shutdown/poll_complete_on_shutdown", TaskQueue: "tq-variant", VariantName: "enabled"},
 		{Dir: "nexus/sync_success", TaskQueue: "tq-nexus", NexusEndpoint: "endpoint-name"},
-		{Dir: "nexus/sync_success", TaskQueue: "tq-both", NexusEndpoint: "endpoint-name", VariantName: "enabled"},
 	}}
 
 	args := run.ToArgs()
@@ -57,11 +55,10 @@ func TestRunFeatureConfigValidateRunVariants(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "invalid name",
+			name: "punctuation allowed",
 			config: RunFeatureConfig{RunVariants: []RunVariantConfig{
 				{Name: "enabled/invalid"},
 			}},
-			wantErr: true,
 		},
 	}
 	for _, tt := range tests {

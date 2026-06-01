@@ -43,18 +43,6 @@ func TestDynamicConfigArgsMissingBaseUsesOverrides(t *testing.T) {
 	}
 }
 
-func TestDynamicConfigArgsMissingBaseWithoutOverridesIsEmpty(t *testing.T) {
-	r := NewRunner(RunConfig{})
-	r.rootDir = t.TempDir()
-	args, err := r.dynamicConfigArgs(nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(args) != 0 {
-		t.Fatalf("expected no dynamic config args, got %v", args)
-	}
-}
-
 func TestMakeRunBatchesExpandsVariants(t *testing.T) {
 	r := NewRunner(RunConfig{})
 	features := []*RunFeature{
@@ -81,10 +69,7 @@ func TestMakeRunBatchesExpandsVariants(t *testing.T) {
 		},
 	}
 
-	batches, err := r.makeRunBatches(features)
-	if err != nil {
-		t.Fatal(err)
-	}
+	batches := r.makeRunBatches(features)
 	if len(batches) != 2 {
 		t.Fatalf("expected 2 batches, got %d", len(batches))
 	}
@@ -98,10 +83,7 @@ func TestMakeRunBatchesExpandsVariants(t *testing.T) {
 		if got := batches[i].Capabilities["workerPollCompleteOnShutdown"]; got != (want == "enabled") {
 			t.Fatalf("batch %d capability expectation = %t", i, got)
 		}
-		if got := batches[i].Env[featureRunVariantEnv]; got != want {
-			t.Fatalf("batch %d env variant = %q, want %q", i, got, want)
-		}
-		if got := batches[i].Env[featureNamespaceCapabilitiesEnv]; !strings.Contains(got, `"workerPollCompleteOnShutdown"`) {
+		if got := batches[i].CapabilitiesJSON; !strings.Contains(got, `"workerPollCompleteOnShutdown"`) {
 			t.Fatalf("batch %d capabilities env missing capability: %q", i, got)
 		}
 	}
@@ -133,24 +115,55 @@ func TestRunBatchRejectsVariantWithExternalServer(t *testing.T) {
 	}
 }
 
-func TestApplyCommandEnv(t *testing.T) {
+func TestFilterFeaturesForExternalServerSkipsImplicitRunVariants(t *testing.T) {
+	r := NewRunner(RunConfig{Server: "localhost:7233"})
+	features := []*RunFeature{
+		{Dir: "activity/basic"},
+		{
+			Dir: "worker_shutdown/poll_complete_on_shutdown",
+			Config: hcmd.RunFeatureConfig{
+				RunVariants: []hcmd.RunVariantConfig{{Name: "enabled"}},
+			},
+		},
+	}
+
+	filtered := r.filterFeaturesForExternalServer(features, nil)
+	if len(filtered) != 1 || filtered[0].Dir != "activity/basic" {
+		t.Fatalf("filtered features = %+v", filtered)
+	}
+}
+
+func TestFilterFeaturesForExternalServerKeepsExplicitRunVariants(t *testing.T) {
+	r := NewRunner(RunConfig{Server: "localhost:7233"})
+	features := []*RunFeature{
+		{
+			Dir: "worker_shutdown/poll_complete_on_shutdown",
+			Config: hcmd.RunFeatureConfig{
+				RunVariants: []hcmd.RunVariantConfig{{Name: "enabled"}},
+			},
+		},
+	}
+
+	filtered := r.filterFeaturesForExternalServer(features, []string{"worker_shutdown/poll_complete_on_shutdown"})
+	if len(filtered) != 1 || filtered[0].Dir != "worker_shutdown/poll_complete_on_shutdown" {
+		t.Fatalf("filtered features = %+v", filtered)
+	}
+}
+
+func TestApplyNamespaceCapabilitiesEnvForExternalRuns(t *testing.T) {
 	cmd := exec.Command("feature-test")
 	cmd.Env = []string{
-		featureRunVariantEnv + "=old",
+		featureNamespaceCapabilitiesEnv + "=old",
 		"KEEP=value",
 	}
-	applyCommandEnv(cmd, map[string]string{
-		featureRunVariantEnv:            "new",
-		featureNamespaceCapabilitiesEnv: `{"workerPollCompleteOnShutdown":true}`,
-	})
+	applyNamespaceCapabilitiesEnv(cmd, `{"workerPollCompleteOnShutdown":true}`)
 
 	joined := strings.Join(cmd.Env, "\n")
-	if strings.Contains(joined, featureRunVariantEnv+"=old") {
-		t.Fatalf("old variant env was not replaced: %v", cmd.Env)
+	if strings.Contains(joined, featureNamespaceCapabilitiesEnv+"=old") {
+		t.Fatalf("old capabilities env was not replaced: %v", cmd.Env)
 	}
 	for _, want := range []string{
 		"KEEP=value",
-		featureRunVariantEnv + "=new",
 		featureNamespaceCapabilitiesEnv + `={"workerPollCompleteOnShutdown":true}`,
 	} {
 		if !strings.Contains(joined, want) {
@@ -159,25 +172,16 @@ func TestApplyCommandEnv(t *testing.T) {
 	}
 }
 
-func TestSetProcessEnvRestoresPreviousValues(t *testing.T) {
-	t.Setenv(featureRunVariantEnv, "old")
-	restore := setProcessEnv(map[string]string{
-		featureRunVariantEnv:            "new",
-		featureNamespaceCapabilitiesEnv: `{"workerPollCompleteOnShutdown":false}`,
-	})
-	if got := os.Getenv(featureRunVariantEnv); got != "new" {
-		t.Fatalf("variant env = %q, want new", got)
-	}
-	if got := os.Getenv(featureNamespaceCapabilitiesEnv); got == "" {
-		t.Fatal("capabilities env was not set")
+func TestSetNamespaceCapabilitiesEnvForInProcessGoRunRestoresPreviousValues(t *testing.T) {
+	t.Setenv(featureNamespaceCapabilitiesEnv, "old")
+	restore := setNamespaceCapabilitiesEnv(`{"workerPollCompleteOnShutdown":false}`)
+	if got := os.Getenv(featureNamespaceCapabilitiesEnv); got != `{"workerPollCompleteOnShutdown":false}` {
+		t.Fatalf("capabilities env = %q", got)
 	}
 
 	restore()
 
-	if got := os.Getenv(featureRunVariantEnv); got != "old" {
-		t.Fatalf("variant env after restore = %q, want old", got)
-	}
-	if got := os.Getenv(featureNamespaceCapabilitiesEnv); got != "" {
-		t.Fatalf("capabilities env after restore = %q, want unset", got)
+	if got := os.Getenv(featureNamespaceCapabilitiesEnv); got != "old" {
+		t.Fatalf("capabilities env after restore = %q, want old", got)
 	}
 }

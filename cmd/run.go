@@ -42,7 +42,6 @@ const nexusFeatureDirPrefix = "nexus/"
 const (
 	summaryListenAddr               = "127.0.0.1:0"
 	FeaturePassed                   = "PASSED"
-	featureRunVariantEnv            = "FEATURE_RUN_VARIANT"
 	featureNamespaceCapabilitiesEnv = "FEATURE_NAMESPACE_CAPABILITIES"
 )
 
@@ -69,18 +68,18 @@ type Summary []SummaryEntry
 // RunConfig is configuration for NewRunner.
 type RunConfig struct {
 	PrepareConfig
-	Server              string
-	Namespace           string
-	ClientCertPath      string
-	ClientKeyPath       string
-	CACertPath          string
-	TLSServerName       string
-	GenerateHistory     bool
-	DisableHistoryCheck bool
-	RetainTempDir       bool
-	SummaryURI          string
-	HTTPProxyURL        string
-	Env                 map[string]string
+	Server                    string
+	Namespace                 string
+	ClientCertPath            string
+	ClientKeyPath             string
+	CACertPath                string
+	TLSServerName             string
+	GenerateHistory           bool
+	DisableHistoryCheck       bool
+	RetainTempDir             bool
+	SummaryURI                string
+	HTTPProxyURL              string
+	NamespaceCapabilitiesJSON string
 }
 
 // dockerRunFlags are a subset of flags that apply when running in a docker container
@@ -162,12 +161,12 @@ type Runner struct {
 }
 
 type runBatch struct {
-	Run           *cmd.Run
-	VariantName   string
-	DynamicConfig map[string]any
-	Capabilities  map[string]bool
-	Env           map[string]string
-	ExpectsProxy  bool
+	Run              *cmd.Run
+	VariantName      string
+	DynamicConfig    map[string]any
+	Capabilities     map[string]bool
+	CapabilitiesJSON string
+	ExpectsProxy     bool
 }
 
 // NewRunner creates a new runner for the given config.
@@ -181,7 +180,7 @@ func NewRunner(config RunConfig) *Runner {
 	}
 }
 
-func (r *Runner) makeRunBatches(features []*RunFeature) ([]runBatch, error) {
+func (r *Runner) makeRunBatches(features []*RunFeature) []runBatch {
 	defaultBatch := runBatch{Run: &cmd.Run{}}
 	var batches []runBatch
 	for _, feature := range features {
@@ -207,18 +206,18 @@ func (r *Runner) makeRunBatches(features []*RunFeature) ([]runBatch, error) {
 				Run: &cmd.Run{Features: []cmd.RunFeature{
 					runFeature,
 				}},
-				VariantName:   variant.Name,
-				DynamicConfig: variant.DynamicConfig,
-				Capabilities:  variant.ExpectNamespaceCapabilities,
-				Env:           variantEnv(variant.Name, variant.ExpectNamespaceCapabilities),
-				ExpectsProxy:  feature.Config.ExpectUnauthedProxyCount > 0 || feature.Config.ExpectAuthedProxyCount > 0,
+				VariantName:      variant.Name,
+				DynamicConfig:    variant.DynamicConfig,
+				Capabilities:     variant.ExpectNamespaceCapabilities,
+				CapabilitiesJSON: namespaceCapabilitiesEnv(variant.ExpectNamespaceCapabilities),
+				ExpectsProxy:     feature.Config.ExpectUnauthedProxyCount > 0 || feature.Config.ExpectAuthedProxyCount > 0,
 			})
 		}
 	}
 	if len(defaultBatch.Run.Features) > 0 {
 		batches = append([]runBatch{defaultBatch}, batches...)
 	}
-	return batches, nil
+	return batches
 }
 
 func (r *Runner) taskQueueForFeature(dir string, variant string) string {
@@ -367,6 +366,10 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 			}
 		}
 	}
+	features = r.filterFeaturesForExternalServer(features, patterns)
+	if len(features) == 0 {
+		return fmt.Errorf("no features matched")
+	}
 
 	// Ensure any created temp dir is cleaned on ctrl-c or normal exit
 	if r.config.DirName == "" && !r.config.RetainTempDir {
@@ -380,10 +383,7 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 		defer r.destroyTempDir()
 	}
 
-	batches, err := r.makeRunBatches(features)
-	if err != nil {
-		return err
-	}
+	batches := r.makeRunBatches(features)
 	for i, batch := range batches {
 		if i > 0 {
 			fmt.Println()
@@ -395,9 +395,27 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 	return nil
 }
 
+// filterFeaturesForExternalServer removes implicit runVariants when running
+// against an external server. Variants require per-run dynamic config changes,
+// but external servers are already configured outside this runner.
+func (r *Runner) filterFeaturesForExternalServer(features []*RunFeature, patterns []string) []*RunFeature {
+	if r.config.Server == "" || len(patterns) > 0 {
+		return features
+	}
+	filtered := features[:0]
+	for _, feature := range features {
+		if len(feature.Config.RunVariants) > 0 {
+			r.log.Info("Skipping feature with runVariants for external server run", "Feature", feature.Dir)
+			continue
+		}
+		filtered = append(filtered, feature)
+	}
+	return filtered
+}
+
 func (r *Runner) runBatch(ctx context.Context, batch runBatch) error {
 	config := r.config
-	config.Env = batch.Env
+	config.NamespaceCapabilitiesJSON = batch.CapabilitiesJSON
 	if config.Namespace == "" {
 		config.Namespace = "features-ns-" + uuid.NewString()
 	}
@@ -477,7 +495,10 @@ func (r *Runner) runBatch(ctx context.Context, batch runBatch) error {
 
 	origConfig := r.config
 	r.config = config
-	restoreEnv := setProcessEnv(config.Env)
+	// Local Go runs execute in-process, so they read namespace capabilities
+	// from this process env. External SDK runs receive the same value through
+	// applyNamespaceCapabilitiesEnv on their subprocess command.
+	restoreEnv := setNamespaceCapabilitiesEnv(config.NamespaceCapabilitiesJSON)
 	defer func() {
 		restoreEnv()
 		r.config = origConfig

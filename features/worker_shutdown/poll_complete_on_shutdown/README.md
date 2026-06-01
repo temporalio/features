@@ -12,17 +12,19 @@ The feature has two run variants in `.config.json`:
 
 Each language implementation starts several workflows that repeatedly run a
 short timer and no-op activity, waits until activity work is scheduled, stops
-the worker, and verifies shutdown returns promptly. In the enabled variant, the
-test uses runner-provided capability metadata to also verify workflow histories
-do not contain workflow-task failures or timeouts.
+the worker, and verifies shutdown returns promptly. The test uses
+runner-provided capability metadata for variant-specific history assertions:
+the enabled variant verifies workflow histories do not contain workflow-task
+failures or timeouts, and the disabled variant verifies at least one workflow
+history does contain a workflow-task failure or timeout.
 
-TODO: Ruby currently has lighter coverage because the Ruby feature harness does
-not expose worker shutdown control to the feature. Extend the Ruby harness so
-this feature can stop the worker during active polling and run the same
+Ruby is intentionally not implemented for this feature yet. The Ruby feature
+harness does not expose worker shutdown control to the feature, so a Ruby test
+cannot currently stop the worker during active polling or run the same
 mode-specific assertions as the other SDKs.
 
 Run both variants for a language with:
 
 ```bash
-go run . run --lang [language] --no-history-check worker_shutdown/poll_complete_on_shutdown
+go run . run --lang [go|java|ts|py|cs] --no-history-check worker_shutdown/poll_complete_on_shutdown
 ```

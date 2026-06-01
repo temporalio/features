@@ -13,6 +13,7 @@ using Xunit;
 class Feature : IFeature
 {
     private const int WorkflowCount = 5;
+    private static readonly TimeSpan HistoryTimeout = TimeSpan.FromSeconds(15);
 
     public void ConfigureWorker(Runner runner, TemporalWorkerOptions options)
     {
@@ -27,7 +28,11 @@ class Feature : IFeature
         {
             for (var i = 0; i < WorkflowCount; i++)
             {
-                handles.Add(await runner.StartSingleParameterlessWorkflowAsync());
+                var options = runner.NewWorkflowOptions();
+                options.TaskTimeout = TimeSpan.FromSeconds(5);
+                handles.Add(await runner.Client.StartWorkflowAsync(
+                    (MyWorkflow wf) => wf.RunAsync(),
+                    options));
             }
 
             foreach (var handle in handles)
@@ -48,6 +53,10 @@ class Feature : IFeature
                         history.Events,
                         e => e.EventType == EventType.WorkflowTaskFailed || e.EventType == EventType.WorkflowTaskTimedOut);
                 }
+            }
+            else
+            {
+                await AssertAnyWorkflowTaskProblemAsync(handles);
             }
         }
         finally
@@ -83,6 +92,27 @@ class Feature : IFeature
                 "FEATURE_NAMESPACE_CAPABILITIES missing workerPollCompleteOnShutdown");
         }
         return value;
+    }
+
+    private static async Task AssertAnyWorkflowTaskProblemAsync(IEnumerable<WorkflowHandle> handles)
+    {
+        var deadline = DateTime.UtcNow + HistoryTimeout;
+        while (DateTime.UtcNow < deadline)
+        {
+            foreach (var handle in handles)
+            {
+                var history = await handle.FetchHistoryAsync();
+                if (history.Events.Any(
+                    e => e.EventType == EventType.WorkflowTaskFailed || e.EventType == EventType.WorkflowTaskTimedOut))
+                {
+                    return;
+                }
+            }
+
+            await Task.Delay(TimeSpan.FromMilliseconds(200));
+        }
+
+        throw new TimeoutException($"Expected a workflow task failure or timeout within {HistoryTimeout}");
     }
 
     [Workflow]

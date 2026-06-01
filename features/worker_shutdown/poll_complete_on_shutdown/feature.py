@@ -13,6 +13,7 @@ from harness.python.feature import Runner, register_feature
 
 WORKFLOW_COUNT = 5
 SHUTDOWN_TIMEOUT = 5
+HISTORY_TIMEOUT = 15
 
 
 @workflow.defn
@@ -54,6 +55,8 @@ async def start(runner: Runner):
                         EventType.EVENT_TYPE_WORKFLOW_TASK_FAILED,
                         EventType.EVENT_TYPE_WORKFLOW_TASK_TIMED_OUT,
                     )
+        else:
+            await assert_any_workflow_task_problem(handles)
     finally:
         for handle in handles:
             try:
@@ -80,10 +83,27 @@ def expect_worker_poll_complete_on_shutdown() -> bool:
     return capabilities["workerPollCompleteOnShutdown"]
 
 
+async def assert_any_workflow_task_problem(handles) -> None:
+    deadline = time.monotonic() + HISTORY_TIMEOUT
+    while time.monotonic() < deadline:
+        for handle in handles:
+            async for event in handle.fetch_history_events():
+                if event.event_type in (
+                    EventType.EVENT_TYPE_WORKFLOW_TASK_FAILED,
+                    EventType.EVENT_TYPE_WORKFLOW_TASK_TIMED_OUT,
+                ):
+                    return
+        await asyncio.sleep(0.2)
+    raise RuntimeError(
+        f"expected a workflow task failure or timeout within {HISTORY_TIMEOUT}s"
+    )
+
+
 register_feature(
     workflows=[Workflow],
     activities=[noop],
     start=start,
     check_result=check_result,
+    start_options={"task_timeout": timedelta(seconds=5)},
     worker_config=WorkerConfig(graceful_shutdown_timeout=timedelta(seconds=10)),
 )

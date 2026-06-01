@@ -1,9 +1,11 @@
 import * as assert from 'assert';
-import { Feature, waitForEvent } from '@temporalio/harness';
+import { Feature, Runner, waitForEvent } from '@temporalio/harness';
 import { proxyActivities, sleep } from '@temporalio/workflow';
+import type { WorkflowHandleWithFirstExecutionRunId } from '@temporalio/client';
 
 const WORKFLOW_COUNT = 5;
 const SHUTDOWN_TIMEOUT_MS = 5000;
+const HISTORY_TIMEOUT_MS = 15000;
 
 const activities = {
   async noop(): Promise<void> {},
@@ -26,6 +28,7 @@ export const feature = new Feature({
   workflow,
   activities,
   workerOptions: { shutdownGraceTime: '10s' },
+  workflowStartOptions: { workflowTaskTimeout: '5s' },
   alternateRun: async (runner) => {
     const handles = [];
     for (let i = 0; i < WORKFLOW_COUNT; i++) {
@@ -55,6 +58,8 @@ export const feature = new Feature({
           );
           assert.equal(problem, undefined, 'workflow task failed or timed out');
         }
+      } else {
+        await assertAnyWorkflowTaskProblem(runner, handles);
       }
     } finally {
       for (const handle of handles) {
@@ -77,4 +82,24 @@ function expectWorkerPollCompleteOnShutdown(): boolean {
     'FEATURE_NAMESPACE_CAPABILITIES missing workerPollCompleteOnShutdown',
   );
   return capabilities.workerPollCompleteOnShutdown;
+}
+
+async function assertAnyWorkflowTaskProblem(
+  runner: Runner<typeof workflow, typeof activities>,
+  handles: WorkflowHandleWithFirstExecutionRunId[],
+): Promise<void> {
+  const deadline = Date.now() + HISTORY_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    for (const handle of handles) {
+      const events = await runner.getHistoryEvents(handle);
+      const problem = events.find(
+        (event) => event.workflowTaskFailedEventAttributes || event.workflowTaskTimedOutEventAttributes,
+      );
+      if (problem !== undefined) {
+        return;
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
+  assert.fail(`expected a workflow task failure or timeout within ${HISTORY_TIMEOUT_MS}ms`);
 }

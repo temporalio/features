@@ -1,6 +1,7 @@
 package worker_shutdown.poll_complete_on_shutdown;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.gson.JsonParser;
 import io.temporal.activity.ActivityInterface;
@@ -33,6 +34,8 @@ public interface feature extends Feature {
   void noop();
 
   class Impl implements feature, PollCompleteWorkflow {
+    private static final Duration HISTORY_TIMEOUT = Duration.ofSeconds(15);
+
     @Override
     public Run execute(Runner runner) throws Exception {
       List<Run> runs = new ArrayList<>();
@@ -63,12 +66,17 @@ public interface feature extends Feature {
           for (Run run : runs) {
             assertNoWorkflowTaskProblems(runner, run);
           }
+        } else {
+          assertTrue(
+              waitForAnyWorkflowTaskProblem(runner, runs, HISTORY_TIMEOUT),
+              "expected a workflow task failure or timeout");
         }
         return null;
       } finally {
         for (Run run : runs) {
           try {
-            runner.client
+            runner
+                .client
                 .newUntypedWorkflowStub(run.execution, java.util.Optional.empty())
                 .terminate("feature cleanup");
           } catch (Exception ignored) {
@@ -106,6 +114,25 @@ public interface feature extends Feature {
                       event.getEventType() == EventType.EVENT_TYPE_WORKFLOW_TASK_FAILED
                           || event.getEventType() == EventType.EVENT_TYPE_WORKFLOW_TASK_TIMED_OUT),
           "workflow task failed or timed out");
+    }
+
+    private static boolean waitForAnyWorkflowTaskProblem(
+        Runner runner, List<Run> runs, Duration timeout) throws Exception {
+      var deadline = System.nanoTime() + timeout.toNanos();
+      while (System.nanoTime() < deadline) {
+        for (Run run : runs) {
+          var history = runner.getWorkflowHistory(run);
+          if (history.getEventsList().stream()
+              .anyMatch(
+                  event ->
+                      event.getEventType() == EventType.EVENT_TYPE_WORKFLOW_TASK_FAILED
+                          || event.getEventType() == EventType.EVENT_TYPE_WORKFLOW_TASK_TIMED_OUT)) {
+            return true;
+          }
+        }
+        Thread.sleep(200);
+      }
+      return false;
     }
 
     private static boolean expectWorkerPollCompleteOnShutdown() {

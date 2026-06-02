@@ -126,7 +126,8 @@ public interface feature extends Feature {
               .anyMatch(
                   event ->
                       event.getEventType() == EventType.EVENT_TYPE_WORKFLOW_TASK_FAILED
-                          || event.getEventType() == EventType.EVENT_TYPE_WORKFLOW_TASK_TIMED_OUT)) {
+                          || event.getEventType()
+                              == EventType.EVENT_TYPE_WORKFLOW_TASK_TIMED_OUT)) {
             return true;
           }
         }

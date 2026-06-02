@@ -13,7 +13,13 @@ import {
 } from '@temporalio/client';
 import * as proto from '@temporalio/proto';
 import { DataConverter, UntypedActivities, Workflow, WorkflowResultType } from '@temporalio/common';
-import { IllegalStateError, Worker, WorkerOptions, NativeConnection, NativeConnectionOptions } from '@temporalio/worker';
+import {
+  IllegalStateError,
+  Worker,
+  WorkerOptions,
+  NativeConnection,
+  NativeConnectionOptions,
+} from '@temporalio/worker';
 import { ConnectionInjectorInterceptor } from './activity-interceptors';
 import type { ReplaceNested } from './type-helpers';
 

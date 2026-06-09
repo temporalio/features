@@ -76,6 +76,7 @@ func (r *Runner) RunJavaExternal(ctx context.Context, run *cmd.Run) error {
 	// Run
 	cmd, err := r.program.NewCommand(ctx, args...)
 	if err == nil {
+		applyNamespaceCapabilitiesEnv(cmd, r.config.NamespaceCapabilitiesJSON)
 		r.log.Debug("Running Java separately", "Args", cmd.Args)
 		err = cmd.Run()
 	}

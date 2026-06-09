@@ -25,6 +25,7 @@ COPY features ./features
 COPY harness ./harness
 COPY sdkbuild ./sdkbuild
 COPY cmd ./cmd
+COPY dockerfiles/dynamicconfig ./dockerfiles/dynamicconfig
 COPY go.mod go.sum main.go ./
 
 # Build the CLI
@@ -49,6 +50,7 @@ RUN CGO_ENABLED=0 ./temporal-features prepare --lang rb --dir prepared --version
 FROM ruby:4.0-slim-bookworm
 
 COPY --from=build /app/temporal-features /app/temporal-features
+COPY --from=build /app/dockerfiles/dynamicconfig /app/dockerfiles/dynamicconfig
 COPY --from=build /app/features /app/features
 COPY --from=build /app/prepared /app/prepared
 COPY --from=build /app/harness/ruby /app/harness/ruby

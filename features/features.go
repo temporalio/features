@@ -33,6 +33,7 @@ import (
 	eager_activity_non_remote_activities_worker "github.com/temporalio/features/features/eager_activity/non_remote_activities_worker"
 	eager_workflow_successful_start "github.com/temporalio/features/features/eager_workflow/successful_start"
 	nexus_sync_success "github.com/temporalio/features/features/nexus/sync_success"
+	nexus_workflow_run_success "github.com/temporalio/features/features/nexus/workflow_run_success"
 	query_successful_query "github.com/temporalio/features/features/query/successful_query"
 	query_timeout_due_to_no_active_workers "github.com/temporalio/features/features/query/timeout_due_to_no_active_workers"
 	query_unexpected_arguments "github.com/temporalio/features/features/query/unexpected_arguments"
@@ -95,6 +96,7 @@ func init() {
 		eager_activity_non_remote_activities_worker.Feature,
 		eager_workflow_successful_start.Feature,
 		nexus_sync_success.Feature,
+		nexus_workflow_run_success.Feature,
 		query_successful_query.Feature,
 		query_timeout_due_to_no_active_workers.Feature,
 		query_unexpected_arguments.Feature,

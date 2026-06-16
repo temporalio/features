@@ -22,3 +22,9 @@ frontend.enableUpdateWorkflowExecutionAsyncAccepted:
 frontend.workerVersioningWorkflowAPIs:
   - value: true
     constraints: {}
+history.enableSignalWithStartFromWorkflow:
+  - value: true
+    constraints: {}
+history.enableChasm:
+  - value: true
+    constraints: {}

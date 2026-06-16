@@ -123,7 +123,7 @@ a specific run, use `--no-history-check`.
 Developers can write workflows and activities that represent a SDK "feature". These are organized into directories under
 the `features/` directory.
 
-In addition to code for the feature, there are configuration settings that can be set in `.config.json`. The possible
+In addition to code for the feature, there are configuration settings that can be set in `config.json`. The possible
 settings are:
 
 - `go`

@@ -99,7 +99,7 @@ func (r RunFeature) SummaryName() string {
 	return r.Dir + "#" + r.VariantName
 }
 
-// RunFeatureConfig is config from .config.json.
+// RunFeatureConfig is config from config.json.
 type RunFeatureConfig struct {
 	NoWorkflow               bool               `json:"noWorkflow"`
 	Go                       RunFeatureConfigGo `json:"go"`
@@ -331,10 +331,10 @@ func (r *Runner) runFeature(
 	return runner.Run(ctx)
 }
 
-// LoadFromDir loads the .config.json from the directory if present and
+// LoadFromDir loads the config.json from the directory if present and
 // unmarshals into the config.
 func (r *RunFeatureConfig) LoadFromDir(dir string) error {
-	b, err := os.ReadFile(filepath.Join(dir, ".config.json"))
+	b, err := os.ReadFile(filepath.Join(dir, "config.json"))
 	if err != nil {
 		// We're ok w/ it not existing
 		if os.IsNotExist(err) {

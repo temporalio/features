@@ -3,7 +3,7 @@
 This feature verifies worker shutdown behavior with
 `frontend.enableCancelWorkerPollsOnShutdown` enabled and disabled.
 
-The feature has two run variants in `.config.json`:
+The feature has two run variants in `config.json`:
 
 - `cancel-worker-polls-enabled` starts the embedded dev server with
   `frontend.enableCancelWorkerPollsOnShutdown=true`.

@@ -1,0 +1,22 @@
+{
+  "runVariants": [
+    {
+      "name": "cancel-worker-polls-enabled",
+      "dynamicConfig": {
+        "frontend.enableCancelWorkerPollsOnShutdown": true
+      },
+      "expectNamespaceCapabilities": {
+        "workerPollCompleteOnShutdown": true
+      }
+    },
+    {
+      "name": "cancel-worker-polls-disabled",
+      "dynamicConfig": {
+        "frontend.enableCancelWorkerPollsOnShutdown": false
+      },
+      "expectNamespaceCapabilities": {
+        "workerPollCompleteOnShutdown": false
+      }
+    }
+  ]
+}

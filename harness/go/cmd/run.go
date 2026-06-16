@@ -89,14 +89,37 @@ type RunFeature struct {
 	// and task queue. Set by the top-level runner for features under features/nexus.
 	NexusEndpoint string
 	Config        RunFeatureConfig
+	VariantName   string
 }
 
-// RunFeatureConfig is config from .config.json.
+func (r RunFeature) SummaryName() string {
+	if r.VariantName == "" {
+		return r.Dir
+	}
+	return r.Dir + "#" + r.VariantName
+}
+
+// RunFeatureConfig is config from config.json.
 type RunFeatureConfig struct {
 	NoWorkflow               bool               `json:"noWorkflow"`
 	Go                       RunFeatureConfigGo `json:"go"`
 	ExpectUnauthedProxyCount int                `json:"expectUnauthedProxyCount"`
 	ExpectAuthedProxyCount   int                `json:"expectAuthedProxyCount"`
+	RunVariants              []RunVariantConfig `json:"runVariants"`
+}
+
+// RunVariantConfig describes one named way to run a feature. Variants are
+// expanded by the top-level runner, not by language harnesses directly.
+type RunVariantConfig struct {
+	// Name is included in logs and summary output as feature/path#name.
+	Name string `json:"name"`
+	// DynamicConfig is merged over the default dynamic config when starting the
+	// embedded dev server for this variant.
+	DynamicConfig map[string]any `json:"dynamicConfig"`
+	// ExpectNamespaceCapabilities asserts namespace capability values after the
+	// variant's server has started and before the feature runs. Keys must match
+	// DescribeNamespace capability field names.
+	ExpectNamespaceCapabilities map[string]bool `json:"expectNamespaceCapabilities"`
 }
 
 // RunFeatureConfigGo is go-specific configuration in the JSON file.
@@ -229,7 +252,7 @@ func (r *Runner) Run(ctx context.Context, run *Run) error {
 				Outcome string `json:"outcome"`
 				Message string `json:"message"`
 			}{
-				Name:    runFeature.Dir,
+				Name:    runFeature.SummaryName(),
 				Outcome: FeaturePassed,
 			}
 			defer func() {
@@ -260,6 +283,10 @@ func (r *Runner) Run(ctx context.Context, run *Run) error {
 				HTTPProxyURL:   r.config.HTTPProxyURL,
 				TLSServerName:  r.config.TLSServerName,
 			}
+			if runFeature.VariantName != "" {
+				r.log.Info("Running feature variant", "Feature", feature.Dir, "Variant", runFeature.VariantName)
+			}
+
 			err := r.runFeature(ctx, runnerConfig, feature)
 
 			if skip, reason := harness.IsSkipError(err); skip {
@@ -304,10 +331,10 @@ func (r *Runner) runFeature(
 	return runner.Run(ctx)
 }
 
-// LoadFromDir loads the .config.json from the directory if present and
+// LoadFromDir loads the config.json from the directory if present and
 // unmarshals into the config.
 func (r *RunFeatureConfig) LoadFromDir(dir string) error {
-	b, err := os.ReadFile(filepath.Join(dir, ".config.json"))
+	b, err := os.ReadFile(filepath.Join(dir, "config.json"))
 	if err != nil {
 		// We're ok w/ it not existing
 		if os.IsNotExist(err) {
@@ -316,5 +343,22 @@ func (r *RunFeatureConfig) LoadFromDir(dir string) error {
 	} else {
 		err = json.Unmarshal(b, r)
 	}
-	return err
+	if err != nil {
+		return err
+	}
+	return r.Validate()
+}
+
+func (r *RunFeatureConfig) Validate() error {
+	seen := make(map[string]struct{}, len(r.RunVariants))
+	for _, variant := range r.RunVariants {
+		if variant.Name == "" {
+			return fmt.Errorf("runVariants entries must have a non-empty name")
+		}
+		if _, ok := seen[variant.Name]; ok {
+			return fmt.Errorf("duplicate run variant name %q", variant.Name)
+		}
+		seen[variant.Name] = struct{}{}
+	}
+	return nil
 }

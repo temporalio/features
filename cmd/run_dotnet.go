@@ -58,6 +58,7 @@ func (r *Runner) RunDotNetExternal(ctx context.Context, run *cmd.Run) error {
 	args = append(args, run.ToArgs()...)
 	cmd, err := r.program.NewCommand(ctx, args...)
 	if err == nil {
+		applyNamespaceCapabilitiesEnv(cmd, r.config.NamespaceCapabilitiesJSON)
 		r.log.Debug("Running Go separately", "Args", cmd.Args)
 		err = cmd.Run()
 	}

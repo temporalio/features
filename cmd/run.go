@@ -12,6 +12,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 	"syscall"
 	"time"
@@ -23,12 +24,15 @@ import (
 	"github.com/temporalio/features/harness/go/history"
 	"github.com/temporalio/features/sdkbuild"
 	"github.com/urfave/cli/v2"
+	namespacepb "go.temporal.io/api/namespace/v1"
 	nexuspb "go.temporal.io/api/nexus/v1"
 	"go.temporal.io/api/operatorservice/v1"
 	"go.temporal.io/api/serviceerror"
+	"go.temporal.io/api/workflowservice/v1"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/log"
 	"go.temporal.io/sdk/testsuite"
+	"google.golang.org/protobuf/reflect/protoreflect"
 	"gopkg.in/yaml.v3"
 )
 
@@ -36,8 +40,9 @@ import (
 const nexusFeatureDirPrefix = "nexus/"
 
 const (
-	summaryListenAddr = "127.0.0.1:0"
-	FeaturePassed     = "PASSED"
+	summaryListenAddr               = "127.0.0.1:0"
+	FeaturePassed                   = "PASSED"
+	featureNamespaceCapabilitiesEnv = "FEATURE_NAMESPACE_CAPABILITIES"
 )
 
 func runCmd() *cli.Command {
@@ -63,17 +68,18 @@ type Summary []SummaryEntry
 // RunConfig is configuration for NewRunner.
 type RunConfig struct {
 	PrepareConfig
-	Server              string
-	Namespace           string
-	ClientCertPath      string
-	ClientKeyPath       string
-	CACertPath          string
-	TLSServerName       string
-	GenerateHistory     bool
-	DisableHistoryCheck bool
-	RetainTempDir       bool
-	SummaryURI          string
-	HTTPProxyURL        string
+	Server                    string
+	Namespace                 string
+	ClientCertPath            string
+	ClientKeyPath             string
+	CACertPath                string
+	TLSServerName             string
+	GenerateHistory           bool
+	DisableHistoryCheck       bool
+	RetainTempDir             bool
+	SummaryURI                string
+	HTTPProxyURL              string
+	NamespaceCapabilitiesJSON string
 }
 
 // dockerRunFlags are a subset of flags that apply when running in a docker container
@@ -154,6 +160,15 @@ type Runner struct {
 	program    sdkbuild.Program
 }
 
+type runBatch struct {
+	Run              *cmd.Run
+	VariantName      string
+	DynamicConfig    map[string]any
+	Capabilities     map[string]bool
+	CapabilitiesJSON string
+	ExpectsProxy     bool
+}
+
 // NewRunner creates a new runner for the given config.
 func NewRunner(config RunConfig) *Runner {
 	return &Runner{
@@ -163,6 +178,151 @@ func NewRunner(config RunConfig) *Runner {
 		rootDir:    rootDir(),
 		createTime: time.Now(),
 	}
+}
+
+func (r *Runner) makeRunBatches(features []*RunFeature) []runBatch {
+	defaultBatch := runBatch{Run: &cmd.Run{}}
+	var batches []runBatch
+	for _, feature := range features {
+		if len(feature.Config.RunVariants) == 0 {
+			defaultBatch.Run.Features = append(defaultBatch.Run.Features, cmd.RunFeature{
+				Dir:       feature.Dir,
+				TaskQueue: r.taskQueueForFeature(feature.Dir, ""),
+				Config:    feature.Config,
+			})
+			if feature.Config.ExpectUnauthedProxyCount > 0 || feature.Config.ExpectAuthedProxyCount > 0 {
+				defaultBatch.ExpectsProxy = true
+			}
+			continue
+		}
+		for _, variant := range feature.Config.RunVariants {
+			runFeature := cmd.RunFeature{
+				Dir:         feature.Dir,
+				TaskQueue:   r.taskQueueForFeature(feature.Dir, variant.Name),
+				Config:      feature.Config,
+				VariantName: variant.Name,
+			}
+			batches = append(batches, runBatch{
+				Run: &cmd.Run{Features: []cmd.RunFeature{
+					runFeature,
+				}},
+				VariantName:      variant.Name,
+				DynamicConfig:    variant.DynamicConfig,
+				Capabilities:     variant.ExpectNamespaceCapabilities,
+				CapabilitiesJSON: namespaceCapabilitiesEnv(variant.ExpectNamespaceCapabilities),
+				ExpectsProxy:     feature.Config.ExpectUnauthedProxyCount > 0 || feature.Config.ExpectAuthedProxyCount > 0,
+			})
+		}
+	}
+	if len(defaultBatch.Run.Features) > 0 {
+		batches = append([]runBatch{defaultBatch}, batches...)
+	}
+	return batches
+}
+
+func (r *Runner) taskQueueForFeature(dir string, variant string) string {
+	if variant == "" {
+		return fmt.Sprintf("features-%v-%v", dir, uuid.NewString())
+	}
+	return fmt.Sprintf("features-%v-%v-%v", dir, variant, uuid.NewString())
+}
+
+type dynamicConfigValue struct {
+	Constraints map[string]any
+	Value       any
+}
+
+func (r *Runner) dynamicConfigArgs(overrides map[string]any) ([]string, error) {
+	cfgPath := filepath.Join(r.rootDir, "dockerfiles", "dynamicconfig", "docker.yaml")
+	yamlBytes, err := os.ReadFile(cfgPath)
+	if err != nil {
+		if !errors.Is(err, os.ErrNotExist) {
+			return nil, fmt.Errorf("unable to read dynamic config: %w", err)
+		}
+	}
+	var yamlValues map[string][]dynamicConfigValue
+	if len(yamlBytes) > 0 {
+		if err = yaml.Unmarshal(yamlBytes, &yamlValues); err != nil {
+			return nil, fmt.Errorf("unable to decode dynamic config: %w", err)
+		}
+	}
+	if yamlValues == nil {
+		yamlValues = map[string][]dynamicConfigValue{}
+	}
+	for key, value := range overrides {
+		yamlValues[key] = []dynamicConfigValue{{Constraints: map[string]any{}, Value: value}}
+	}
+
+	keys := make([]string, 0, len(yamlValues))
+	for key := range yamlValues {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	dynamicConfigArgs := make([]string, 0, len(yamlValues)*2)
+	for _, key := range keys {
+		for _, value := range yamlValues[key] {
+			asJsonStr, err := json.Marshal(value.Value)
+			if err != nil {
+				return nil, fmt.Errorf("unable to marshal dynamic config value %s: %w", key, err)
+			}
+			dynamicConfigArgs = append(dynamicConfigArgs, "--dynamic-config-value", fmt.Sprintf("%s=%s", key, asJsonStr))
+		}
+	}
+	return dynamicConfigArgs, nil
+}
+
+func (r *Runner) assertNamespaceCapabilities(ctx context.Context, config RunConfig, expected map[string]bool) error {
+	if len(expected) == 0 {
+		return nil
+	}
+	tlsConfig, err := harness.LoadTLSConfig(
+		config.ClientCertPath,
+		config.ClientKeyPath,
+		config.CACertPath,
+		config.TLSServerName,
+	)
+	if err != nil {
+		return err
+	}
+	c, err := client.Dial(client.Options{
+		HostPort:  config.Server,
+		Namespace: config.Namespace,
+		ConnectionOptions: client.ConnectionOptions{
+			TLS: tlsConfig,
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("failed creating capability check client: %w", err)
+	}
+	defer c.Close()
+
+	resp, err := c.WorkflowService().DescribeNamespace(ctx, &workflowservice.DescribeNamespaceRequest{
+		Namespace: config.Namespace,
+	})
+	if err != nil {
+		return fmt.Errorf("failed describing namespace for capability check: %w", err)
+	}
+	capabilities := resp.GetNamespaceInfo().GetCapabilities()
+	if capabilities == nil {
+		capabilities = &namespacepb.NamespaceInfo_Capabilities{}
+	}
+	fields := capabilities.ProtoReflect().Descriptor().Fields()
+	for name, expectedValue := range expected {
+		field := fields.ByJSONName(name)
+		if field == nil {
+			return fmt.Errorf("unknown namespace capability %q", name)
+		}
+		if field.Kind() != protoreflect.BoolKind {
+			return fmt.Errorf("namespace capability %q is %s, expected bool", name, field.Kind())
+		}
+		actualValue := capabilities.ProtoReflect().Get(field).Bool()
+		if actualValue != expectedValue {
+			return fmt.Errorf("namespace capability %q = %t, expected %t", name, actualValue, expectedValue)
+		}
+	}
+	r.log.Info("Namespace capabilities matched", "Namespace", config.Namespace, "Capabilities", expected)
+	return nil
 }
 
 // Run runs all matching features for the given patterns (or all if no patterns
@@ -190,11 +350,6 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 		}
 	}
 
-	// If the namespace is not set, set it ourselves
-	if r.config.Namespace == "" {
-		r.config.Namespace = "features-ns-" + uuid.NewString()
-	}
-
 	// Collect features to run
 	features, err := r.GlobFeatures(patterns)
 	if err != nil {
@@ -204,86 +359,16 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 	} else if len(features) > 1 && r.config.GenerateHistory {
 		return fmt.Errorf("can only specify a single feature when generating history")
 	}
-	// Aa task queue to every feature
-	run := &cmd.Run{Features: make([]cmd.RunFeature, len(features))}
-	var expectsProxy bool
-	for i, feature := range features {
-		run.Features[i].Dir = feature.Dir
-		run.Features[i].TaskQueue = fmt.Sprintf("features-%v-%v", feature.Dir, uuid.NewString())
-		run.Features[i].Config = feature.Config
-		if feature.Config.ExpectUnauthedProxyCount > 0 || feature.Config.ExpectAuthedProxyCount > 0 {
-			expectsProxy = true
-		}
-	}
-
-	// If the server is not set, start it ourselves
-	if r.config.Server == "" {
-		// Load up dynamic config values.
-		// Probably the CLI could support passing a dynamic config file as well, but it also likes to set some default
-		// values for certain things, so it's easier to just load the file here and pass those values explicitly.
-		cfgPath := filepath.Join(r.rootDir, "dockerfiles", "dynamicconfig", "docker.yaml")
-		yamlBytes, err := os.ReadFile(cfgPath)
-		var yamlValues map[string][]struct {
-			Constraints map[string]any
-			Value       any
-		}
-		if err = yaml.Unmarshal(yamlBytes, &yamlValues); err != nil {
-			return fmt.Errorf("unable to decode dynamic config: %w", err)
-		}
-		dynamicConfigArgs := make([]string, 0, len(yamlValues))
-		for key, values := range yamlValues {
-			for _, value := range values {
-				asJsonStr, err := json.Marshal(value.Value)
-				if err != nil {
-					return fmt.Errorf("unable to marshal dynamic config value %s: %w", key, err)
-				}
-				dynamicConfigArgs = append(dynamicConfigArgs, "--dynamic-config-value", fmt.Sprintf("%s=%s", key, asJsonStr))
+	if r.config.GenerateHistory {
+		for _, feature := range features {
+			if len(feature.Config.RunVariants) > 0 {
+				return fmt.Errorf("cannot generate history for feature %q because it defines runVariants", feature.Dir)
 			}
 		}
-
-		server, err := testsuite.StartDevServer(ctx, testsuite.DevServerOptions{
-			LogLevel:      "error",
-			ClientOptions: &client.Options{Namespace: r.config.Namespace},
-			ExtraArgs:     dynamicConfigArgs,
-		})
-		if err != nil {
-			return fmt.Errorf("failed starting devserver: %w", err)
-		}
-		defer server.Stop()
-		r.config.Server = server.FrontendHostPort()
-		r.log.Info("Started server", "HostPort", r.config.Server)
-	} else {
-		// Wait for namespace to become available
-		err := harness.WaitNamespaceAvailable(ctx, r.log,
-			r.config.Server, r.config.Namespace, r.config.ClientCertPath, r.config.ClientKeyPath, r.config.CACertPath, r.config.TLSServerName)
-		if err != nil {
-			return err
-		}
 	}
-
-	// If any feature requires an HTTP proxy, we must run it
-	var proxyServer *harness.HTTPConnectProxyServer
-	if expectsProxy {
-		proxyServer, err = harness.StartHTTPConnectProxyServer(harness.HTTPConnectProxyServerOptions{Log: r.log})
-		if err != nil {
-			return fmt.Errorf("could not start proxy server: %w", err)
-		}
-		r.config.HTTPProxyURL = "http://" + proxyServer.Address
-		r.log.Info("Started HTTP CONNECT proxy server", "address", proxyServer.Address)
-		defer proxyServer.Close()
-	}
-
-	// Create a Nexus endpoint per feature under features/nexus/ targeting that feature's task
-	// queue. Endpoint names are passed to the lang harness through RunFeature.NexusEndpoint and
-	// the endpoints are deleted once the lang harness completes.
-	deleteEndpoints, err := r.createNexusEndpoints(ctx, run)
-	if err != nil {
-		return err
-	}
-	defer deleteEndpoints()
-	if len(run.Features) == 0 {
-		r.log.Info("No features left to run after Nexus skip; treating run as successful")
-		return nil
+	features = r.filterFeaturesForExternalServer(features, patterns)
+	if len(features) == 0 {
+		return fmt.Errorf("no features matched")
 	}
 
 	// Ensure any created temp dir is cleaned on ctrl-c or normal exit
@@ -298,6 +383,105 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 		defer r.destroyTempDir()
 	}
 
+	batches := r.makeRunBatches(features)
+	for i, batch := range batches {
+		if i > 0 {
+			fmt.Println()
+		}
+		if err := r.runBatch(ctx, batch); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// filterFeaturesForExternalServer removes implicit runVariants when running
+// against an external server. Variants require per-run dynamic config changes,
+// but external servers are already configured outside this runner.
+func (r *Runner) filterFeaturesForExternalServer(features []*RunFeature, patterns []string) []*RunFeature {
+	if r.config.Server == "" || len(patterns) > 0 {
+		return features
+	}
+	filtered := features[:0]
+	for _, feature := range features {
+		if len(feature.Config.RunVariants) > 0 {
+			r.log.Info("Skipping feature with runVariants for external server run", "Feature", feature.Dir)
+			continue
+		}
+		filtered = append(filtered, feature)
+	}
+	return filtered
+}
+
+func (r *Runner) runBatch(ctx context.Context, batch runBatch) error {
+	config := r.config
+	config.NamespaceCapabilitiesJSON = batch.CapabilitiesJSON
+	if config.Namespace == "" {
+		config.Namespace = "features-ns-" + uuid.NewString()
+	}
+	label := "default"
+	if batch.VariantName != "" {
+		label = batch.VariantName
+	}
+
+	fmt.Printf("Running feature batch variant=%s features=%s dynamicConfigOverrides=%s\n",
+		label, strings.Join(featureSummaryNames(batch.Run.Features), ","), formatMap(batch.DynamicConfig))
+
+	if config.Server == "" {
+		dynamicConfigArgs, err := r.dynamicConfigArgs(batch.DynamicConfig)
+		if err != nil {
+			return err
+		}
+		server, err := testsuite.StartDevServer(ctx, testsuite.DevServerOptions{
+			LogLevel:      "error",
+			ClientOptions: &client.Options{Namespace: config.Namespace},
+			ExtraArgs:     dynamicConfigArgs,
+		})
+		if err != nil {
+			return fmt.Errorf("failed starting devserver: %w", err)
+		}
+		defer server.Stop()
+		config.Server = server.FrontendHostPort()
+		r.log.Info("Started server", "HostPort", config.Server, "Variant", label, "DynamicConfigOverrides", batch.DynamicConfig)
+	} else {
+		if batch.VariantName != "" {
+			return fmt.Errorf("feature run variant %q requires the embedded dev server, but --server was provided", label)
+		}
+		err := harness.WaitNamespaceAvailable(ctx, r.log,
+			config.Server, config.Namespace, config.ClientCertPath, config.ClientKeyPath, config.CACertPath, config.TLSServerName)
+		if err != nil {
+			return err
+		}
+	}
+	if err := r.assertNamespaceCapabilities(ctx, config, batch.Capabilities); err != nil {
+		return err
+	}
+
+	// Create a Nexus endpoint per feature under features/nexus/ targeting that feature's task
+	// queue. Endpoint names are passed to the lang harness through RunFeature.NexusEndpoint and
+	// the endpoints are deleted once the lang harness completes.
+	deleteEndpoints, err := r.createNexusEndpoints(ctx, config, batch.Run)
+	if err != nil {
+		return err
+	}
+	defer deleteEndpoints()
+	if len(batch.Run.Features) == 0 {
+		r.log.Info("No features left to run after Nexus skip; treating batch as successful")
+		return nil
+	}
+
+	var proxyServer *harness.HTTPConnectProxyServer
+	if batch.ExpectsProxy {
+		var err error
+		proxyServer, err = harness.StartHTTPConnectProxyServer(harness.HTTPConnectProxyServerOptions{Log: r.log})
+		if err != nil {
+			return fmt.Errorf("could not start proxy server: %w", err)
+		}
+		config.HTTPProxyURL = "http://" + proxyServer.Address
+		r.log.Info("Started HTTP CONNECT proxy server", "address", proxyServer.Address)
+		defer proxyServer.Close()
+	}
+
 	l, err := net.Listen("tcp", summaryListenAddr)
 	if err != nil {
 		return err
@@ -305,78 +489,91 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 	defer l.Close()
 	summaryChan := make(chan Summary)
 	go r.summaryServer(l, summaryChan)
-	r.config.SummaryURI = "tcp://" + l.Addr().String()
+	config.SummaryURI = "tcp://" + l.Addr().String()
+
+	r.log.Info("Running feature batch", "Variant", label, "Features", featureSummaryNames(batch.Run.Features))
+
+	origConfig := r.config
+	r.config = config
+	// Local Go runs execute in-process, so they read namespace capabilities
+	// from this process env. External SDK runs receive the same value through
+	// applyNamespaceCapabilitiesEnv on their subprocess command.
+	restoreEnv := setNamespaceCapabilitiesEnv(config.NamespaceCapabilitiesJSON)
+	defer func() {
+		restoreEnv()
+		r.config = origConfig
+	}()
 
 	err = nil
-	switch r.config.Lang {
+	switch config.Lang {
 	case "go":
 		// If there's a version or prepared dir we run external, otherwise we run local
-		if r.config.Version != "" || r.config.DirName != "" {
-			if r.config.DirName != "" {
-				r.program, err = sdkbuild.GoProgramFromDir(filepath.Join(r.rootDir, r.config.DirName))
+		if config.Version != "" || config.DirName != "" {
+			if config.DirName != "" {
+				r.program, err = sdkbuild.GoProgramFromDir(filepath.Join(r.rootDir, config.DirName))
 			}
 			if err == nil {
-				err = r.RunGoExternal(ctx, run)
+				err = r.RunGoExternal(ctx, batch.Run)
 			}
 		} else {
 			err = cmd.NewRunner(cmd.RunConfig{
-				Server:         r.config.Server,
-				Namespace:      r.config.Namespace,
-				ClientCertPath: r.config.ClientCertPath,
-				ClientKeyPath:  r.config.ClientKeyPath,
-				CACertPath:     r.config.CACertPath,
-				TLSServerName:  r.config.TLSServerName,
-				SummaryURI:     r.config.SummaryURI,
-				HTTPProxyURL:   r.config.HTTPProxyURL,
-			}).Run(ctx, run)
+				Server:         config.Server,
+				Namespace:      config.Namespace,
+				ClientCertPath: config.ClientCertPath,
+				ClientKeyPath:  config.ClientKeyPath,
+				CACertPath:     config.CACertPath,
+				TLSServerName:  config.TLSServerName,
+				SummaryURI:     config.SummaryURI,
+				HTTPProxyURL:   config.HTTPProxyURL,
+			}).Run(ctx, batch.Run)
 		}
 	case "java":
-		if r.config.DirName != "" {
-			r.program, err = sdkbuild.JavaProgramFromDir(filepath.Join(r.rootDir, r.config.DirName))
+		if config.DirName != "" {
+			r.program, err = sdkbuild.JavaProgramFromDir(filepath.Join(r.rootDir, config.DirName))
 		}
 		if err == nil {
-			err = r.RunJavaExternal(ctx, run)
+			err = r.RunJavaExternal(ctx, batch.Run)
 		}
 	case "ts":
-		if r.config.DirName != "" {
-			r.program, err = sdkbuild.TypeScriptProgramFromDir(filepath.Join(r.rootDir, r.config.DirName))
+		if config.DirName != "" {
+			r.program, err = sdkbuild.TypeScriptProgramFromDir(filepath.Join(r.rootDir, config.DirName))
 		}
 		if err == nil {
-			err = r.RunTypeScriptExternal(ctx, run)
+			err = r.RunTypeScriptExternal(ctx, batch.Run)
 		}
 	case "php":
-		if r.config.DirName != "" {
+		if config.DirName != "" {
 			r.program, err = sdkbuild.PhpProgramFromDir(
-				filepath.Join(r.rootDir, r.config.DirName),
+				filepath.Join(r.rootDir, config.DirName),
 				r.rootDir,
 			)
 		}
 		if err == nil {
-			err = r.RunPhpExternal(ctx, run)
+			err = r.RunPhpExternal(ctx, batch.Run)
 		}
 	case "py":
-		if r.config.DirName != "" {
-			r.program, err = sdkbuild.PythonProgramFromDir(filepath.Join(r.rootDir, r.config.DirName))
+		if config.DirName != "" {
+			r.program, err = sdkbuild.PythonProgramFromDir(filepath.Join(r.rootDir, config.DirName))
 		}
 		if err == nil {
-			err = r.RunPythonExternal(ctx, run)
+			err = r.RunPythonExternal(ctx, batch.Run)
 		}
 	case "cs":
-		if r.config.DirName != "" {
-			r.program, err = sdkbuild.DotNetProgramFromDir(filepath.Join(r.rootDir, r.config.DirName))
+		if config.DirName != "" {
+			r.program, err = sdkbuild.DotNetProgramFromDir(filepath.Join(r.rootDir, config.DirName))
 		}
 		if err == nil {
-			err = r.RunDotNetExternal(ctx, run)
+			err = r.RunDotNetExternal(ctx, batch.Run)
 		}
 	case "rb":
-		if r.config.DirName != "" {
+		if config.DirName != "" {
 			r.program, err = sdkbuild.RubyProgramFromDir(
-				filepath.Join(r.rootDir, r.config.DirName),
+				filepath.Join(r.rootDir, config.DirName),
 				filepath.Join(r.rootDir, "harness", "ruby"),
 			)
 		}
 		if err == nil {
-			err = r.RunRubyExternal(ctx, run)
+			err = r.RunRubyExternal(ctx, batch.Run)
 		}
 	default:
 		err = fmt.Errorf("unrecognized language")
@@ -388,10 +585,13 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 	summary, ok := <-summaryChan
 	if !ok {
 		r.log.Debug("did not receive a test run summary - adopting legacy behavior of assuming no tests were skipped")
-		for _, feature := range run.Features {
-			summary = append(summary, SummaryEntry{Name: feature.Dir, Outcome: FeaturePassed})
+		for _, feature := range batch.Run.Features {
+			summary = append(summary, SummaryEntry{Name: feature.SummaryName(), Outcome: FeaturePassed})
 		}
+	} else if batch.VariantName != "" {
+		summary = rewriteVariantSummary(summary, batch.Run.Features)
 	}
+	r.logFeatureSummary(label, summary)
 
 	// For features that expected proxy connections, count how many expected
 	// ignoring skips and compare count with actual. If any failed we don't need
@@ -404,8 +604,8 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 				anyFailed = true
 				break
 			} else if summ.Outcome == "PASSED" {
-				for _, feature := range features {
-					if feature.Dir == summ.Name {
+				for _, feature := range batch.Run.Features {
+					if feature.SummaryName() == summ.Name {
 						expectUnauthedProxyCount += feature.Config.ExpectUnauthedProxyCount
 						expectAuthedProxyCount += feature.Config.ExpectAuthedProxyCount
 						break
@@ -428,7 +628,53 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 		}
 	}
 
-	return r.handleHistory(ctx, run, summary)
+	return r.handleHistory(ctx, batch.Run, summary)
+}
+
+func featureSummaryNames(features []cmd.RunFeature) []string {
+	names := make([]string, 0, len(features))
+	for _, feature := range features {
+		names = append(names, feature.SummaryName())
+	}
+	return names
+}
+
+func (r *Runner) logFeatureSummary(variant string, summary Summary) {
+	for _, entry := range summary {
+		if entry.Message == "" {
+			fmt.Printf("Feature result variant=%s feature=%s outcome=%s\n", variant, entry.Name, entry.Outcome)
+		} else {
+			fmt.Printf("Feature result variant=%s feature=%s outcome=%s message=%q\n", variant, entry.Name, entry.Outcome, entry.Message)
+		}
+		if entry.Message == "" {
+			r.log.Info("Feature result", "Variant", variant, "Feature", entry.Name, "Outcome", entry.Outcome)
+		} else {
+			r.log.Info("Feature result", "Variant", variant, "Feature", entry.Name, "Outcome", entry.Outcome, "Message", entry.Message)
+		}
+	}
+}
+
+func formatMap(values map[string]any) string {
+	if len(values) == 0 {
+		return "{}"
+	}
+	bytes, err := json.Marshal(values)
+	if err != nil {
+		return fmt.Sprint(values)
+	}
+	return string(bytes)
+}
+
+func rewriteVariantSummary(summary Summary, features []cmd.RunFeature) Summary {
+	for i, entry := range summary {
+		for _, feature := range features {
+			if entry.Name == feature.Dir {
+				summary[i].Name = feature.SummaryName()
+				break
+			}
+		}
+	}
+	return summary
 }
 
 func (r *Runner) handleHistory(ctx context.Context, run *cmd.Run, summary Summary) error {
@@ -440,9 +686,9 @@ func (r *Runner) handleHistory(ctx context.Context, run *cmd.Run, summary Summar
 		if feature.Config.NoWorkflow {
 			continue
 		}
-		entry, ok := summary.Find(feature.Dir)
+		entry, ok := summary.Find(feature.SummaryName())
 		if !ok {
-			r.log.Info("skipping history check because feature not listed in execution summary", "feature", feature.Dir)
+			r.log.Info("skipping history check because feature not listed in execution summary", "feature", feature.SummaryName())
 			continue
 		}
 		if entry.Outcome == "SKIPPED" {
@@ -610,7 +856,7 @@ func rootDir() string {
 // createNexusEndpoints creates a Nexus endpoint per RunFeature whose Dir is under
 // features/nexus, populating RunFeature.NexusEndpoint. It returns a cleanup function that
 // deletes the created endpoints. The cleanup function is always safe to call.
-func (r *Runner) createNexusEndpoints(ctx context.Context, run *cmd.Run) (func(), error) {
+func (r *Runner) createNexusEndpoints(ctx context.Context, config RunConfig, run *cmd.Run) (func(), error) {
 	noop := func() {}
 	var nexusFeatures []*cmd.RunFeature
 	for i := range run.Features {
@@ -622,8 +868,8 @@ func (r *Runner) createNexusEndpoints(ctx context.Context, run *cmd.Run) (func()
 		return noop, nil
 	}
 
-	opts := client.Options{HostPort: r.config.Server, Namespace: r.config.Namespace, Logger: r.log}
-	tlsCfg, err := harness.LoadTLSConfig(r.config.ClientCertPath, r.config.ClientKeyPath, r.config.CACertPath, r.config.TLSServerName)
+	opts := client.Options{HostPort: config.Server, Namespace: config.Namespace, Logger: r.log}
+	tlsCfg, err := harness.LoadTLSConfig(config.ClientCertPath, config.ClientKeyPath, config.CACertPath, config.TLSServerName)
 	if err != nil {
 		return noop, fmt.Errorf("failed to load TLS config: %w", err)
 	}
@@ -666,7 +912,7 @@ func (r *Runner) createNexusEndpoints(ctx context.Context, run *cmd.Run) (func()
 				Target: &nexuspb.EndpointTarget{
 					Variant: &nexuspb.EndpointTarget_Worker_{
 						Worker: &nexuspb.EndpointTarget_Worker{
-							Namespace: r.config.Namespace,
+							Namespace: config.Namespace,
 							TaskQueue: feature.TaskQueue,
 						},
 					},

@@ -436,6 +436,13 @@ func (r *Runner) runBatch(ctx context.Context, batch runBatch) error {
 			LogLevel:      "error",
 			ClientOptions: &client.Options{Namespace: config.Namespace},
 			ExtraArgs:     dynamicConfigArgs,
+			// Pin a CLI build that registers the __temporal_system Nexus
+			// WorkflowService, required by the signalwithstart features (signal
+			// with start from a workflow). The default SDK-bundled dev server is
+			// too old. Remove this once the capability ships in a stock release.
+			CachedDownload: testsuite.CachedDownload{
+				Version: "v1.7.1-system-nexus-operations",
+			},
 		})
 		if err != nil {
 			return fmt.Errorf("failed starting devserver: %w", err)

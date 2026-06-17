@@ -50,7 +50,7 @@ class CallerWorkflow:
             signal_args=SIGNAL_VALUE,
             id_reuse_policy=WorkflowIDReusePolicy.ALLOW_DUPLICATE,
         )
-        return SwsResult(workflow_id=handle.id, run_id=handle.run_id)
+        return SwsResult(workflow_id=handle.id, run_id=handle.run_id or "")
 
 
 async def start(runner: Runner) -> WorkflowHandle:

@@ -64,7 +64,7 @@ class CallerWorkflow:
                 signal_args=SIGNAL_VALUE,
                 id_reuse_policy=WorkflowIDReusePolicy.REJECT_DUPLICATE,
             )
-            return SwsResult(workflow_id=handle.id, run_id=handle.run_id)
+            return SwsResult(workflow_id=handle.id, run_id=handle.run_id or "")
         except Exception as err:
             return SwsResult(workflow_id=target_id, run_id="", error=_error_chain(err))
 

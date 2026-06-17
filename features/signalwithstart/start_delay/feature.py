@@ -46,7 +46,7 @@ class CallerWorkflow:
             signal_args=SIGNAL_VALUE,
             start_delay=START_DELAY,
         )
-        return SwsResult(workflow_id=handle.id, run_id=handle.run_id)
+        return SwsResult(workflow_id=handle.id, run_id=handle.run_id or "")
 
 
 async def start(runner: Runner) -> WorkflowHandle:

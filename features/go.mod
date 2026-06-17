@@ -14,7 +14,7 @@ require (
 	github.com/uber-go/tally/v4 v4.1.1
 	github.com/urfave/cli/v2 v2.3.0
 	go.temporal.io/api v1.62.12
-	go.temporal.io/sdk v1.44.0
+	go.temporal.io/sdk v1.45.0
 	go.temporal.io/sdk/contrib/aws/s3driver v0.1.1
 	go.temporal.io/sdk/contrib/aws/s3driver/awssdkv2 v0.1.1
 	go.temporal.io/sdk/contrib/sysinfo v0.1.0

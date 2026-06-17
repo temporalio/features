@@ -47,7 +47,7 @@ class CallerWorkflow:
             signal_args=SIGNAL_VALUE,
             id_conflict_policy=WorkflowIDConflictPolicy.FAIL,
         )
-        return handle.run_id
+        return handle.run_id or ""
 
 
 async def start(runner: Runner) -> WorkflowHandle:

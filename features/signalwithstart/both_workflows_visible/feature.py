@@ -49,7 +49,7 @@ class CallerWorkflow:
             signal_args=SIGNAL_VALUE,
             memo={MEMO_KEY: MEMO_VALUE},
         )
-        return SwsResult(workflow_id=handle.id, run_id=handle.run_id)
+        return SwsResult(workflow_id=handle.id, run_id=handle.run_id or "")
 
 
 async def start(runner: Runner) -> WorkflowHandle:

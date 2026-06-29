@@ -66,13 +66,11 @@ async def check_result(runner: Runner, handle: WorkflowHandle) -> None:
 
     # After the start delay elapses the target begins, receives the buffered
     # signal, and completes returning the signal value.
-    target = runner.client.get_workflow_handle(
-        result.workflow_id, run_id=result.run_id
-    )
+    target = runner.client.get_workflow_handle(result.workflow_id, run_id=result.run_id)
     target_result = await target.result()
-    assert (
-        target_result == SIGNAL_VALUE
-    ), f"expected target to return {SIGNAL_VALUE!r}, got {target_result!r}"
+    assert target_result == SIGNAL_VALUE, (
+        f"expected target to return {SIGNAL_VALUE!r}, got {target_result!r}"
+    )
 
 
 register_feature(

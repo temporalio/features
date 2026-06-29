@@ -69,18 +69,18 @@ async def check_result(runner: Runner, handle: WorkflowHandle) -> None:
     assert result.run_id, "expected a non-empty target run id"
 
     # Target completes after receiving the signal and returns the signal value.
-    target = runner.client.get_workflow_handle(
-        result.workflow_id, run_id=result.run_id
-    )
+    target = runner.client.get_workflow_handle(result.workflow_id, run_id=result.run_id)
     target_result = await target.result()
-    assert (
-        target_result == SIGNAL_VALUE
-    ), f"expected target to return {SIGNAL_VALUE!r}, got {target_result!r}"
+    assert target_result == SIGNAL_VALUE, (
+        f"expected target to return {SIGNAL_VALUE!r}, got {target_result!r}"
+    )
 
     # The memo passed in the signal-with-start request is visible on the target.
     desc = await target.describe()
     memo = await desc.memo()
-    assert memo.get(MEMO_KEY) == MEMO_VALUE, f"expected memo {MEMO_KEY}={MEMO_VALUE}, got {memo}"
+    assert memo.get(MEMO_KEY) == MEMO_VALUE, (
+        f"expected memo {MEMO_KEY}={MEMO_VALUE}, got {memo}"
+    )
 
 
 register_feature(

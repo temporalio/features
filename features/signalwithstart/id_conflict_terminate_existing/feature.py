@@ -76,18 +76,18 @@ async def start(runner: Runner) -> WorkflowHandle:
 async def check_result(runner: Runner, handle: WorkflowHandle) -> None:
     result: SwsResult = await handle.result()
     assert result.run_id, "expected a non-empty run id"
-    assert (
-        result.run_id != _setup["original_run_id"]
-    ), "expected a new run id with TERMINATE_EXISTING"
+    assert result.run_id != _setup["original_run_id"], (
+        "expected a new run id with TERMINATE_EXISTING"
+    )
 
     # The original run must have been terminated.
     original = runner.client.get_workflow_handle(
         result.workflow_id, run_id=_setup["original_run_id"]
     )
     desc = await original.describe()
-    assert (
-        desc.status == WorkflowExecutionStatus.TERMINATED
-    ), f"expected original run TERMINATED, got {desc.status}"
+    assert desc.status == WorkflowExecutionStatus.TERMINATED, (
+        f"expected original run TERMINATED, got {desc.status}"
+    )
 
     # Cleanup the freshly-started run.
     try:

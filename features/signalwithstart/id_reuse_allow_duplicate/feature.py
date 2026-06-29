@@ -77,9 +77,9 @@ async def start(runner: Runner) -> WorkflowHandle:
 async def check_result(runner: Runner, handle: WorkflowHandle) -> None:
     result: SwsResult = await handle.result()
     assert result.run_id, "expected a non-empty run id"
-    assert (
-        result.run_id != _setup["original_run_id"]
-    ), "expected a new run id with ALLOW_DUPLICATE after the prior run completed"
+    assert result.run_id != _setup["original_run_id"], (
+        "expected a new run id with ALLOW_DUPLICATE after the prior run completed"
+    )
 
 
 register_feature(

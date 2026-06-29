@@ -75,9 +75,9 @@ async def start(runner: Runner) -> WorkflowHandle:
 async def check_result(runner: Runner, handle: WorkflowHandle) -> None:
     result: SwsResult = await handle.result()
     assert result.run_id, "expected a non-empty run id"
-    assert (
-        result.run_id != _setup["original_run_id"]
-    ), "expected a new run id after the previous run was terminated"
+    assert result.run_id != _setup["original_run_id"], (
+        "expected a new run id after the previous run was terminated"
+    )
 
     # Cleanup the freshly-started run.
     try:

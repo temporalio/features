@@ -103,9 +103,9 @@ async def start(runner: Runner) -> WorkflowHandle:
 async def check_result(runner: Runner, handle: WorkflowHandle) -> None:
     # Sub-case 1: completed target -> operation fails.
     completed_result: SwsResult = await handle.result()
-    assert (
-        completed_result.error
-    ), "expected failure for ALLOW_DUPLICATE_FAILED_ONLY against a completed run"
+    assert completed_result.error, (
+        "expected failure for ALLOW_DUPLICATE_FAILED_ONLY against a completed run"
+    )
 
     # Sub-case 2: terminated target -> a new run should start.
     target_id = f"signalwithstart-allow-dup-failed-only-terminated-{uuid.uuid4()}"
@@ -119,13 +119,13 @@ async def check_result(runner: Runner, handle: WorkflowHandle) -> None:
     await target.terminate("setup")
 
     terminated_result = await _run_caller(runner, target_id)
-    assert (
-        not terminated_result.error
-    ), f"expected success after terminated run, got error: {terminated_result.error}"
+    assert not terminated_result.error, (
+        f"expected success after terminated run, got error: {terminated_result.error}"
+    )
     assert terminated_result.run_id, "expected a non-empty new run id"
-    assert (
-        terminated_result.run_id != original_run_id
-    ), "expected a new run id after the previous run was terminated"
+    assert terminated_result.run_id != original_run_id, (
+        "expected a new run id after the previous run was terminated"
+    )
 
     # Cleanup the freshly-started run.
     try:

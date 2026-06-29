@@ -94,9 +94,9 @@ async def start(runner: Runner) -> WorkflowHandle:
 async def check_result(runner: Runner, handle: WorkflowHandle) -> None:
     result: SwsResult = await handle.result()
     assert result.error, "expected signal-with-start to fail with REJECT_DUPLICATE"
-    assert (
-        "duplicate" in result.error.lower() or "already" in result.error.lower()
-    ), f"unexpected failure message: {result.error}"
+    assert "duplicate" in result.error.lower() or "already" in result.error.lower(), (
+        f"unexpected failure message: {result.error}"
+    )
 
 
 register_feature(

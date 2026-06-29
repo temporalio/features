@@ -75,9 +75,9 @@ async def start(runner: Runner) -> WorkflowHandle:
 
 async def check_result(runner: Runner, handle: WorkflowHandle) -> None:
     result: SwsResult = await handle.result()
-    assert (
-        result.run_id == _setup["original_run_id"]
-    ), f"expected existing run id {_setup['original_run_id']}, got {result.run_id}"
+    assert result.run_id == _setup["original_run_id"], (
+        f"expected existing run id {_setup['original_run_id']}, got {result.run_id}"
+    )
 
 
 register_feature(

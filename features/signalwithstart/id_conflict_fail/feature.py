@@ -81,9 +81,9 @@ async def check_result(runner: Runner, handle: WorkflowHandle) -> None:
         timeout=30.0,
     )
     message = event.workflow_task_failed_event_attributes.failure.message
-    assert (
-        "not supported" in message.lower()
-    ), f"expected 'not supported' rejection, got: {message}"
+    assert "not supported" in message.lower(), (
+        f"expected 'not supported' rejection, got: {message}"
+    )
 
     # Cleanup the caller (stuck failing its workflow task) and the target.
     for wf_id, run_id in (

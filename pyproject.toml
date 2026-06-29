@@ -7,9 +7,6 @@ requires-python = ">=3.10"
 license = "MIT"
 dependencies = ["temporalio"]
 
-[tool.uv.sources]
-temporalio = { git = "https://github.com/temporalio/sdk-python.git", branch = "main" }
-
 [dependency-groups]
 dev = [
     "mypy>=1.0",

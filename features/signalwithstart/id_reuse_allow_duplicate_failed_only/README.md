@@ -10,6 +10,6 @@ Verifies: case 1 fails; case 2 starts a new run with a different run id.
 
 ## Server requirements
 Namespace dynamic config `history.enableSignalWithStartFromWorkflow=true`,
-`history.enableChasm=true`, and Nexus enabled (`system.enableNexus=true`) with the
-built-in `__temporal_system` endpoint. Also set
+`history.enableChasm=true`, and the built-in `__temporal_system` Nexus
+endpoint. Also set
 `system.workflowIdReuseMinimalInterval=0` to avoid reuse-interval throttling.

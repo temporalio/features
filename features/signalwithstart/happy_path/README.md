@@ -15,5 +15,4 @@ This feature requires a server with namespace dynamic config:
 
 - `history.enableSignalWithStartFromWorkflow=true`
 - `history.enableChasm=true` (default true)
-- Nexus enabled (`system.enableNexus=true`) with the built-in `__temporal_system`
-  endpoint available.
+- The built-in `__temporal_system` Nexus endpoint available.

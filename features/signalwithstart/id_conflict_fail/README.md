@@ -11,5 +11,5 @@ indicates the conflict policy is not supported.
 
 ## Server requirements
 Namespace dynamic config `history.enableSignalWithStartFromWorkflow=true`,
-`history.enableChasm=true`, and Nexus enabled (`system.enableNexus=true`) with the
-built-in `__temporal_system` endpoint.
+`history.enableChasm=true`, and the built-in `__temporal_system` Nexus
+endpoint.

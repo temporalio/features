@@ -9,7 +9,6 @@ from a workflow via `workflow.signal_with_start_workflow(...)`:
 Verifies: case 1 fails; case 2 starts a new run with a different run id.
 
 ## Server requirements
-Namespace dynamic config `history.enableSignalWithStartFromWorkflow=true`,
-`history.enableChasm=true`, and the built-in `__temporal_system` Nexus
-endpoint. Also set
+Namespace dynamic config `history.enableSignalWithStartFromWorkflow=true` and
+`history.enableChasm=true`. Also set
 `system.workflowIdReuseMinimalInterval=0` to avoid reuse-interval throttling.

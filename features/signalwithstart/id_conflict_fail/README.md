@@ -10,6 +10,5 @@ Verifies: the caller's history contains a workflow task failure whose message
 indicates the conflict policy is not supported.
 
 ## Server requirements
-Namespace dynamic config `history.enableSignalWithStartFromWorkflow=true`,
-`history.enableChasm=true`, and the built-in `__temporal_system` Nexus
-endpoint.
+Namespace dynamic config `history.enableSignalWithStartFromWorkflow=true` and
+`history.enableChasm=true`.

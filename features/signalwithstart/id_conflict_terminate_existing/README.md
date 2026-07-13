@@ -9,6 +9,5 @@ Verifies: the returned run id differs from the original, and the original run's
 status is TERMINATED.
 
 ## Server requirements
-Namespace dynamic config `history.enableSignalWithStartFromWorkflow=true`,
-`history.enableChasm=true`, and the built-in `__temporal_system` Nexus
-endpoint.
+Namespace dynamic config `history.enableSignalWithStartFromWorkflow=true` and
+`history.enableChasm=true`.

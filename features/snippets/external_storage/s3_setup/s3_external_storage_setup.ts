@@ -1,12 +1,10 @@
-import { Client, Connection } from '@temporalio/client';
-import { ExternalStorage, type StorageDriver } from '@temporalio/common';
-import { Worker } from '@temporalio/worker';
 /* eslint-disable @typescript-eslint/no-unused-vars */
-
-declare const driver: StorageDriver;
+// @@@SNIPSTART typescript-s3-external-storage-setup
+import { Client, Connection } from '@temporalio/client';
+import { ExternalStorage } from '@temporalio/common';
+import { Worker } from '@temporalio/worker';
 
 async function externalStorageSetup() {
-  // @@@SNIPSTART typescript-s3-external-storage-setup
   const dataConverter = {
     externalStorage: new ExternalStorage({ drivers: [driver] }),
   };
@@ -19,5 +17,7 @@ async function externalStorageSetup() {
     taskQueue: 'my-task-queue',
     dataConverter,
   });
-  // @@@SNIPEND
 }
+// @@@SNIPEND
+
+declare const driver: import('@temporalio/common').StorageDriver;

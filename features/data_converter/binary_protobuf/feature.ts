@@ -12,6 +12,14 @@ const expectedResult = proto.temporal.api.common.v1.DataBlob.create({
   data: new Uint8Array([0xde, 0xad, 0xbe, 0xef]),
 });
 
+// `encodingType` above holds its default value, so it never makes it onto the wire. protobufjs 7
+// nonetheless materialized such fields as own properties when decoding, whereas protobufjs 8 leaves
+// them absent; `deepEqual` compares own properties, so the two disagree. Compare against an
+// expectation that has been through the wire itself, which holds for either version.
+const expectedResultOnWire = proto.temporal.api.common.v1.DataBlob.decode(
+  proto.temporal.api.common.v1.DataBlob.encode(expectedResult).finish(),
+);
+
 // An "echo" workflow
 export async function workflow(
   res: proto.temporal.api.common.v1.DataBlob,
@@ -30,7 +38,7 @@ export const feature = new Feature({
   async checkResult(runner, handle) {
     // verify client result is DataBlob `0xdeadbeef`
     const result = await handle.result();
-    assert.deepEqual(result, expectedResult);
+    assert.deepEqual(result, expectedResultOnWire);
 
     // get result payload of WorkflowExecutionCompleted event from workflow history
     const payload = await runner.getWorkflowResultPayload(handle);
@@ -45,7 +53,7 @@ export const feature = new Feature({
     assert.ok(payload.data);
     const resultInHistory = proto.temporal.api.common.v1.DataBlob.decode(payload.data);
 
-    assert.deepEqual(resultInHistory, expectedResult);
+    assert.deepEqual(resultInHistory, expectedResultOnWire);
 
     // get argument payload of WorkflowExecutionStarted event from workflow history
     const payloadArg = await runner.getWorkflowArgumentPayload(handle);

@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { fromProto3JSON } from 'proto3-json-serializer';
+import * as protojson from 'protobufjs/ext/protojson';
 import { Feature } from '@temporalio/harness';
 import * as proto from '@temporalio/proto';
 import { patchProtobufRoot } from '@temporalio/proto/lib/patch-protobuf-root';
@@ -58,7 +58,7 @@ export const feature = new Feature({
     assert.equal(Buffer.from(payload.metadata.messageType).toString(), 'temporal.api.common.v1.DataBlob');
 
     assert.ok(payload.data);
-    const resultInHistory = fromProto3JSON(dataBlobType, JSON.parse(decode(payload.data)));
+    const resultInHistory = protojson.fromJson(dataBlobType, JSON.parse(decode(payload.data)));
     assert.ok(resultInHistory);
     assert.deepEqual(resultInHistory, expectedResultOnWire);
 
@@ -73,7 +73,7 @@ export const feature = new Feature({
     assert.equal(Buffer.from(payloadArg.metadata.messageType).toString(), 'temporal.api.common.v1.DataBlob');
 
     assert.ok(payloadArg.data);
-    const resultArgInHistory = fromProto3JSON(dataBlobType, JSON.parse(decode(payloadArg.data)));
+    const resultArgInHistory = protojson.fromJson(dataBlobType, JSON.parse(decode(payloadArg.data)));
     assert.ok(resultArgInHistory);
     assert.deepEqual(resultInHistory, resultArgInHistory);
   },

@@ -2,11 +2,6 @@ import * as assert from 'assert';
 import { Feature } from '@temporalio/harness';
 import * as proto from '@temporalio/proto';
 
-// Inject Buffer and Uint8Array from the node context to the workflow context to workaround SDK bug
-// TODO(antlai-temporal) Remove when SDK bug is fixed
-const g = globalThis as any;
-g.Uint8Array = g.constructor.constructor('return globalThis.Uint8Array')();
-
 const expectedResult = proto.temporal.api.common.v1.DataBlob.create({
   encodingType: proto.temporal.api.enums.v1.EncodingType.ENCODING_TYPE_UNSPECIFIED,
   data: new Uint8Array([0xde, 0xad, 0xbe, 0xef]),

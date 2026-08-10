@@ -12,10 +12,8 @@ const expectedResult = proto.temporal.api.common.v1.DataBlob.create({
   data: new Uint8Array([0xde, 0xad, 0xbe, 0xef]),
 });
 
-// `encodingType` above holds its default value, so it never makes it onto the wire. protobufjs 7
-// nonetheless materialized such fields as own properties when decoding, whereas protobufjs 8 leaves
-// them absent; `deepEqual` compares own properties, so the two disagree. Compare against an
-// expectation that has been through the wire itself, which holds for either version.
+// Do an encode/decode roundtrip to make sure our test expectations match exactly
+// what protobufjs 8 will produce (e.g. default values are omitted, etc.)
 const expectedResultOnWire = proto.temporal.api.common.v1.DataBlob.decode(
   proto.temporal.api.common.v1.DataBlob.encode(expectedResult).finish(),
 );

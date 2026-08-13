@@ -64,6 +64,11 @@ jobs:
       - run: go test ./cmd
       - run: go test ./...
         working-directory: harness/go
+      # The root binary only compiles packages it imports, which excludes the
+      # snippets tree. Build the features module directly so those packages are
+      # compile-checked too.
+      - run: go build ./...
+        working-directory: features
 
       - name: Get the latest release version
         id: latest_version

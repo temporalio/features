@@ -53,6 +53,35 @@ public class WorkerSnippet
         await Task.CompletedTask;
     }
 
+    // A Serverless Worker on GCP Cloud Run is a standard long-lived Worker that reads its
+    // connection settings from the environment and enables Worker Versioning.
+    public static async Task CloudRunWorker()
+    {
+        // @@@SNIPSTART dotnet-cloud-run-worker
+        var client = await TemporalClient.ConnectAsync(
+            new(Environment.GetEnvironmentVariable("TEMPORAL_ADDRESS")!)
+            {
+                Namespace = Environment.GetEnvironmentVariable("TEMPORAL_NAMESPACE")!,
+                ApiKey = Environment.GetEnvironmentVariable("TEMPORAL_API_KEY"),
+                Tls = new(),
+            });
+
+        var options = new TemporalWorkerOptions(
+            Environment.GetEnvironmentVariable("TEMPORAL_TASK_QUEUE")!)
+        {
+            DeploymentOptions = new(new("my-app", "build-1"), useWorkerVersioning: true)
+            {
+                DefaultVersioningBehavior = VersioningBehavior.Pinned,
+            },
+        };
+        options.AddWorkflow<GreetingWorkflow>();
+        options.AddAllActivities(typeof(GreetingActivities), null);
+
+        using var worker = new TemporalWorker(client, options);
+        await worker.ExecuteAsync(CancellationToken.None);
+        // @@@SNIPEND
+    }
+
     public static async Task ShutdownWorker()
     {
         var client = await TemporalClient.ConnectAsync(new("localhost:7233"));

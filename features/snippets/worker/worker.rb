@@ -82,6 +82,36 @@ def run_versioned_worker
   worker.run
 end
 
+# A Serverless Worker on GCP Cloud Run is a standard long-lived Worker that reads its
+# connection settings from the environment and enables Worker Versioning.
+def run_cloud_run_worker
+  # @@@SNIPSTART ruby-cloud-run-worker
+  client = Temporalio::Client.connect(
+    ENV.fetch('TEMPORAL_ADDRESS'),
+    ENV.fetch('TEMPORAL_NAMESPACE'),
+    api_key: ENV.fetch('TEMPORAL_API_KEY'),
+    tls: true
+  )
+
+  worker = Temporalio::Worker.new(
+    client:,
+    task_queue: ENV.fetch('TEMPORAL_TASK_QUEUE'),
+    workflows: [GreetingWorkflow],
+    activities: [SayHello],
+    deployment_options: Temporalio::Worker::DeploymentOptions.new(
+      version: Temporalio::WorkerDeploymentVersion.new(
+        deployment_name: 'my-app',
+        build_id: 'build-1'
+      ),
+      use_worker_versioning: true,
+      default_versioning_behavior: Temporalio::VersioningBehavior::PINNED
+    )
+  )
+
+  worker.run
+  # @@@SNIPEND
+end
+
 def run_worker_until_interrupted
   client = Temporalio::Client.connect('localhost:7233', 'default')
 

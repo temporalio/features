@@ -1,9 +1,11 @@
 import io.temporal.activity.ActivityInterface;
 import io.temporal.activity.ActivityMethod;
 import io.temporal.client.WorkflowClient;
+import io.temporal.client.WorkflowClientOptions;
 import io.temporal.common.VersioningBehavior;
 import io.temporal.common.WorkerDeploymentVersion;
 import io.temporal.serviceclient.WorkflowServiceStubs;
+import io.temporal.serviceclient.WorkflowServiceStubsOptions;
 import io.temporal.worker.Worker;
 import io.temporal.worker.WorkerDeploymentOptions;
 import io.temporal.worker.WorkerFactory;
@@ -101,6 +103,48 @@ class WorkerSnippet {
     // @@@SNIPEND
 
     factory.start();
+  }
+
+  // A Serverless Worker on GCP Cloud Run is a standard long-lived Worker that reads its
+  // connection settings from the environment and enables Worker Versioning.
+  static void cloudRunWorker() {
+    // @@@SNIPSTART java-cloud-run-worker
+    String apiKey = System.getenv("TEMPORAL_API_KEY");
+
+    WorkflowServiceStubs service =
+        WorkflowServiceStubs.newServiceStubs(
+            WorkflowServiceStubsOptions.newBuilder()
+                .setTarget(System.getenv("TEMPORAL_ADDRESS"))
+                .setEnableHttps(true)
+                .addApiKey(() -> apiKey)
+                .build());
+
+    WorkflowClient client =
+        WorkflowClient.newInstance(
+            service,
+            WorkflowClientOptions.newBuilder()
+                .setNamespace(System.getenv("TEMPORAL_NAMESPACE"))
+                .build());
+
+    WorkerFactory factory = WorkerFactory.newInstance(client);
+
+    Worker worker =
+        factory.newWorker(
+            System.getenv("TEMPORAL_TASK_QUEUE"),
+            WorkerOptions.newBuilder()
+                .setDeploymentOptions(
+                    WorkerDeploymentOptions.newBuilder()
+                        .setUseVersioning(true)
+                        .setVersion(new WorkerDeploymentVersion("my-app", "build-1"))
+                        .setDefaultVersioningBehavior(VersioningBehavior.PINNED)
+                        .build())
+                .build());
+
+    worker.registerWorkflowImplementationTypes(GreetingWorkflowImpl.class);
+    worker.registerActivitiesImplementations(new GreetingActivitiesImpl());
+
+    factory.start();
+    // @@@SNIPEND
   }
 
   static void shutdownWorker(WorkflowClient client) {

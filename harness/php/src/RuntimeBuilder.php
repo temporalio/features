@@ -9,8 +9,8 @@ use Harness\Input\Command;
 use Harness\Input\Feature;
 use Harness\Runtime\State;
 use Temporal\Activity\ActivityInterface;
-use Temporal\Nexus\Attribute\Service;
 use Temporal\DataConverter\PayloadConverterInterface;
+use Temporal\Nexus\Attribute\Service;
 use Temporal\Workflow\WorkflowInterface;
 
 final class RuntimeBuilder
@@ -54,13 +54,17 @@ final class RuntimeBuilder
             return false;
         }
 
+        if ($class->getAttributes(WorkflowInterface::class) !== [] || $class->getAttributes(ActivityInterface::class) !== []) {
+            return false;
+        }
+
         foreach ($class->getInterfaces() as $interface) {
             if ($interface->getAttributes(Service::class) !== []) {
                 return true;
             }
         }
 
-        return $class->getAttributes(Service::class) !== [];
+        return false;
     }
 
     public static function init(): void

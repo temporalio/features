@@ -35,10 +35,9 @@ final class TestServiceImpl implements TestService
 #[WorkflowInterface]
 class FeatureWorkflow
 {
-    #[WorkflowMethod('Harness_Nexus_SyncSuccess')]
+    #[WorkflowMethod('Workflow')]
     public function run(string $endpoint)
     {
-        /** @var TestService $service */
         $service = Workflow::newNexusServiceStub(
             TestService::class,
             NexusOperationOptions::new()
@@ -58,8 +57,10 @@ class FeatureChecker
         Assert::notNull($feature->nexusEndpoint, 'Nexus endpoint is not provided by the runner');
 
         $stub = $client->newUntypedWorkflowStub(
-            'Harness_Nexus_SyncSuccess',
-            WorkflowOptions::new()->withTaskQueue($feature->taskQueue),
+            'Workflow',
+            WorkflowOptions::new()
+                ->withTaskQueue($feature->taskQueue)
+                ->withWorkflowExecutionTimeout('1 minute'),
         );
         $client->start($stub, $feature->nexusEndpoint);
 

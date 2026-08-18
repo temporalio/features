@@ -68,6 +68,7 @@ final class Command
             }
 
             [$dir, $taskQueue, $nexusEndpoint] = \array_pad(\explode(':', $chunk, 3), 3, null);
+            $nexusEndpoint === '' and $nexusEndpoint = null;
             $self->features[] = new Feature(
                 dir: $dir,
                 namespace: 'Harness\\Feature\\' . self::namespaceFromPath($dir),

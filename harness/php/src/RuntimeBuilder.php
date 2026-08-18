@@ -50,7 +50,7 @@ final class RuntimeBuilder
 
     private static function isNexusService(\ReflectionClass $class): bool
     {
-        if ($class->isInterface() || $class->isAbstract()) {
+        if ($class->isAbstract()) {
             return false;
         }
 

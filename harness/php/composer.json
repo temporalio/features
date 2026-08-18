@@ -18,7 +18,7 @@
         }
     },
     "scripts": {
-        "rr-get": "rr get"
+        "rr-get": "dload build --config ../harness/php/dload.xml"
     },
     "prefer-stable": true,
     "minimum-stability": "dev",
@@ -27,5 +27,8 @@
             "type": "vcs",
             "url": "https://github.com/temporalio/sdk-php"
         }
-    ]
+    ],
+    "require-dev": {
+        "internal/dload": "^1.8"
+    }
 }

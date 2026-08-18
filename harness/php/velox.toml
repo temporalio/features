@@ -1,0 +1,28 @@
+[roadrunner]
+ref = "v2025.1.15"
+
+[log]
+level = "info"
+mode = "production"
+
+[github]
+    [github.token]
+    token = "${GITHUB_TOKEN}"
+
+    [github.plugins]
+        [github.plugins.server]
+        ref = "v5.2.10"
+        owner = "roadrunner-server"
+        repository = "server"
+
+        [github.plugins.logger]
+        ref = "v5.1.9"
+        owner = "roadrunner-server"
+        repository = "logger"
+
+        # Switch ref to the branch under test once it exists in this repository:
+        # a fork cannot be used here, Go resolves the module by its canonical path.
+        [github.plugins.temporal]
+        ref = "v5.11.0"
+        owner = "temporalio"
+        repository = "roadrunner-temporal"

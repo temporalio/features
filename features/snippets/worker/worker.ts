@@ -1,4 +1,3 @@
-import { loadClientConnectConfig } from '@temporalio/envconfig';
 import { NativeConnection, Worker } from '@temporalio/worker';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
@@ -39,12 +38,15 @@ async function _runVersioned() {
 // connection settings from the environment and enables Worker Versioning.
 async function _runCloudRunWorker() {
   // @@@SNIPSTART typescript-cloud-run-worker
-  const config = loadClientConnectConfig();
-  const connection = await NativeConnection.connect(config.connectionOptions);
+  const connection = await NativeConnection.connect({
+    address: process.env.TEMPORAL_ADDRESS,
+    apiKey: process.env.TEMPORAL_API_KEY,
+    tls: true,
+  });
 
   const worker = await Worker.create({
     connection,
-    namespace: config.namespace,
+    namespace: process.env.TEMPORAL_NAMESPACE!,
     taskQueue: process.env.TEMPORAL_TASK_QUEUE!,
     workflowsPath: require.resolve('./workflows'),
     workerDeploymentOptions: {

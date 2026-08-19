@@ -54,8 +54,8 @@ final class RuntimeBuilder
             return false;
         }
 
-        if ($class->getAttributes(WorkflowInterface::class) !== [] || $class->getAttributes(ActivityInterface::class) !== []) {
-            return false;
+        if ($class->getAttributes(Service::class) !== []) {
+            return true;
         }
 
         foreach ($class->getInterfaces() as $interface) {

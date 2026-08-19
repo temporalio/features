@@ -68,7 +68,7 @@ async def run():
     failed_features = []
     for rel_dir_and_task_queue in cast(List[str], args.features):
         # Split rel dir and task queue
-        rel_dir, task_queue = rel_dir_and_task_queue.split(":")[:2]
+        rel_dir, _, task_queue = rel_dir_and_task_queue.partition(":")
         if rel_dir not in rel_dirs:
             raise ValueError(f"Cannot find feature file in {rel_dir}")
         # Import

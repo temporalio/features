@@ -20,9 +20,8 @@ mode = "production"
         owner = "roadrunner-server"
         repository = "logger"
 
-        # Switch ref to the branch under test once it exists in this repository:
-        # a fork cannot be used here, Go resolves the module by its canonical path.
+        # A fork cannot be used here: Go resolves the module by its canonical path.
         [github.plugins.temporal]
-        ref = "v5.11.0"
+        ref = "nexus"
         owner = "temporalio"
         repository = "roadrunner-temporal"

@@ -31,8 +31,9 @@ final class RuntimeBuilder
                 ->addActivity($feature, $class->getName());
 
             # Register Nexus Service
-            self::isNexusService($class) and $runtime
-                ->addNexusService($feature, $class->getName());
+            if (self::isNexusService($class)) {
+                $runtime->addNexusService($feature, $class->getName());
+            }
 
             # Register Converters
             $class->implementsInterface(PayloadConverterInterface::class) and $runtime

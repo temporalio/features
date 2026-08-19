@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.nexusrpc.Operation;
+import io.nexusrpc.OperationException;
 import io.nexusrpc.Service;
 import io.nexusrpc.handler.OperationHandler;
 import io.nexusrpc.handler.OperationImpl;
@@ -50,7 +51,7 @@ public interface feature extends Feature {
         return "no error";
       } catch (NexusOperationFailure e) {
         Throwable cause = e.getCause();
-        while (cause != null && !(cause instanceof ApplicationFailure)) {
+        while (cause != null && cause.getCause() != null) {
           cause = cause.getCause();
         }
         var applicationFailure = (ApplicationFailure) cause;
@@ -100,7 +101,8 @@ public interface feature extends Feature {
     public OperationHandler<String, String> failingOperation() {
       return OperationHandler.sync(
           (context, details, name) -> {
-            throw ApplicationFailure.newNonRetryableFailure("deliberate failure", "TestError");
+            throw OperationException.failure(
+                ApplicationFailure.newNonRetryableFailure("deliberate failure", "TestError"));
           });
     }
   }

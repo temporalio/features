@@ -9,7 +9,7 @@
         "buggregator/trap": "^1.9",
         "spiral/core": "^3.13",
         "symfony/process": ">=6.4",
-        "temporal/sdk": "^2.16.0",
+        "temporal/sdk": "dev-nexus-new#85126b125b82c5218c70d9b96a1d8bbdbafd00b7 as 2.18.0",
         "webmozart/assert": "^1.11"
     },
     "autoload": {
@@ -18,8 +18,17 @@
         }
     },
     "scripts": {
-        "rr-get": "rr get"
+        "rr-get": "dload build --config ../harness/php/dload.xml"
     },
     "prefer-stable": true,
-    "minimum-stability": "dev"
+    "minimum-stability": "dev",
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/temporalio/sdk-php"
+        }
+    ],
+    "require-dev": {
+        "internal/dload": "^1.8"
+    }
 }

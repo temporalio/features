@@ -10,6 +10,7 @@ use Harness\Input\Feature;
 use Harness\Runtime\State;
 use Temporal\Activity\ActivityInterface;
 use Temporal\DataConverter\PayloadConverterInterface;
+use Temporal\Nexus\Attribute\Service;
 use Temporal\Workflow\WorkflowInterface;
 
 final class RuntimeBuilder
@@ -29,6 +30,11 @@ final class RuntimeBuilder
             $class->getAttributes(ActivityInterface::class) === [] or $runtime
                 ->addActivity($feature, $class->getName());
 
+            # Register Nexus Service
+            if (self::isNexusService($class)) {
+                $runtime->addNexusService($feature, $class->getName());
+            }
+
             # Register Converters
             $class->implementsInterface(PayloadConverterInterface::class) and $runtime
                 ->addConverter($feature, $class->getName());
@@ -41,6 +47,25 @@ final class RuntimeBuilder
         }
 
         return $runtime;
+    }
+
+    private static function isNexusService(\ReflectionClass $class): bool
+    {
+        if ($class->isAbstract()) {
+            return false;
+        }
+
+        if ($class->getAttributes(Service::class) !== []) {
+            return true;
+        }
+
+        foreach ($class->getInterfaces() as $interface) {
+            if ($interface->getAttributes(Service::class) !== []) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public static function init(): void

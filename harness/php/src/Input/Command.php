@@ -67,11 +67,13 @@ final class Command
                 continue;
             }
 
-            [$dir, $taskQueue] = \explode(':', $chunk, 2);
+            [$dir, $taskQueue, $nexusEndpoint] = \array_pad(\explode(':', $chunk, 3), 3, null);
+            $nexusEndpoint === '' and $nexusEndpoint = null;
             $self->features[] = new Feature(
                 dir: $dir,
                 namespace: 'Harness\\Feature\\' . self::namespaceFromPath($dir),
                 taskQueue: $taskQueue,
+                nexusEndpoint: $nexusEndpoint,
             );
         }
 
@@ -91,7 +93,9 @@ final class Command
         $this->tlsServerName === null or $result[] = "tls.server-name=$this->tlsServerName";
         $this->tlsCaCert === null or $result[] = "tls.ca-cert=$this->tlsCaCert";
         foreach ($this->features as $feature) {
-            $result[] = "{$feature->dir}:{$feature->taskQueue}";
+            $result[] = $feature->nexusEndpoint === null
+                ? "{$feature->dir}:{$feature->taskQueue}"
+                : "{$feature->dir}:{$feature->taskQueue}:{$feature->nexusEndpoint}";
         }
 
         return $result;

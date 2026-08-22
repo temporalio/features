@@ -9,6 +9,7 @@ import io.nexusrpc.handler.OperationHandler;
 import io.nexusrpc.handler.OperationImpl;
 import io.nexusrpc.handler.ServiceImpl;
 import io.temporal.client.WorkflowOptions;
+import io.temporal.failure.ApplicationFailure;
 import io.temporal.nexus.Nexus;
 import io.temporal.nexus.WorkflowRunOperation;
 import io.temporal.sdkfeatures.Feature;
@@ -60,9 +61,11 @@ public interface feature extends Feature {
       TestService stub = Workflow.newNexusServiceStub(TestService.class, serviceOptions);
       var handle = Workflow.startNexusOperation(stub::asyncOperation, "world");
       var execution = handle.getExecution().get();
-      var token = execution.getOperationToken().orElse("");
-      var result = handle.getResult().get();
-      return "token=" + !token.isEmpty() + " result=" + result;
+      if (execution.getOperationToken().orElse("").isEmpty()) {
+        throw ApplicationFailure.newNonRetryableFailure(
+            "expected a non-empty operation token", "AssertionFailure");
+      }
+      return handle.getResult().get();
     }
 
     @Override
@@ -88,7 +91,7 @@ public interface feature extends Feature {
     @Override
     public void checkResult(Runner runner, Run run) {
       var result = runner.waitForRunResult(run, String.class);
-      assertEquals("token=true result=Hello, world!", result);
+      assertEquals("Hello, world!", result);
     }
 
     @Override
@@ -103,6 +106,7 @@ public interface feature extends Feature {
       assertTrue(
           events.stream().anyMatch(e -> e.hasNexusOperationCompletedEventAttributes()),
           "expected NexusOperationCompleted event in history");
+      runner.checkCurrentAndPastHistories(run);
     }
   }
 

@@ -53,7 +53,7 @@ func Workflow(ctx workflow.Context, endpoint string) (string, error) {
 
 	err := fut.Get(ctx, nil)
 	if err == nil {
-		return "", harness.AppErrorf("expected the cancelled operation to fail")
+		return "", harness.AppErrorf("expected the canceled operation to fail")
 	}
 	var canceledErr *temporal.CanceledError
 	if !errors.As(err, &canceledErr) {
@@ -74,16 +74,19 @@ var Feature = harness.Feature{
 		return runner.Client.ExecuteWorkflow(ctx, opts, Workflow, runner.NexusEndpoint)
 	},
 	CheckHistory: func(ctx context.Context, runner *harness.Runner, run client.WorkflowRun) error {
-		hist := runner.Client.GetWorkflowHistory(ctx, run.GetID(), run.GetRunID(), false, enumspb.HISTORY_EVENT_FILTER_TYPE_ALL_EVENT)
-		ev, err := harness.FindEvent(hist, func(ev *historypb.HistoryEvent) bool {
-			return ev.EventType == enumspb.EVENT_TYPE_NEXUS_OPERATION_CANCEL_REQUESTED
-		})
-		if err != nil {
-			return err
+		for _, t := range []enumspb.EventType{
+			enumspb.EVENT_TYPE_NEXUS_OPERATION_CANCEL_REQUESTED,
+			enumspb.EVENT_TYPE_NEXUS_OPERATION_CANCELED,
+		} {
+			hist := runner.Client.GetWorkflowHistory(ctx, run.GetID(), run.GetRunID(), false, enumspb.HISTORY_EVENT_FILTER_TYPE_ALL_EVENT)
+			ev, err := harness.FindEvent(hist, func(ev *historypb.HistoryEvent) bool { return ev.EventType == t })
+			if err != nil {
+				return err
+			}
+			if ev == nil {
+				return fmt.Errorf("did not find %v event in history", t)
+			}
 		}
-		if ev == nil {
-			return fmt.Errorf("did not find NexusOperationCancelRequested event in history")
-		}
-		return nil
+		return runner.CheckHistoryDefault(ctx, run)
 	},
 }

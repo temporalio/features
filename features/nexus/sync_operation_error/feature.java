@@ -25,6 +25,9 @@ import java.time.Duration;
 
 @WorkflowInterface
 public interface feature extends Feature {
+  String ERROR_TYPE = "TestFailure";
+  String ERROR_MESSAGE = "deliberate failure";
+
   @WorkflowMethod
   String workflow(String endpoint);
 
@@ -50,16 +53,27 @@ public interface feature extends Feature {
         stub.failingOperation("world");
         return "no error";
       } catch (NexusOperationFailure e) {
-        Throwable cause = e.getCause();
-        while (cause != null && cause.getCause() != null) {
-          cause = cause.getCause();
+        var applicationFailure = findApplicationFailure(e, ERROR_TYPE);
+        if (applicationFailure == null) {
+          throw ApplicationFailure.newNonRetryableFailure(
+              "expected an application failure of type "
+                  + ERROR_TYPE
+                  + " in the cause chain, got "
+                  + e,
+              "AssertionFailure");
         }
-        var applicationFailure = (ApplicationFailure) cause;
-        return "caught "
-            + applicationFailure.getType()
-            + ": "
-            + applicationFailure.getOriginalMessage();
+        return applicationFailure.getType() + ": " + applicationFailure.getOriginalMessage();
       }
+    }
+
+    private static ApplicationFailure findApplicationFailure(Throwable failure, String type) {
+      for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+        if (cause instanceof ApplicationFailure
+            && type.equals(((ApplicationFailure) cause).getType())) {
+          return (ApplicationFailure) cause;
+        }
+      }
+      return null;
     }
 
     @Override
@@ -80,7 +94,7 @@ public interface feature extends Feature {
     @Override
     public void checkResult(Runner runner, Run run) {
       var result = runner.waitForRunResult(run, String.class);
-      assertEquals("caught TestError: deliberate failure", result);
+      assertEquals(ERROR_TYPE + ": " + ERROR_MESSAGE, result);
     }
 
     @Override
@@ -92,6 +106,7 @@ public interface feature extends Feature {
       assertFalse(
           events.stream().anyMatch(e -> e.hasNexusOperationCompletedEventAttributes()),
           "unexpected NexusOperationCompleted event in history");
+      runner.checkCurrentAndPastHistories(run);
     }
   }
 
@@ -102,7 +117,7 @@ public interface feature extends Feature {
       return OperationHandler.sync(
           (context, details, name) -> {
             throw OperationException.failure(
-                ApplicationFailure.newNonRetryableFailure("deliberate failure", "TestError"));
+                ApplicationFailure.newFailure(ERROR_MESSAGE, ERROR_TYPE));
           });
     }
   }

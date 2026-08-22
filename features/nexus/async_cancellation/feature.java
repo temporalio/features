@@ -16,7 +16,7 @@ import io.temporal.sdkfeatures.Feature;
 import io.temporal.sdkfeatures.Run;
 import io.temporal.sdkfeatures.Runner;
 import io.temporal.worker.Worker;
-import io.temporal.workflow.CancellationScope;
+import io.temporal.workflow.CompletablePromise;
 import io.temporal.workflow.NexusOperationOptions;
 import io.temporal.workflow.NexusServiceOptions;
 import io.temporal.workflow.Workflow;
@@ -62,7 +62,7 @@ public interface feature extends Feature {
               .build();
       TestService stub = Workflow.newNexusServiceStub(TestService.class, serviceOptions);
 
-      var resultHolder = new String[1];
+      CompletablePromise<String> outcome = Workflow.newPromise();
       var scope =
           Workflow.newCancellationScope(
               () -> {
@@ -72,14 +72,25 @@ public interface feature extends Feature {
                     .getResult()
                     .handle(
                         (value, failure) -> {
-                          resultHolder[0] = failure == null ? "completed" : "cancelled";
+                          outcome.complete(describeOutcome(failure));
                           return null;
                         });
               });
       scope.run();
       scope.cancel();
-      Workflow.await(() -> resultHolder[0] != null);
-      return "operation " + resultHolder[0];
+      return outcome.get();
+    }
+
+    private static String describeOutcome(RuntimeException failure) {
+      if (failure == null) {
+        return "completed";
+      }
+      for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+        if (cause instanceof CanceledFailure) {
+          return "canceled";
+        }
+      }
+      return "failed with " + failure;
     }
 
     @Override
@@ -105,7 +116,7 @@ public interface feature extends Feature {
     @Override
     public void checkResult(Runner runner, Run run) {
       var result = runner.waitForRunResult(run, String.class);
-      assertEquals("operation cancelled", result);
+      assertEquals("canceled", result);
     }
 
     @Override
@@ -114,6 +125,10 @@ public interface feature extends Feature {
       assertTrue(
           events.stream().anyMatch(e -> e.hasNexusOperationCancelRequestedEventAttributes()),
           "expected NexusOperationCancelRequested event in history");
+      assertTrue(
+          events.stream().anyMatch(e -> e.hasNexusOperationCanceledEventAttributes()),
+          "expected NexusOperationCanceled event in history");
+      runner.checkCurrentAndPastHistories(run);
     }
   }
 

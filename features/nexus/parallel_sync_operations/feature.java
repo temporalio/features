@@ -1,4 +1,4 @@
-package nexus.parallel_operations;
+package nexus.parallel_sync_operations;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -48,7 +48,7 @@ public interface feature extends Feature {
       Promise<String> two = Async.function(stub::syncOperation, "two");
       Promise<String> three = Async.function(stub::syncOperation, "three");
       Promise.allOf(one, two, three).get();
-      return one.get() + ", " + two.get() + ", " + three.get();
+      return one.get() + " " + two.get() + " " + three.get();
     }
 
     @Override
@@ -69,7 +69,7 @@ public interface feature extends Feature {
     @Override
     public void checkResult(Runner runner, Run run) {
       var result = runner.waitForRunResult(run, String.class);
-      assertEquals("Hello, one!, Hello, two!, Hello, three!", result);
+      assertEquals("Hello, one! Hello, two! Hello, three!", result);
     }
 
     @Override
@@ -80,12 +80,24 @@ public interface feature extends Feature {
           events.stream().filter(e -> e.hasNexusOperationScheduledEventAttributes()).count(),
           "expected three NexusOperationScheduled events in history");
       assertEquals(
+          1,
+          events.stream()
+              .filter(e -> e.hasNexusOperationScheduledEventAttributes())
+              .map(
+                  e ->
+                      e.getNexusOperationScheduledEventAttributes()
+                          .getWorkflowTaskCompletedEventId())
+              .distinct()
+              .count(),
+          "expected all operations to be scheduled by a single workflow task");
+      assertEquals(
           3,
           events.stream().filter(e -> e.hasNexusOperationCompletedEventAttributes()).count(),
           "expected three NexusOperationCompleted events in history");
       assertFalse(
           events.stream().anyMatch(e -> e.hasNexusOperationStartedEventAttributes()),
           "unexpected NexusOperationStarted event for sync operations");
+      runner.checkCurrentAndPastHistories(run);
     }
   }
 

@@ -50,15 +50,20 @@ func Workflow(ctx workflow.Context, endpoint string) (string, error) {
 	if !errors.As(err, &opErr) {
 		return "", harness.AppErrorf("expected a nexus operation error, got %v", err)
 	}
-	var operationErr *temporal.ApplicationError
-	if !errors.As(opErr.Unwrap(), &operationErr) {
-		return "", harness.AppErrorf("expected an application error cause, got %v", opErr.Unwrap())
-	}
-	var appErr *temporal.ApplicationError
-	if !errors.As(operationErr.Unwrap(), &appErr) {
-		return "", harness.AppErrorf("expected the original application error, got %v", operationErr.Unwrap())
+	appErr := findApplicationError(err, ErrorType)
+	if appErr == nil {
+		return "", harness.AppErrorf("expected an application error of type %v in the cause chain, got %v", ErrorType, err)
 	}
 	return appErr.Type() + ": " + appErr.Message(), nil
+}
+
+func findApplicationError(err error, errType string) *temporal.ApplicationError {
+	for ; err != nil; err = errors.Unwrap(err) {
+		if appErr, ok := err.(*temporal.ApplicationError); ok && appErr.Type() == errType {
+			return appErr
+		}
+	}
+	return nil
 }
 
 var Feature = harness.Feature{
@@ -88,6 +93,6 @@ var Feature = harness.Feature{
 		} else if ok {
 			return fmt.Errorf("unexpected NexusOperationCompleted event for failed operation")
 		}
-		return nil
+		return runner.CheckHistoryDefault(ctx, run)
 	},
 }

@@ -81,6 +81,7 @@ public interface feature extends Feature {
       assertFalse(
           events.stream().anyMatch(e -> e.hasNexusOperationStartedEventAttributes()),
           "unexpected NexusOperationStarted event for sync operation");
+      runner.checkCurrentAndPastHistories(run);
     }
   }
 

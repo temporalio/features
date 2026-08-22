@@ -50,13 +50,13 @@ func Workflow(ctx workflow.Context, endpoint string) (string, error) {
 	if err := fut.Get(ctx, &result); err != nil {
 		return "", err
 	}
-	return "token+" + result, nil
+	return result, nil
 }
 
 var Feature = harness.Feature{
 	Workflows:       []interface{}{Workflow, HandlerWorkflow},
 	NexusServices:   Service,
-	ExpectRunResult: "token+Hello, world!",
+	ExpectRunResult: "Hello, world!",
 	Execute: func(ctx context.Context, runner *harness.Runner) (client.WorkflowRun, error) {
 		opts := client.StartWorkflowOptions{
 			TaskQueue:                runner.TaskQueue,
@@ -79,6 +79,6 @@ var Feature = harness.Feature{
 				return fmt.Errorf("did not find %v event in history", t)
 			}
 		}
-		return nil
+		return runner.CheckHistoryDefault(ctx, run)
 	},
 }

@@ -24,7 +24,7 @@ public class PreparedFeature {
           eager_activity.non_remote_activities_worker.feature.Impl.class,
           nexus.async_cancellation.feature.Impl.class,
           nexus.async_success.feature.Impl.class,
-          nexus.parallel_operations.feature.Impl.class,
+          nexus.parallel_sync_operations.feature.Impl.class,
           nexus.sync_operation_error.feature.Impl.class,
           nexus.sync_success.feature.Impl.class,
           query.successful_query.feature.Impl.class,

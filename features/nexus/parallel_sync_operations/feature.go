@@ -1,4 +1,4 @@
-package parallel_operations
+package parallel_sync_operations
 
 import (
 	"context"
@@ -48,6 +48,20 @@ func Workflow(ctx workflow.Context, endpoint string) (string, error) {
 	return strings.Join(results, " "), nil
 }
 
+func scheduledWorkflowTaskIDs(hist client.HistoryEventIterator) ([]int64, error) {
+	var taskIDs []int64
+	for hist.HasNext() {
+		ev, err := hist.Next()
+		if err != nil {
+			return nil, err
+		}
+		if attrs := ev.GetNexusOperationScheduledEventAttributes(); attrs != nil {
+			taskIDs = append(taskIDs, attrs.WorkflowTaskCompletedEventId)
+		}
+	}
+	return taskIDs, nil
+}
+
 var Feature = harness.Feature{
 	Workflows:       Workflow,
 	NexusServices:   Service,
@@ -65,7 +79,6 @@ var Feature = harness.Feature{
 			return harness.CountEvents(hist, func(ev *historypb.HistoryEvent) bool { return ev.EventType == t })
 		}
 		expected := map[enumspb.EventType]int{
-			enumspb.EVENT_TYPE_NEXUS_OPERATION_SCHEDULED: len(names),
 			enumspb.EVENT_TYPE_NEXUS_OPERATION_COMPLETED: len(names),
 			enumspb.EVENT_TYPE_NEXUS_OPERATION_STARTED:   0,
 		}
@@ -78,6 +91,19 @@ var Feature = harness.Feature{
 				return fmt.Errorf("expected %v %v events, got %v", want, t, got)
 			}
 		}
-		return nil
+		hist := runner.Client.GetWorkflowHistory(ctx, run.GetID(), run.GetRunID(), false, enumspb.HISTORY_EVENT_FILTER_TYPE_ALL_EVENT)
+		scheduledBy, err := scheduledWorkflowTaskIDs(hist)
+		if err != nil {
+			return err
+		}
+		if len(scheduledBy) != len(names) {
+			return fmt.Errorf("expected %v scheduled operations, got %v", len(names), len(scheduledBy))
+		}
+		for _, id := range scheduledBy {
+			if id != scheduledBy[0] {
+				return fmt.Errorf("expected all operations to be scheduled by a single workflow task, got tasks %v", scheduledBy)
+			}
+		}
+		return runner.CheckHistoryDefault(ctx, run)
 	},
 }

@@ -7,13 +7,13 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.32.14
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.99.0
 	github.com/google/uuid v1.6.0
-	github.com/nexus-rpc/sdk-go v0.6.0
+	github.com/nexus-rpc/sdk-go v0.7.0
 	github.com/stretchr/testify v1.11.1
 	github.com/temporalio/features/harness/go v0.0.0-00010101000000-000000000000
 	github.com/uber-go/tally/v4 v4.1.1
 	github.com/urfave/cli/v2 v2.3.0
 	go.temporal.io/api v1.63.4
-	go.temporal.io/sdk v1.45.0
+	go.temporal.io/sdk v1.48.0
 	go.temporal.io/sdk/contrib/aws/s3driver v0.1.1
 	go.temporal.io/sdk/contrib/aws/s3driver/awssdkv2 v0.1.1
 	go.temporal.io/sdk/contrib/gcp/gcsdriver v0.1.0

@@ -64,6 +64,8 @@ jobs:
       - run: go test ./cmd
       - run: go test ./...
         working-directory: harness/go
+      - run: go build ./...
+        working-directory: features
 
       - name: Get the latest release version
         id: latest_version

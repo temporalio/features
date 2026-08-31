@@ -178,7 +178,16 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 	if len(options.Includes) > 0 {
 		includes = options.Includes
 	}
-	excludes := []string{"../node_modules", "../harness/go", "../harness/java"}
+	// The external storage snippets depend on the @temporalio/external-storage-*
+	// driver packages, which are not part of the package.json generated above and
+	// are versioned independently of the SDK under test. They are type-checked by
+	// the root tsconfig.json in the `build-typescript` CI job instead.
+	excludes := []string{
+		"../node_modules",
+		"../harness/go",
+		"../harness/java",
+		"../features/snippets/external_storage",
+	}
 	if len(options.Excludes) > 0 {
 		excludes = options.Excludes
 	}

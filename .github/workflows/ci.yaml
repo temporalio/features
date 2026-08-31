@@ -144,6 +144,8 @@ jobs:
         run: >
           npm update
           @temporalio/activity @temporalio/client @temporalio/common
+          @temporalio/external-storage-gcs @temporalio/external-storage-gcs-google-sdk
+          @temporalio/external-storage-s3 @temporalio/external-storage-s3-aws-sdk
           @temporalio/plugin @temporalio/proto @temporalio/worker @temporalio/workflow
       - run: npm run build
       - run: npm run lint

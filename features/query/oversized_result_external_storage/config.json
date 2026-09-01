@@ -1,0 +1,11 @@
+{
+  "go": {
+    "minVersion": "1.48.0"
+  },
+  "py": {
+    "minVersion": "1.24.0"
+  },
+  "ts": {
+    "minVersion": "1.21.0"
+  }
+}

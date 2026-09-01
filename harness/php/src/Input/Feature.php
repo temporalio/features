@@ -10,6 +10,7 @@ final class Feature
         public string $dir,
         public string $namespace,
         public string $taskQueue,
+        public ?string $nexusEndpoint = null,
     ) {
     }
 }

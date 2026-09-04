@@ -20,3 +20,7 @@ result
 
 `metadata.encoding = toBinary("json/protobuf")`
 `metadata.messageType = toBinary("temporal.api.common.v1.DataBlob")` (used by languages that cannot get a parameter's type at runtime)
+
+Rust SDK 0.7 does not provide a `json/protobuf` payload converter. The Rust feature therefore
+uses a minimal local converter and verifies its history payload against `payload.json`, an
+independent fixture for the Temporal `json/protobuf` wire contract.

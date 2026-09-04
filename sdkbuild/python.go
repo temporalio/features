@@ -123,10 +123,6 @@ requires-python = "~=3.10"
 
 	// Create __init__.py files in feature directories to make them proper Python packages
 	if _, err := os.Stat(filepath.Join(dir, "../features")); err == nil {
-		if err := executeCommand("find", "../features", "-type", "d", "-exec", "touch", "{}/__init__.py", ";"); err != nil {
-			return nil, fmt.Errorf("failed creating __init__.py files: %w", err)
-		}
-
 		if err := executeCommand("uv", "run", "mypy", "--explicit-package-bases", "../features"); err != nil {
 			return nil, fmt.Errorf("failed type checking: %w", err)
 		}

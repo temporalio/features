@@ -39,19 +39,20 @@ public static class App
         name: "--tls-server-name",
         description: "TLS server name to use for verification");
 
-    private static readonly Argument<List<(string, string)>> featuresArgument = new(
+    private static readonly Argument<
+        List<(string Dir, string TaskQueue, string? NexusEndpoint)>> featuresArgument = new(
         name: "features",
         parse: result => result.Tokens.Select(token =>
         {
-            var pieces = token.Value.Split(':', 2);
-            if (pieces.Length != 2)
+            var pieces = token.Value.Split(':', 3);
+            if (pieces.Length < 2)
             {
                 throw new ArgumentException("Feature must be dir + ':' + task queue");
             }
 
-            return (pieces[0], pieces[1]);
+            return (pieces[0], pieces[1], pieces.Length == 3 ? pieces[2] : null);
         }).ToList(),
-        description: "Features as dir + ':' + task queue")
+        description: "Features as dir + ':' + task queue + optional ':' + Nexus endpoint")
     { Arity = ArgumentArity.OneOrMore };
 
     /// <summary>
@@ -119,7 +120,8 @@ public static class App
 
         // Go over each feature, calling the runner for it
         var failures = new List<string>();
-        foreach (var (dir, taskQueue) in ctx.ParseResult.GetValueForArgument(featuresArgument))
+        foreach (var (dir, taskQueue, nexusEndpoint) in
+            ctx.ParseResult.GetValueForArgument(featuresArgument))
         {
             var feature =
                 PreparedFeature.AllFeatures.SingleOrDefault(feature => feature.Dir == dir) ??
@@ -129,6 +131,7 @@ public static class App
                 await new Runner(
                     clientOptions,
                     taskQueue,
+                    nexusEndpoint,
                     feature,
                     loggerFactory,
                     ctx.ParseResult.GetValueForOption(httpProxyUrlOption)

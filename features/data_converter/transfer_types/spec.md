@@ -194,5 +194,5 @@ TransferTypeConverters should specify a non-null transfer type.
 
 ### Failure conversion
 
-Failure conversion should use the transfer converter aware payload converter before
+Failure conversion should use the transfer converter before
 applying the configured payload converter to failure details.

@@ -4,7 +4,7 @@ Last updated: 2026-09-02
 
 ## Motivation
 
-Transfer Type Conversion provides a way to translate to and from a Payload serialization friendly format, e.g. a protobuf object, to a more ergonomic or language idiomatic type.
+Transfer Type Conversion provides a way to translate between a Payload serialization friendly format, e.g. a protobuf object, and a more ergonomic or language-idiomatic type.
 TransferTypeConverters are added to the API facing type and specify the target "transfer type" which is then used by the configured Payload Converter serialize to/from a Payload.
 
 For example, given the protobuf definition

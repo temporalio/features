@@ -30,7 +30,9 @@ async def run():
         "--tls-server-name", help="TLS server name to use for verification (optional)"
     )
     parser.add_argument(
-        "features", help="Features as dir + ':' + task queue", nargs="+"
+        "features",
+        help="Features as dir + ':' + task queue + optional ':' + Nexus endpoint",
+        nargs="+",
     )
     args = parser.parse_args()
 
@@ -67,8 +69,14 @@ async def run():
     # Run each feature
     failed_features = []
     for rel_dir_and_task_queue in cast(List[str], args.features):
-        # Split rel dir and task queue
-        rel_dir, _, task_queue = rel_dir_and_task_queue.partition(":")
+        # Features that request Nexus include a pre-created endpoint after the task queue.
+        pieces = rel_dir_and_task_queue.split(":", 2)
+        if len(pieces) < 2:
+            raise ValueError(
+                f"Feature argument is missing its task queue: {rel_dir_and_task_queue}"
+            )
+        rel_dir, task_queue = pieces[:2]
+        nexus_endpoint = pieces[2] if len(pieces) == 3 else None
         if rel_dir not in rel_dirs:
             raise ValueError(f"Cannot find feature file in {rel_dir}")
         # Import
@@ -82,6 +90,7 @@ async def run():
                 address=args.server,
                 namespace=args.namespace,
                 task_queue=task_queue,
+                nexus_endpoint=nexus_endpoint,
                 feature=features[rel_dir],
                 tls_config=tls_config,
                 http_proxy_url=args.http_proxy_url if args.http_proxy_url else None,

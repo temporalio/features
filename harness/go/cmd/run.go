@@ -86,7 +86,7 @@ type RunFeature struct {
 	Dir       string
 	TaskQueue string
 	// NexusEndpoint is the pre-created Nexus endpoint name targeting this feature's namespace
-	// and task queue. Set by the top-level runner for features under features/nexus.
+	// and task queue. The top-level runner sets it when the feature requests an endpoint.
 	NexusEndpoint string
 	Config        RunFeatureConfig
 	VariantName   string
@@ -102,6 +102,7 @@ func (r RunFeature) SummaryName() string {
 // RunFeatureConfig is config from config.json.
 type RunFeatureConfig struct {
 	NoWorkflow               bool               `json:"noWorkflow"`
+	NeedsNexusEndpoint       bool               `json:"needsNexusEndpoint"`
 	Go                       RunFeatureConfigGo `json:"go"`
 	ExpectUnauthedProxyCount int                `json:"expectUnauthedProxyCount"`
 	ExpectAuthedProxyCount   int                `json:"expectAuthedProxyCount"`

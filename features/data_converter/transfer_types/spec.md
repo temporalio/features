@@ -73,7 +73,7 @@ else:
 
 ## Behaviors
 
-### Conversion wraps configured payload converters
+### Conversion Flow
 
 #### Encoding
 
@@ -144,13 +144,15 @@ sequenceDiagram
 3. Ask the configured payload converter to decode the payload as the transfer type.
 4. Invoke the transfer converter to reconstruct the requested model value.
 
-### Top-level values only
+### SDK Behavior
+
+#### Top-level values only
 
 Transfer conversion only applies to top-level values and does not recursively inspect fields for transfer types.
 
 Nested serialization is the responsibility of the configured payload converter.
 
-### At most one transfer step
+#### At most one transfer step
 
 Transfer type converters are applied at most once. For example, given:
 
@@ -162,7 +164,7 @@ When encoding type `A`, the SDK does not inspect the output type `B` for a trans
 
 Similarly when decoding, the SDK will convert using only the transfer type encoder registered on the requested model type.
 
-### TransferTypeConverter Selection
+#### TransferTypeConverter Selection
 
 Converting to the transfer type should use the type hint for the target execution rather than the value's runtime type. For example:
 
@@ -188,11 +190,11 @@ A transfer converter declaration applies only to the exact model type on which i
 
 A subclass or other derived type can declare its own converter independently of its base type.
 
-### TransferType Nullability Converter
+#### Transfer Type Nullability
 
 TransferTypeConverters should specify a non-null transfer type.
 
-### Failure conversion
+#### Failure conversion
 
 Failure conversion should use the transfer converter before
 applying the configured payload converter to failure details.

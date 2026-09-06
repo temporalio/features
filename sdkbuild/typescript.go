@@ -151,7 +151,7 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
   },
   "pnpm": {
 		"overrides": {
-			"protobufjs": "7.5.1"
+			"protobufjs": "7.5.2"
 		}
   }
 }`

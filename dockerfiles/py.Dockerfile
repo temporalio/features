@@ -28,6 +28,7 @@ COPY features ./features
 COPY harness ./harness
 COPY sdkbuild ./sdkbuild
 COPY cmd ./cmd
+COPY dockerfiles/dynamicconfig ./dockerfiles/dynamicconfig
 COPY go.mod go.sum main.go ./
 
 # Build the CLI
@@ -50,6 +51,7 @@ RUN CGO_ENABLED=0 ./temporal-features prepare --lang py --dir prepared --version
 FROM python:3.11-slim-bullseye
 
 COPY --from=build /app/temporal-features /app/temporal-features
+COPY --from=build /app/dockerfiles/dynamicconfig /app/dockerfiles/dynamicconfig
 COPY --from=build /app/features /app/features
 COPY --from=build /app/prepared /app/prepared
 COPY --from=build /app/harness/python /app/harness/python

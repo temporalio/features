@@ -21,6 +21,7 @@ COPY cmd ./cmd
 COPY harness ./harness
 COPY features ./features
 COPY sdkbuild ./sdkbuild
+COPY dockerfiles/dynamicconfig ./dockerfiles/dynamicconfig
 
 # Build the CLI
 RUN CGO_ENABLED=0 /usr/local/go/bin/go build -o temporal-features
@@ -43,6 +44,7 @@ FROM eclipse-temurin:23
 ENV GRADLE_USER_HOME="/gradle"
 
 COPY --from=build /app/temporal-features /app/temporal-features
+COPY --from=build /app/dockerfiles/dynamicconfig /app/dockerfiles/dynamicconfig
 COPY --from=build /app/features /app/features
 COPY --from=build /app/prepared /app/prepared
 COPY --from=build /app/harness/java /app/harness/java

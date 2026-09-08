@@ -24,6 +24,7 @@ COPY features ./features
 COPY harness ./harness
 COPY sdkbuild ./sdkbuild
 COPY cmd ./cmd
+COPY dockerfiles/dynamicconfig ./dockerfiles/dynamicconfig
 COPY go.mod go.sum main.go ./
 
 # Build the CLI
@@ -46,6 +47,7 @@ RUN CGO_ENABLED=0 ./temporal-features prepare --lang ts --dir prepared --version
 FROM node:22-bullseye
 
 COPY --from=build /app/temporal-features /app/temporal-features
+COPY --from=build /app/dockerfiles/dynamicconfig /app/dockerfiles/dynamicconfig
 COPY --from=build /app/features /app/features
 COPY --from=build /app/prepared /app/prepared
 COPY --from=build /app/${REPO_DIR_OR_PLACEHOLDER} /app/${REPO_DIR_OR_PLACEHOLDER}

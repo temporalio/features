@@ -3,7 +3,6 @@ import { Feature } from '@temporalio/harness';
 import * as proto from '@temporalio/proto';
 
 const expectedResult = proto.temporal.api.common.v1.DataBlob.create({
-  encodingType: proto.temporal.api.enums.v1.EncodingType.ENCODING_TYPE_UNSPECIFIED,
   data: new Uint8Array([0xde, 0xad, 0xbe, 0xef]),
 });
 

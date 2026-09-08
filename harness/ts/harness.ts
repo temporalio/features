@@ -13,7 +13,13 @@ import {
 } from '@temporalio/client';
 import * as proto from '@temporalio/proto';
 import { DataConverter, UntypedActivities, Workflow, WorkflowResultType } from '@temporalio/common';
-import { Worker, WorkerOptions, NativeConnection, NativeConnectionOptions } from '@temporalio/worker';
+import {
+  IllegalStateError,
+  Worker,
+  WorkerOptions,
+  NativeConnection,
+  NativeConnectionOptions,
+} from '@temporalio/worker';
 import { ConnectionInjectorInterceptor } from './activity-interceptors';
 import type { ReplaceNested } from './type-helpers';
 
@@ -282,7 +288,13 @@ export class Runner<W extends Workflow, A extends UntypedActivities> {
   }
 
   async close(): Promise<void> {
-    this._worker.shutdown();
+    try {
+      this._worker.shutdown();
+    } catch (err) {
+      if (!(err instanceof IllegalStateError && err.message.includes('Not running'))) {
+        throw err;
+      }
+    }
     try {
       await this._workerRunPromise;
     } finally {

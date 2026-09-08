@@ -55,12 +55,17 @@ jobs:
     steps:
       - name: Print build information
         run: 'echo head_ref: "$GITHUB_HEAD_REF", ref: "$GITHUB_REF", os: ${{ matrix.os }}'
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
         with:
           go-version: '^1.21'
 
       - run: go build -o temporal-features
+      - run: go test ./cmd
+      - run: go test ./...
+        working-directory: harness/go
+      - run: go build ./...
+        working-directory: features
 
       - name: Get the latest release version
         id: latest_version
@@ -131,7 +136,7 @@ jobs:
     steps:
       - name: Print build information
         run: 'echo head_ref: "$GITHUB_HEAD_REF", ref: "$GITHUB_REF", os: ${{ matrix.os }}'
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
 
       - run: npm ci
@@ -139,6 +144,8 @@ jobs:
         run: >
           npm update
           @temporalio/activity @temporalio/client @temporalio/common
+          @temporalio/external-storage-gcs @temporalio/external-storage-gcs-google-sdk
+          @temporalio/external-storage-s3 @temporalio/external-storage-s3-aws-sdk
           @temporalio/plugin @temporalio/proto @temporalio/worker @temporalio/workflow
       - run: npm run build
       - run: npm run lint
@@ -152,7 +159,7 @@ jobs:
     steps:
       - name: Print build information
         run: 'echo head_ref: "$GITHUB_HEAD_REF", ref: "$GITHUB_REF", os: ${{ matrix.os }}'
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: '3.10'
@@ -172,7 +179,7 @@ jobs:
     steps:
       - name: Print build information
         run: 'echo head_ref: "$GITHUB_HEAD_REF", ref: "$GITHUB_REF", os: ${{ matrix.os }}'
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - name: Setup PHP 8.2
         uses: shivammathur/setup-php@accd6127cb78bee3e8082180cb391013d204ef9f # v2
         with:
@@ -189,7 +196,7 @@ jobs:
     steps:
       - name: Print build information
         run: 'echo head_ref: "$GITHUB_HEAD_REF", ref: "$GITHUB_REF", os: ${{ matrix.os }}'
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
       - uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
@@ -208,7 +215,7 @@ jobs:
     steps:
       - name: Print build information
         run: 'echo head_ref: "$GITHUB_HEAD_REF", ref: "$GITHUB_REF", os: ${{ matrix.os }}'
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5
       - run: dotnet build
       - run: dotnet test
@@ -222,7 +229,7 @@ jobs:
     steps:
       - name: Print build information
         run: 'echo head_ref: "$GITHUB_HEAD_REF", ref: "$GITHUB_REF", os: ${{ matrix.os }}'
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - name: Setup Ruby
         uses: ruby/setup-ruby@ba696adf55506673e48342a66e30f1f53cadeae0 # v1
         with:

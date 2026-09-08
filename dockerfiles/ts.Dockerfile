@@ -1,5 +1,5 @@
 # Build in a full featured container
-FROM node:22-bullseye AS build
+FROM node:22-bookworm AS build
 
 RUN apt-get update \
   && DEBIAN_FRONTEND=noninteractive \
@@ -44,7 +44,7 @@ RUN CGO_ENABLED=0 ./temporal-features prepare --lang ts --dir prepared --version
 ################################################################################
 
 # Copy the CLI and prepared feature to a distroless "run" container
-FROM node:22-bullseye
+FROM node:22-bookworm
 
 COPY --from=build /app/temporal-features /app/temporal-features
 COPY --from=build /app/dockerfiles/dynamicconfig /app/dockerfiles/dynamicconfig

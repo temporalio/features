@@ -51,6 +51,12 @@ interception point but permits policies that apply to all System Nexus
 operations. For example, an authentication proxy may require headers that do
 not belong on the server-facing System Nexus request.
 
+## Adding an operation
+
+Adding a System Nexus operation requires generated transfer types, a
+serialization-context factory, a discoverable protobuf service and method
+descriptor, and payload-visitor coverage for every nested payload field.
+
 ## Language-specific considerations
 
 ### TypeScript
@@ -66,9 +72,3 @@ The serialization-context factory is defined for the user model type, while
 the transfer type is what remains after leaving the isolate. TypeScript
 therefore stores the derived context in `__temporal_system_context` metadata on
 the JSON envelope so it can be reused outside the isolate.
-
-## Adding an operation
-
-Adding a System Nexus operation requires generated transfer types, a
-serialization-context factory, a discoverable protobuf service and method
-descriptor, and payload-visitor coverage for every nested payload field.

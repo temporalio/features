@@ -1,5 +1,5 @@
 # Build in a full featured container
-FROM python:3.11-bullseye as build
+FROM python:3.11-bookworm as build
 
 # Install protobuf compiler
 RUN apt-get update \
@@ -48,7 +48,7 @@ COPY ./${REPO_DIR_OR_PLACEHOLDER} ./${REPO_DIR_OR_PLACEHOLDER}
 RUN CGO_ENABLED=0 ./temporal-features prepare --lang py --dir prepared --version "$SDK_VERSION"
 
 # Copy the CLI and prepared feature to a smaller container for running
-FROM python:3.11-slim-bullseye
+FROM python:3.11-slim-bookworm
 
 COPY --from=build /app/temporal-features /app/temporal-features
 COPY --from=build /app/dockerfiles/dynamicconfig /app/dockerfiles/dynamicconfig

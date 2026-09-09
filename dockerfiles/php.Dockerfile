@@ -1,5 +1,5 @@
 # Build in a full featured container
-FROM php:8.2-cli as build
+FROM php:8.2-cli-bookworm as build
 
 # Install protobuf compiler
 RUN apt-get update \

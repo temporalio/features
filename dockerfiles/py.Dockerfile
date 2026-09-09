@@ -5,7 +5,7 @@ FROM python:3.11-bookworm as build
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive \
     apt-get install --no-install-recommends --assume-yes \
-    protobuf-compiler=3.12.4* libprotobuf-dev=3.12.4*
+    protobuf-compiler=3.21.12* libprotobuf-dev=3.21.12*
 
 # Get go compiler
 ARG PLATFORM=amd64

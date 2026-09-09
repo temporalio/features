@@ -1,55 +1,28 @@
 # System Nexus
 
-System Nexus operations are ordinary Nexus operations that target the reserved
-`__temporal_system` endpoint. The Temporal server handles them directly rather
-than routing them to a user-defined Nexus handler.
+System Nexus operations are normal nexus operations which happen to target the `__temporal_system` endpoint. They are handled by the server rather than a user's own defined nexus handler.
 
 ## Serialization
 
-The System Nexus operation input (the *System Nexus envelope*) must remain
-readable by the server. SDKs therefore cannot apply their user data converter
-to the envelope as a whole: its outer representation must reach the server as
-binary protobuf. The encoded envelope is marked with
-`__temporal_system_payload` metadata so SDK infrastructure can recognize it in
-later processing.
+Because the operations need to be read by the server, the nexus operation's input, which we'll call the "system nexus envelope" needs to be handled uniquely. It can't be serialized with the user's data converter (payload converter, codec, or external storage) because the server would then be unable to read it. Instead, it needs to reach the server specifically encoded with binary protobuf. It should additionally have `__temporal_system_payload` metadata for use in later recognition.
 
-### Inner payloads
+### Inner Payloads
 
-Payloads contained within the envelope—for example, Signal-with-Start input
-arguments, memo, headers, and search attributes—must use the application's
-data converter so the target Workflow can consume them.
+The payloads which are contained within the envelope however, like the input arguments, memos, etc in SignalWithStart, do need to use the user's dataconverter so that they are usable when they reach the target workflow. To accomplish this, anything that processes payloads needs to be updated to handle the recognition and handling of system nexus envelopes. This includes codec application and external storage today. Upon reaching a system nexus envelope, the code (usually a generic visitor for code sharing) should recognize a system nexus envelope by its payload marker metadata. Instead of applying the current operation to it, it deserializes that payload, and uses generic payload visitation on the resulting protobuf object to apply the operation to all contained payloads instead. Then it reserializes the envelope.
 
-When an SDK processes payloads, it recognizes a System Nexus envelope by its
-payload marker. Instead of applying its operation to the outer envelope, it
-deserializes the envelope, applies generic payload visitation to all nested
-application payloads, and serializes the envelope again. This applies to
-payload codecs and external storage today.
+### Context
 
-### Serialization context
+Each system nexus operation could potentially need a different serialization context from each other, and often not that used for a normal nexus operation. For example, signal with start's internal user payloads must have the target workflow serialization context, so that they can be appropriately deserialized/decoded by the target workflow. For this reason, serialization context for system nexus operations must be derived from the operations themselves through generated code. Currently this is a function annotation which is given the operation input and must produce a serialization context.
 
-Each System Nexus operation can require a different serialization context, and
-that context can differ from an ordinary Nexus operation's context. For
-example, Signal-with-Start's nested payloads require the target Workflow's
-serialization context so the target can decode them.
+### Responses
 
-SDKs derive the context from the System Nexus operation through generated code.
-The current model is an operation annotation naming a function that receives
-the operation input and returns a serialization context.
+Responses to the system nexus operation will also be marked as system payloads. They will go through the same process and should use the same context as that used for its outgoing request.
 
 ## Interception
 
-Each System Nexus operation has two interception points with distinct purposes.
+Each system nexus operation needs two points of interception which serve different purposes. First, each operation has its own interception point specific to that operation, which receives the whole input request type. This gives access to the arguments/headers/etc which are received by the target, and should be used to implement tracing headers and most other interception behavior.
 
-The operation-specific interception point receives the complete generated
-request type. It exposes the arguments, headers, and other values delivered to
-the target and is the appropriate point for tracing propagation and most
-operation-specific interception behavior.
-
-The generic System Nexus interception point receives the outer Nexus-operation
-scheduling input. It is functionally equivalent to the ordinary generic Nexus
-interception point but permits policies that apply to all System Nexus
-operations. For example, an authentication proxy may require headers that do
-not belong on the server-facing System Nexus request.
+The second interception point is a generic one for all system nexus operations. This receives the actual outer nexus operation's input rather than the envelope. It is functionally equivalent to the existing nexus interception point, but distinguished because many interceptors may choose to do different things (tracing ones should usually log in the specific one rather than the generic one for instance). This is primarily important for a scenario such as needing to apply headers for an auth proxy. Any headers attached here would otherwise be rejected by the server today.
 
 ## Adding an operation
 
@@ -57,18 +30,10 @@ Adding a System Nexus operation requires generated transfer types, a
 serialization-context factory, a discoverable protobuf service and method
 descriptor, and payload-visitor coverage for every nested payload field.
 
-## Language-specific considerations
+## Language Specific Considerations
 
 ### TypeScript
 
-In TypeScript, creating the protobuf-binary envelope inside the Workflow
-isolate is difficult because protobufjs requires writes. The isolate therefore
-serializes the envelope with the normal JSON converter. Worker-side payload
-processing converts it to protobuf binary before it reaches the server. This
-conversion happens regardless of whether a payload codec or external storage
-is configured.
+In Typescript, it is difficult to actually create the proto binary envelope in the isolate due to read only considerations with the protobufjs library. Instead, the isolate serializes the envelope with the normal json converter, and then processing of that payload during codec/external storage application converts it to proto binary. Notably this happens and needs to happen regardless of the presence of a codec or external storage.
 
-The serialization-context factory is defined for the user model type, while
-the transfer type is what remains after leaving the isolate. TypeScript
-therefore stores the derived context in `__temporal_system_context` metadata on
-the JSON envelope so it can be reused outside the isolate.
+Additionally, the serialization context is not retrievable outside the isolate because the factory is defined as taking the user model type rather than the transfer type, which is what remains after leaving the isolate. For this reason, the json serialized envelope has an additional `__temporal_system_context` metadata which contains the serialization context so it can be reused outside the isolate.

@@ -56,7 +56,9 @@ async def start(runner: Runner) -> WorkflowHandle:
         memo={MEMO_KEY: MEMO_VALUE},
     )
 
-    assert await handle.query(Workflow.prefixed, QUERY_ARG) == QUERY_ARG + WORKFLOW_INPUT
+    assert (
+        await handle.query(Workflow.prefixed, QUERY_ARG) == QUERY_ARG + WORKFLOW_INPUT
+    )
     assert (
         await handle.execute_update(Workflow.suffixed, UPDATE_ARG)
         == WORKFLOW_INPUT + UPDATE_ARG
@@ -96,16 +98,18 @@ async def check_result(runner: Runner, handle: WorkflowHandle) -> None:
     accepted = sercontext.find_event(
         events,
         "WorkflowExecutionUpdateAccepted",
-        lambda e: e.event_type
-        == EventType.EVENT_TYPE_WORKFLOW_EXECUTION_UPDATE_ACCEPTED,
+        lambda e: (
+            e.event_type == EventType.EVENT_TYPE_WORKFLOW_EXECUTION_UPDATE_ACCEPTED
+        ),
     ).workflow_execution_update_accepted_event_attributes
     assert sercontext.first_signature(accepted.accepted_request.input.args) == expected
 
     update_completed = sercontext.find_event(
         events,
         "WorkflowExecutionUpdateCompleted",
-        lambda e: e.event_type
-        == EventType.EVENT_TYPE_WORKFLOW_EXECUTION_UPDATE_COMPLETED,
+        lambda e: (
+            e.event_type == EventType.EVENT_TYPE_WORKFLOW_EXECUTION_UPDATE_COMPLETED
+        ),
     ).workflow_execution_update_completed_event_attributes
     assert sercontext.first_signature(update_completed.outcome.success) == expected
 

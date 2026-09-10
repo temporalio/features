@@ -53,8 +53,7 @@ async def check_result(runner: Runner, handle: WorkflowHandle) -> None:
     child_started_in_parent = sercontext.find_event(
         parent_events,
         "ChildWorkflowExecutionStarted",
-        lambda e: e.event_type
-        == EventType.EVENT_TYPE_CHILD_WORKFLOW_EXECUTION_STARTED,
+        lambda e: e.event_type == EventType.EVENT_TYPE_CHILD_WORKFLOW_EXECUTION_STARTED,
     ).child_workflow_execution_started_event_attributes
     child_id = child_started_in_parent.workflow_execution.workflow_id
 
@@ -67,16 +66,19 @@ async def check_result(runner: Runner, handle: WorkflowHandle) -> None:
     initiated = sercontext.find_event(
         parent_events,
         "StartChildWorkflowExecutionInitiated",
-        lambda e: e.event_type
-        == EventType.EVENT_TYPE_START_CHILD_WORKFLOW_EXECUTION_INITIATED,
+        lambda e: (
+            e.event_type
+            == EventType.EVENT_TYPE_START_CHILD_WORKFLOW_EXECUTION_INITIATED
+        ),
     ).start_child_workflow_execution_initiated_event_attributes
     assert sercontext.first_signature(initiated.input) == expected
 
     child_completed = sercontext.find_event(
         parent_events,
         "ChildWorkflowExecutionCompleted",
-        lambda e: e.event_type
-        == EventType.EVENT_TYPE_CHILD_WORKFLOW_EXECUTION_COMPLETED,
+        lambda e: (
+            e.event_type == EventType.EVENT_TYPE_CHILD_WORKFLOW_EXECUTION_COMPLETED
+        ),
     ).child_workflow_execution_completed_event_attributes
     assert sercontext.first_signature(child_completed.result) == expected
 

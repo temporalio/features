@@ -96,7 +96,9 @@ public interface feature extends Feature {
               .getWorkflowExecutionStartedEventAttributes();
       var scheduled =
           SerContext.findEvent(
-                  history, "ActivityTaskScheduled", e -> e.hasActivityTaskScheduledEventAttributes())
+                  history,
+                  "ActivityTaskScheduled",
+                  e -> e.hasActivityTaskScheduledEventAttributes())
               .getActivityTaskScheduledEventAttributes();
 
       var expected =
@@ -111,7 +113,9 @@ public interface feature extends Feature {
 
       var completed =
           SerContext.findEvent(
-                  history, "ActivityTaskCompleted", e -> e.hasActivityTaskCompletedEventAttributes())
+                  history,
+                  "ActivityTaskCompleted",
+                  e -> e.hasActivityTaskCompletedEventAttributes())
               .getActivityTaskCompletedEventAttributes();
       assertEquals(expected, SerContext.firstSignature(completed.getResult()));
 

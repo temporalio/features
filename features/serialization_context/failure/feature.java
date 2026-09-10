@@ -87,7 +87,9 @@ public interface feature extends Feature, SimpleWorkflow {
               .getWorkflowExecutionStartedEventAttributes();
       var scheduled =
           SerContext.findEvent(
-                  history, "ActivityTaskScheduled", e -> e.hasActivityTaskScheduledEventAttributes())
+                  history,
+                  "ActivityTaskScheduled",
+                  e -> e.hasActivityTaskScheduledEventAttributes())
               .getActivityTaskScheduledEventAttributes();
 
       var activityFailed =

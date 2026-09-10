@@ -32,8 +32,9 @@ async def check_result(runner: Runner, handle: WorkflowHandle) -> None:
     continued = sercontext.find_event(
         first_run_events,
         "WorkflowExecutionContinuedAsNew",
-        lambda e: e.event_type
-        == EventType.EVENT_TYPE_WORKFLOW_EXECUTION_CONTINUED_AS_NEW,
+        lambda e: (
+            e.event_type == EventType.EVENT_TYPE_WORKFLOW_EXECUTION_CONTINUED_AS_NEW
+        ),
     ).workflow_execution_continued_as_new_event_attributes
     assert sercontext.first_signature(continued.input) == expected
 

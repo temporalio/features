@@ -89,7 +89,9 @@ async def check_result(runner: Runner, handle: WorkflowHandle) -> None:
         "ActivityTaskCompleted",
         lambda e: e.event_type == EventType.EVENT_TYPE_ACTIVITY_TASK_COMPLETED,
     ).activity_task_completed_event_attributes
-    assert sercontext.first_signature(completed.result) == sercontext.activity_signature(
+    assert sercontext.first_signature(
+        completed.result
+    ) == sercontext.activity_signature(
         runner.namespace,
         info.workflow_id,
         info.workflow_type,

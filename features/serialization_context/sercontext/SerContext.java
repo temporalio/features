@@ -80,7 +80,8 @@ public final class SerContext {
 
   public static DataConverter dataConverter() {
     return new CodecDataConverter(
-        DefaultDataConverter.newDefaultInstance().withFailureConverter(new SigningFailureConverter()),
+        DefaultDataConverter.newDefaultInstance()
+            .withFailureConverter(new SigningFailureConverter()),
         Collections.singletonList(new SigningCodec()));
   }
 

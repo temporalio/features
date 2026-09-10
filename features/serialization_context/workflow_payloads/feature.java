@@ -142,8 +142,7 @@ public interface feature extends Feature {
                   "WorkflowExecutionUpdateCompleted",
                   e -> e.hasWorkflowExecutionUpdateCompletedEventAttributes())
               .getWorkflowExecutionUpdateCompletedEventAttributes();
-      assertEquals(
-          expected, SerContext.firstSignature(updateCompleted.getOutcome().getSuccess()));
+      assertEquals(expected, SerContext.firstSignature(updateCompleted.getOutcome().getSuccess()));
     }
 
     @Override

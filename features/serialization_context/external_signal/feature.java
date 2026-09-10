@@ -90,8 +90,7 @@ public interface feature extends Feature {
 
       var run = runner.executeSingleWorkflow(null, receiverId(runner));
 
-      var receiverStub =
-          runner.client.newUntypedWorkflowStub(receiverExecution, Optional.empty());
+      var receiverStub = runner.client.newUntypedWorkflowStub(receiverExecution, Optional.empty());
       assertEquals(SIGNAL_DATA, receiverStub.getResult(String.class));
       return run;
     }

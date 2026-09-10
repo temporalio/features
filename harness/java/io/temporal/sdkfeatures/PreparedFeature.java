@@ -37,6 +37,7 @@ public class PreparedFeature {
           serialization_context.activity_payloads.feature.Impl.class,
           serialization_context.async_activity_completion.feature.Impl.class,
           serialization_context.child_workflow_payloads.feature.Impl.class,
+          serialization_context.child_workflow_payloads_default_id.feature.Impl.class,
           serialization_context.continue_as_new.feature.Impl.class,
           serialization_context.external_signal.feature.Impl.class,
           serialization_context.failure.feature.Impl.class,

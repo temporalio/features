@@ -37,9 +37,9 @@ class Workflow:
 
     @workflow.run
     async def run(self, target_id: str) -> str:
-        await workflow.get_external_workflow_handle_for(
-            Receiver.run, target_id
-        ).signal(Receiver.external, SIGNAL_DATA)
+        await workflow.get_external_workflow_handle_for(Receiver.run, target_id).signal(
+            Receiver.external, SIGNAL_DATA
+        )
         return target_id
 
 
@@ -77,8 +77,10 @@ async def check_result(runner: Runner, handle: WorkflowHandle) -> None:
     initiated = sercontext.find_event(
         sender_events,
         "SignalExternalWorkflowExecutionInitiated",
-        lambda e: e.event_type
-        == EventType.EVENT_TYPE_SIGNAL_EXTERNAL_WORKFLOW_EXECUTION_INITIATED,
+        lambda e: (
+            e.event_type
+            == EventType.EVENT_TYPE_SIGNAL_EXTERNAL_WORKFLOW_EXECUTION_INITIATED
+        ),
     ).signal_external_workflow_execution_initiated_event_attributes
     assert sercontext.first_signature(initiated.input) == expected
 

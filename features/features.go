@@ -52,7 +52,6 @@ import (
 	serialization_context_continue_as_new "github.com/temporalio/features/features/serialization_context/continue_as_new"
 	serialization_context_external_signal "github.com/temporalio/features/features/serialization_context/external_signal"
 	serialization_context_failure "github.com/temporalio/features/features/serialization_context/failure"
-	serialization_context_local_activity_payloads "github.com/temporalio/features/features/serialization_context/local_activity_payloads"
 	serialization_context_workflow_payloads "github.com/temporalio/features/features/serialization_context/workflow_payloads"
 	signal_external "github.com/temporalio/features/features/signal/external"
 	telemetry_metrics "github.com/temporalio/features/features/telemetry/metrics"
@@ -124,7 +123,6 @@ func init() {
 		serialization_context_continue_as_new.Feature,
 		serialization_context_external_signal.Feature,
 		serialization_context_failure.Feature,
-		serialization_context_local_activity_payloads.Feature,
 		serialization_context_workflow_payloads.Feature,
 		signal_external.Feature,
 		telemetry_metrics.Feature,

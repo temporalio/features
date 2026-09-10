@@ -17,11 +17,8 @@ Steps:
 
 Not implemented for TypeScript: the SDK has no local activities.
 
-## Known Go SDK gap
-
-This feature currently fails on the Go SDK. `WithLocalActivityTask` builds the
-local activity environment from the worker's plain data converter instead of
-`ExecuteLocalActivityParams.DataConverter`, so the result is encoded without any
-context, while `ExecuteLocalActivity` leaves the future on the workflow context,
-so the same payload is decoded as workflow scoped. Any context aware converter
-therefore breaks local activities.
+Not implemented for Go: the SDK built the local activity environment from the
+worker's plain data converter, so the result was encoded without any context and
+then decoded as workflow scoped. temporalio/sdk-go#2562 fixes this. Add
+`feature.go` back, together with its entry in `features/features.go`, once that
+fix is in a release.

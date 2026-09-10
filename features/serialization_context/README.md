@@ -31,8 +31,8 @@ can never decode under a context derived from them.
 
 ## Language notes
 
-- **Go** — `local_activity_payloads` fails: the SDK encodes the local activity
-  result with the plain worker converter and decodes it with the workflow
+- **Go** — no `local_activity_payloads`: the SDK encoded the local activity
+  result with the plain worker converter and decoded it with the workflow
   context. See that feature's README.
 - **Python** — the workflow side of an activity context only carries an activity
   ID when the workflow sets one explicitly, so the features that schedule

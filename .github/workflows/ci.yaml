@@ -99,11 +99,9 @@ jobs:
           fi
           echo "java_latest=$java_latest" >> $GITHUB_OUTPUT
 
+          # Temporary: harness/php/composer.json pins the SDK to a branch, so an
+          # empty version keeps that pin. Restore the lookup once the fix ships.
           php_latest="$INPUT_PHP_SDK_VERSION"
-          if [ -z "$php_latest" ]; then
-            php_latest=$(./temporal-features latest-sdk-version --lang php)
-            echo "Derived latest PHP SDK release version: $php_latest"
-          fi
           echo "php_latest=$php_latest" >> $GITHUB_OUTPUT
 
           python_latest="$INPUT_PYTHON_SDK_VERSION"

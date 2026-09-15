@@ -4,7 +4,7 @@ System Nexus operations are normal nexus operations which happen to target the `
 
 ## Serialization
 
-Because the operations need to be read by the server, the nexus operation's input, which we'll call the "system nexus envelope" needs to be handled uniquely. It can't be serialized with the user's data converter (payload converter, codec, or external storage) because the server would then be unable to read it. Instead, it needs to reach the server specifically encoded with binary protobuf. It should additionally have `__temporal_system_payload` metadata for use in later recognition.
+Because the operations need to be read by the server, the nexus operation's input, which we'll call the "system nexus envelope" needs to be handled uniquely. It can't be serialized with the user's data converter (payload converter, codec, or external storage) because the server would then be unable to read it. Instead, it needs to reach the server specifically encoded with binary protobuf. It should additionally have `__temporal_system_payload = "true"` metadata for reasons that will become clear in the next section.
 
 ### Inner Payloads
 

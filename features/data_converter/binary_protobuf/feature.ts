@@ -2,14 +2,15 @@ import * as assert from 'assert';
 import { Feature } from '@temporalio/harness';
 import * as proto from '@temporalio/proto';
 
-// Inject Buffer and Uint8Array from the node context to the workflow context to workaround SDK bug
-// TODO(antlai-temporal) Remove when SDK bug is fixed
-const g = globalThis as any;
-g.Uint8Array = g.constructor.constructor('return globalThis.Uint8Array')();
-
 const expectedResult = proto.temporal.api.common.v1.DataBlob.create({
   data: new Uint8Array([0xde, 0xad, 0xbe, 0xef]),
 });
+
+// Do an encode/decode roundtrip to make sure our test expectations match exactly
+// what protobufjs 8 will produce (e.g. default values are omitted, etc.)
+const expectedResultOnWire = proto.temporal.api.common.v1.DataBlob.decode(
+  proto.temporal.api.common.v1.DataBlob.encode(expectedResult).finish(),
+);
 
 // An "echo" workflow
 export async function workflow(
@@ -29,7 +30,7 @@ export const feature = new Feature({
   async checkResult(runner, handle) {
     // verify client result is DataBlob `0xdeadbeef`
     const result = await handle.result();
-    assert.deepEqual(result, expectedResult);
+    assert.deepEqual(result, expectedResultOnWire);
 
     // get result payload of WorkflowExecutionCompleted event from workflow history
     const payload = await runner.getWorkflowResultPayload(handle);
@@ -44,7 +45,7 @@ export const feature = new Feature({
     assert.ok(payload.data);
     const resultInHistory = proto.temporal.api.common.v1.DataBlob.decode(payload.data);
 
-    assert.deepEqual(resultInHistory, expectedResult);
+    assert.deepEqual(resultInHistory, expectedResultOnWire);
 
     // get argument payload of WorkflowExecutionStarted event from workflow history
     const payloadArg = await runner.getWorkflowArgumentPayload(handle);

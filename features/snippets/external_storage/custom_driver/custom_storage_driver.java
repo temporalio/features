@@ -1,61 +1,94 @@
 import io.temporal.api.common.v1.Payload;
 import io.temporal.payload.storage.StorageDriver;
+import io.temporal.payload.storage.StorageDriverActivityInfo;
 import io.temporal.payload.storage.StorageDriverClaim;
 import io.temporal.payload.storage.StorageDriverRetrieveContext;
 import io.temporal.payload.storage.StorageDriverStoreContext;
+import io.temporal.payload.storage.StorageDriverTargetInfo;
+import io.temporal.payload.storage.StorageDriverWorkflowInfo;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 // @@@SNIPSTART java-custom-storage-driver
-class InMemoryStorageDriver implements StorageDriver {
-  private static final String CLAIM_KEY = "key";
+class LocalDiskStorageDriver implements StorageDriver {
+  private static final String CLAIM_PATH = "path";
 
-  private final ConcurrentMap<String, Payload> payloads = new ConcurrentHashMap<>();
+  private final Path storeDir;
+
+  LocalDiskStorageDriver(Path storeDir) {
+    this.storeDir = storeDir;
+  }
 
   @Override
   public String getName() {
-    return "in-memory-example";
+    return "local-disk";
   }
 
   @Override
   public String getType() {
-    return "example.in-memory";
+    return "local-disk";
   }
 
   @Override
   public CompletableFuture<List<StorageDriverClaim>> store(
-      StorageDriverStoreContext context, List<Payload> payloadsToStore) {
-    context.getCancellationToken().throwIfCancellationRequested();
+      StorageDriverStoreContext context, List<Payload> payloads) {
+    try {
+      context.getCancellationToken().throwIfCancellationRequested();
+      Path directory = storeDirectory(context);
+      Files.createDirectories(directory);
 
-    List<StorageDriverClaim> claims = new ArrayList<>();
-    for (Payload payload : payloadsToStore) {
-      String key = UUID.randomUUID().toString();
-      payloads.put(key, payload);
-      claims.add(new StorageDriverClaim(Map.of(CLAIM_KEY, key)));
+      List<StorageDriverClaim> claims = new ArrayList<>();
+      for (Payload payload : payloads) {
+        context.getCancellationToken().throwIfCancellationRequested();
+        Path file = directory.resolve(UUID.randomUUID() + ".bin");
+        Files.write(file, payload.toByteArray());
+        claims.add(new StorageDriverClaim(Map.of(CLAIM_PATH, file.toString())));
+      }
+      return CompletableFuture.completedFuture(claims);
+    } catch (IOException e) {
+      return failedFuture(new IllegalStateException("Could not write Payload", e));
     }
-    return CompletableFuture.completedFuture(claims);
   }
 
   @Override
   public CompletableFuture<List<Payload>> retrieve(
       StorageDriverRetrieveContext context, List<StorageDriverClaim> claims) {
-    context.getCancellationToken().throwIfCancellationRequested();
+    try {
+      context.getCancellationToken().throwIfCancellationRequested();
 
-    List<Payload> retrievedPayloads = new ArrayList<>();
-    for (StorageDriverClaim claim : claims) {
-      String key = claim.getClaimData().get(CLAIM_KEY);
-      Payload payload = payloads.get(key);
-      if (payload == null) {
-        return failedFuture(new IllegalArgumentException("No payload for claim " + key));
+      List<Payload> payloads = new ArrayList<>();
+      for (StorageDriverClaim claim : claims) {
+        context.getCancellationToken().throwIfCancellationRequested();
+        Path file = Paths.get(claim.getClaimData().get(CLAIM_PATH));
+        payloads.add(Payload.parseFrom(Files.readAllBytes(file)));
       }
-      retrievedPayloads.add(payload);
+      return CompletableFuture.completedFuture(payloads);
+    } catch (IOException e) {
+      return failedFuture(new IllegalStateException("Could not read Payload", e));
     }
-    return CompletableFuture.completedFuture(retrievedPayloads);
+  }
+
+  private Path storeDirectory(StorageDriverStoreContext context) {
+    StorageDriverTargetInfo target = context.getTarget();
+    if (target instanceof StorageDriverWorkflowInfo) {
+      StorageDriverWorkflowInfo workflow = (StorageDriverWorkflowInfo) target;
+      if (workflow.getId() != null) {
+        return storeDir.resolve(workflow.getNamespace()).resolve(workflow.getId());
+      }
+    } else if (target instanceof StorageDriverActivityInfo) {
+      StorageDriverActivityInfo activity = (StorageDriverActivityInfo) target;
+      if (activity.getId() != null) {
+        return storeDir.resolve(activity.getNamespace()).resolve(activity.getId());
+      }
+    }
+    return storeDir;
   }
 
   private static <T> CompletableFuture<T> failedFuture(Throwable error) {

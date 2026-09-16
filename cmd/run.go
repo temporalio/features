@@ -43,6 +43,7 @@ const (
 	summaryListenAddr               = "127.0.0.1:0"
 	FeaturePassed                   = "PASSED"
 	featureNamespaceCapabilitiesEnv = "FEATURE_NAMESPACE_CAPABILITIES"
+	devServerDownloadVersion        = "v1.8.3-server-1.32.0-162.0"
 )
 
 func runCmd() *cli.Command {
@@ -433,9 +434,10 @@ func (r *Runner) runBatch(ctx context.Context, batch runBatch) error {
 			return err
 		}
 		server, err := testsuite.StartDevServer(ctx, testsuite.DevServerOptions{
-			LogLevel:      "error",
-			ClientOptions: &client.Options{Namespace: config.Namespace},
-			ExtraArgs:     dynamicConfigArgs,
+			LogLevel:       "error",
+			ClientOptions:  &client.Options{Namespace: config.Namespace},
+			ExtraArgs:      dynamicConfigArgs,
+			CachedDownload: testsuite.CachedDownload{Version: devServerDownloadVersion},
 		})
 		if err != nil {
 			return fmt.Errorf("failed starting devserver: %w", err)

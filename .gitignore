@@ -25,6 +25,7 @@ features.sln
 # Build stuff
 bin
 obj
+target
 
 # VS Code config
 .vscode

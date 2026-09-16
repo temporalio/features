@@ -1,7 +1,6 @@
-package nexus.sync_success;
+package nexus.async_success;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.nexusrpc.Operation;
@@ -10,9 +9,13 @@ import io.nexusrpc.handler.OperationHandler;
 import io.nexusrpc.handler.OperationImpl;
 import io.nexusrpc.handler.ServiceImpl;
 import io.temporal.client.WorkflowOptions;
+import io.temporal.failure.ApplicationFailure;
+import io.temporal.nexus.Nexus;
+import io.temporal.nexus.WorkflowRunOperation;
 import io.temporal.sdkfeatures.Feature;
 import io.temporal.sdkfeatures.Run;
 import io.temporal.sdkfeatures.Runner;
+import io.temporal.worker.Worker;
 import io.temporal.workflow.NexusOperationOptions;
 import io.temporal.workflow.NexusServiceOptions;
 import io.temporal.workflow.Workflow;
@@ -28,7 +31,20 @@ public interface feature extends Feature {
   @Service
   interface TestService {
     @Operation
-    String syncOperation(String name);
+    String asyncOperation(String name);
+  }
+
+  @WorkflowInterface
+  interface HandlerWorkflow {
+    @WorkflowMethod
+    String handlerWorkflow(String name);
+  }
+
+  class HandlerWorkflowImpl implements HandlerWorkflow {
+    @Override
+    public String handlerWorkflow(String name) {
+      return "Hello, " + name + "!";
+    }
   }
 
   class Impl implements feature {
@@ -43,12 +59,23 @@ public interface feature extends Feature {
                       .build())
               .build();
       TestService stub = Workflow.newNexusServiceStub(TestService.class, serviceOptions);
-      return stub.syncOperation("world");
+      var handle = Workflow.startNexusOperation(stub::asyncOperation, "world");
+      var execution = handle.getExecution().get();
+      if (execution.getOperationToken().orElse("").isEmpty()) {
+        throw ApplicationFailure.newNonRetryableFailure(
+            "expected a non-empty operation token", "AssertionFailure");
+      }
+      return handle.getResult().get();
     }
 
     @Override
     public Object[] nexusServiceImplementations() {
       return new Object[] {new TestServiceImpl()};
+    }
+
+    @Override
+    public void prepareWorker(Worker worker) {
+      worker.registerWorkflowImplementationTypes(HandlerWorkflowImpl.class);
     }
 
     @Override
@@ -69,18 +96,16 @@ public interface feature extends Feature {
 
     @Override
     public void checkHistory(Runner runner, Run run) throws Exception {
-      // Assert that the sync operation transitioned straight from Scheduled to
-      // Completed with no Started event.
       var events = runner.getWorkflowHistory(run).getEventsList();
       assertTrue(
           events.stream().anyMatch(e -> e.hasNexusOperationScheduledEventAttributes()),
           "expected NexusOperationScheduled event in history");
       assertTrue(
+          events.stream().anyMatch(e -> e.hasNexusOperationStartedEventAttributes()),
+          "expected NexusOperationStarted event in history");
+      assertTrue(
           events.stream().anyMatch(e -> e.hasNexusOperationCompletedEventAttributes()),
           "expected NexusOperationCompleted event in history");
-      assertFalse(
-          events.stream().anyMatch(e -> e.hasNexusOperationStartedEventAttributes()),
-          "unexpected NexusOperationStarted event for sync operation");
       runner.checkCurrentAndPastHistories(run);
     }
   }
@@ -88,8 +113,17 @@ public interface feature extends Feature {
   @ServiceImpl(service = TestService.class)
   class TestServiceImpl {
     @OperationImpl
-    public OperationHandler<String, String> syncOperation() {
-      return OperationHandler.sync((ctx, details, name) -> "Hello, " + name + "!");
+    public OperationHandler<String, String> asyncOperation() {
+      return WorkflowRunOperation.fromWorkflowMethod(
+          (context, details, name) ->
+              Nexus.getOperationContext()
+                      .getWorkflowClient()
+                      .newWorkflowStub(
+                          HandlerWorkflow.class,
+                          WorkflowOptions.newBuilder()
+                              .setWorkflowId(details.getRequestId())
+                              .build())
+                  ::handlerWorkflow);
     }
   }
 }

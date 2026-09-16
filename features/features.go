@@ -32,6 +32,10 @@ import (
 	deployment_versioning_routing_with_ramp "github.com/temporalio/features/features/deployment_versioning/routing_with_ramp"
 	eager_activity_non_remote_activities_worker "github.com/temporalio/features/features/eager_activity/non_remote_activities_worker"
 	eager_workflow_successful_start "github.com/temporalio/features/features/eager_workflow/successful_start"
+	nexus_async_cancellation "github.com/temporalio/features/features/nexus/async_cancellation"
+	nexus_async_success "github.com/temporalio/features/features/nexus/async_success"
+	nexus_parallel_sync_operations "github.com/temporalio/features/features/nexus/parallel_sync_operations"
+	nexus_sync_operation_error "github.com/temporalio/features/features/nexus/sync_operation_error"
 	nexus_sync_success "github.com/temporalio/features/features/nexus/sync_success"
 	query_successful_query "github.com/temporalio/features/features/query/successful_query"
 	query_timeout_due_to_no_active_workers "github.com/temporalio/features/features/query/timeout_due_to_no_active_workers"
@@ -95,6 +99,10 @@ func init() {
 		deployment_versioning_routing_with_ramp.Feature,
 		eager_activity_non_remote_activities_worker.Feature,
 		eager_workflow_successful_start.Feature,
+		nexus_async_cancellation.Feature,
+		nexus_async_success.Feature,
+		nexus_parallel_sync_operations.Feature,
+		nexus_sync_operation_error.Feature,
 		nexus_sync_success.Feature,
 		query_successful_query.Feature,
 		query_timeout_due_to_no_active_workers.Feature,

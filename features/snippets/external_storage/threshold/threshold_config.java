@@ -6,7 +6,7 @@ class ThresholdConfigSnippet {
     // @@@SNIPSTART java-external-storage-threshold
     return ExternalStorage.newBuilder()
         .setDriver(driver)
-        .setPayloadSizeThreshold(512 * 1024)
+        .setPayloadSizeThreshold(0)
         .build();
     // @@@SNIPEND
   }

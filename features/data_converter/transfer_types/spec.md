@@ -69,9 +69,9 @@ else:
 - **Model value:** A value of the model type.
 - **Transfer type:** The serializer-facing type produced from a model value.
 - **Transfer value:** A value of the transfer type.
-- **Transfer type converter:** The conversion logic to map between the model type and the transfer type.
-
-We occasionally refer to "transfer type conversion" as "transfer conversion" for short.
+- **Transfer converter / transfer type converter:** The conversion logic to map between the model type and the transfer type.
+- **Transfer conversion / transfer type conversion:** The entire process of converting a model value to a transfer value and back again.
+- **Transfer-convertible types / transfer-type-convertible types:** Types that have an associated transfer type converter.
 
 ## Behaviors
 
@@ -174,21 +174,18 @@ TransferTypeConverters should specify a non-null transfer type.
 
 Failure conversion and memos should NOT use the transfer converter.
 
-## Potential Future Improvements
+### User Behavior
 
-This portion of the spec contains ideas that may improve the feature, but were decided to be out
-of scope at the time of writing the spec. Each section begins with a brief statement of why
-it was not included for now.
-
-### TransferTypeConverter Selection
+#### Subtyping
 
 > [!NOTE]
-> Supporting this across SDKs involves adding type hints to the encode path of DataConverters.
+> Supporting subtyping across SDKs involves adding type hints to the encode path of DataConverters.
 > Since this is an advanced feature and there is little expectation of regular use that would cause
 > the behavior this intends to address, this was decided to be moved to out of scope with
 > the potential of revisting later.
 
-Converting to the transfer type should use the type hint for the target execution rather than the value's runtime type. For example:
+We assume users don't extend transfer-convertible types with subtypes. Otherwise we would run into
+a problem:
 
 ```java
   // Given this workflow
@@ -200,14 +197,7 @@ Converting to the transfer type should use the type hint for the target executio
   workflow.run(value);
 ```
 
-Here the transfer type converter associated with `Animal` should be used to
-even if `Dog` also has a transfer type converter ensure decoding can match.
-If the type hint does not have an associated transfer type converter, the
-value is passed directly to the configured payload converter.
-
-Converting from the transfer type should also use the type hint for the target execution. If the type hint does not have an associated transfer type converter,
-the result of the configured payload converter should be used directly.
-
-A transfer converter declaration applies only to the exact model type on which it is declared. Declarations are not inherited from a base type.
-
-A subclass or other derived type can declare its own converter independently of its base type.
+Here the transfer type converter associated with `Animal` would need to be used,
+even if `Dog` also has a transfer type converter, to ensure decoding can match.
+But since we (currently) assume transfer-convertible types don't have subtypes, 
+SDKs are allowed to use the transfer converter associated with a model value's runtime type.

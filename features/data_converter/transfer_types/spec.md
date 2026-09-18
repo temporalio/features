@@ -71,6 +71,8 @@ else:
 - **Transfer value:** A value of the transfer type.
 - **Transfer type converter:** The conversion logic to map between the model type and the transfer type.
 
+We occasionally refer to "transfer type conversion" as "transfer conversion" for short.
+
 ## Behaviors
 
 ### Conversion Flow
@@ -168,9 +170,9 @@ Similarly when decoding, the SDK will convert using only the transfer type encod
 
 TransferTypeConverters should specify a non-null transfer type.
 
-#### Failure conversion
+#### Payloads that don't use the transfer converter
 
-Failure conversion should NOT use the transfer converter.
+Failure conversion and memos should NOT use the transfer converter.
 
 ## Potential Future Improvements
 

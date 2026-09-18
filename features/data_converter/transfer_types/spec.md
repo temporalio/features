@@ -1,6 +1,6 @@
 # Transfer Type Converter Behavioral Specification
 
-Last updated: 2026-09-02
+Last updated: 2026-09-18
 
 ## Motivation
 
@@ -164,7 +164,27 @@ When encoding type `A`, the SDK does not inspect the output type `B` for a trans
 
 Similarly when decoding, the SDK will convert using only the transfer type encoder registered on the requested model type.
 
-#### TransferTypeConverter Selection
+#### Transfer Type Nullability
+
+TransferTypeConverters should specify a non-null transfer type.
+
+#### Failure conversion
+
+Failure conversion should NOT use the transfer converter.
+
+## Potential Future Improvements
+
+This portion of the spec contains ideas that may improve the feature, but were decided to be out
+of scope at the time of writing the spec. Each section begins with a brief statement of why
+it was not included for now.
+
+### TransferTypeConverter Selection
+
+> [!NOTE]
+> Supporting this across SDKs involves adding type hints to the encode path of DataConverters.
+> Since this is an advanced feature and there is little expectation of regular use that would cause
+> the behavior this intends to address, this was decided to be moved to out of scope with
+> the potential of revisting later.
 
 Converting to the transfer type should use the type hint for the target execution rather than the value's runtime type. For example:
 
@@ -189,11 +209,3 @@ the result of the configured payload converter should be used directly.
 A transfer converter declaration applies only to the exact model type on which it is declared. Declarations are not inherited from a base type.
 
 A subclass or other derived type can declare its own converter independently of its base type.
-
-#### Transfer Type Nullability
-
-TransferTypeConverters should specify a non-null transfer type.
-
-#### Failure conversion
-
-Failure conversion should NOT use the transfer converter.

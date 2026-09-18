@@ -23,10 +23,6 @@ from harness.python.feature import Runner, register_feature
 
 logger = logging.getLogger(__name__)
 TRANSFERRED_MARKER = "created-from-transfer-type"
-# Python SDK transfer conversion currently follows the runtime value type instead
-# of the declared parameter type. Enable these assertions once that behavior matches
-# the transfer type specification.
-DECLARED_TYPE_SELECTION_SUPPORTED = False
 
 
 class NonGenericValueConverter(
@@ -82,37 +78,6 @@ class BoxConverter(TransferTypeConverter[Box[T], WorkflowExecution]):
 transfer_type_convertible(BoxConverter)(Box)
 
 
-class ConvertedBaseConverter(TransferTypeConverter["ConvertedBase", WorkflowExecution]):
-    transfer_type = WorkflowExecution
-
-    def to_transfer_type(self, value: ConvertedBase) -> WorkflowExecution:
-        return WorkflowExecution(workflow_id=value.value, run_id="converted-base")
-
-    def from_transfer_type(
-        self, value: WorkflowExecution, type_hint: type[ConvertedBase]
-    ) -> ConvertedBase:
-        assert value.run_id == "converted-base"
-        return ConvertedBase(value=value.workflow_id, extra=TRANSFERRED_MARKER)
-
-
-@transfer_type_convertible(ConvertedBaseConverter)
-@dataclass
-class ConvertedBase:
-    value: str
-    extra: str
-
-
-@dataclass
-class DerivedFromConvertedBase(ConvertedBase):
-    derived_extra: str
-
-
-@dataclass
-class PlainBase:
-    value: str
-    extra: str
-
-
 class ConvertedDerivedConverter(
     TransferTypeConverter["ConvertedDerived", WorkflowExecution]
 ):
@@ -135,7 +100,9 @@ class ConvertedDerivedConverter(
 
 @transfer_type_convertible(ConvertedDerivedConverter)
 @dataclass
-class ConvertedDerived(PlainBase):
+class ConvertedDerived:
+    value: str
+    extra: str
     derived_extra: str
 
 
@@ -205,10 +172,7 @@ class Workflow:
         self,
         non_generic: NonGenericValue,
         box: Box[int],
-        converted_base: ConvertedBase,
-        unconverted_derived: DerivedFromConvertedBase,
         plain: PlainValue,
-        plain_base: PlainBase,
         converted_derived: ConvertedDerived,
     ) -> NonGenericValue:
         failures: list[str] = []
@@ -222,28 +186,6 @@ class Workflow:
             "non-generic",
         )
         check(box == Box(123, TRANSFERRED_MARKER), "generic")
-        check(type(converted_base) is ConvertedBase, "base-type")
-        check(
-            converted_base == ConvertedBase("converted-base", TRANSFERRED_MARKER),
-            "base-converter",
-        )
-        if DECLARED_TYPE_SELECTION_SUPPORTED:
-            check(
-                type(unconverted_derived) is DerivedFromConvertedBase,
-                "exact-declaration-type",
-            )
-            check(
-                unconverted_derived
-                == DerivedFromConvertedBase(
-                    "unconverted-derived", "plain-extra", "derived-extra"
-                ),
-                "exact-declaration-value",
-            )
-            check(type(plain_base) is PlainBase, "declared-plain-base-type")
-            check(
-                plain_base == PlainBase("plain-base", "plain-extra"),
-                "declared-plain-base-value",
-            )
         check(
             converted_derived
             == ConvertedDerived(
@@ -361,18 +303,11 @@ async def start(runner: Runner) -> WorkflowHandle:
         args=[
             NonGenericValue("non-generic", "client-extra"),
             Box(123, "client-extra"),
-            DerivedFromConvertedBase(
-                "converted-base", "client-extra", "client-derived-extra"
-            ),
-            DerivedFromConvertedBase(
-                "unconverted-derived", "plain-extra", "derived-extra"
-            ),
             PlainValue(
                 "plain",
                 "plain-extra",
                 NonGenericValue("nested", "nested-extra"),
             ),
-            ConvertedDerived("plain-base", "plain-extra", "ignored-derived-extra"),
             ConvertedDerived(
                 "converted-derived", "client-extra", "client-derived-extra"
             ),
@@ -396,16 +331,11 @@ async def check_result(runner: Runner, handle: WorkflowHandle) -> None:
         if event.event_type == EventType.EVENT_TYPE_WORKFLOW_EXECUTION_STARTED
     )
     inputs = started.workflow_execution_started_event_attributes.input.payloads
-    assert len(inputs) == 7
+    assert len(inputs) == 4
     assert_protobuf_payload(inputs[0], "non-generic")
     assert_protobuf_payload(inputs[1], "box")
-    assert_protobuf_payload(inputs[2], "converted-base")
-    if DECLARED_TYPE_SELECTION_SUPPORTED:
-        assert_json_payload(inputs[3])
-    assert_json_payload(inputs[4])
-    if DECLARED_TYPE_SELECTION_SUPPORTED:
-        assert_json_payload(inputs[5])
-    assert_protobuf_payload(inputs[6], "converted-derived")
+    assert_json_payload(inputs[2])
+    assert_protobuf_payload(inputs[3], "converted-derived")
 
     activity_failed = next(
         event

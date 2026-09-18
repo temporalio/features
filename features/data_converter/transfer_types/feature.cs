@@ -16,11 +16,6 @@ using TemporalRetryPolicy = Temporalio.Common.RetryPolicy;
 
 class Feature : IFeature
 {
-    // .NET SDK transfer conversion currently follows the runtime value type instead
-    // of the declared parameter type. Enable these assertions once that behavior
-    // matches the transfer type specification.
-    private static bool DeclaredTypeSelectionSupported => false;
-
     public void ConfigureWorker(Runner runner, TemporalWorkerOptions options) =>
         options.AddWorkflow<TransferWorkflow>().
             AddWorkflow<ThrowingWorkflow>().
@@ -50,16 +45,10 @@ class Feature : IFeature
             (TransferWorkflow wf) => wf.RunAsync(
                 new NonGenericValue("non-generic", "client-extra"),
                 new Box<int>(123, "client-extra"),
-                new DerivedFromConvertedBase(
-                    "converted-base", "client-extra", "client-derived-extra"),
-                new DerivedFromConvertedBase(
-                    "unconverted-derived", "plain-extra", "derived-extra"),
                 new PlainValue(
                     "plain",
                     "plain-extra",
                     new NonGenericValue("nested", "nested-extra")),
-                new ConvertedDerived(
-                    "plain-base", "plain-extra", "ignored-derived-extra"),
                 new ConvertedDerived(
                     "converted-derived", "client-extra", "client-derived-extra")),
             runner.NewWorkflowOptions());
@@ -78,20 +67,11 @@ class Feature : IFeature
             evt => evt.WorkflowExecutionStartedEventAttributes != null).
             WorkflowExecutionStartedEventAttributes;
         var inputs = started.Input.Payloads_;
-        Assert.Equal(7, inputs.Count);
+        Assert.Equal(4, inputs.Count);
         AssertProtobufPayload(inputs[0], "non-generic");
         AssertProtobufPayload(inputs[1], "box");
-        if (DeclaredTypeSelectionSupported)
-        {
-            AssertJsonPayload(inputs[2], TransferModels.TransferredMarker);
-        }
-        AssertJsonPayload(inputs[3]);
-        AssertJsonPayload(inputs[4]);
-        if (DeclaredTypeSelectionSupported)
-        {
-            AssertJsonPayload(inputs[5], "plain-extra");
-        }
-        AssertJsonPayload(inputs[6], TransferModels.TransferredMarker);
+        AssertJsonPayload(inputs[2]);
+        AssertJsonPayload(inputs[3], TransferModels.TransferredMarker);
 
         var activityFailed = history.Events.Single(
             evt => evt.ActivityTaskFailedEventAttributes != null).
@@ -180,10 +160,7 @@ class Feature : IFeature
         public async Task<NonGenericValue> RunAsync(
             NonGenericValue nonGeneric,
             Box<int> box,
-            ConvertedBase convertedBase,
-            DerivedFromConvertedBase unconvertedDerived,
             PlainValue plain,
-            PlainBase plainBase,
             ConvertedDerived convertedDerived)
         {
             var failures = new List<string>();
@@ -192,28 +169,6 @@ class Feature : IFeature
                     "non-generic", TransferModels.TransferredMarker),
                 "non-generic");
             Check(box == new Box<int>(123, TransferModels.TransferredMarker), "generic");
-            Check(convertedBase.GetType() == typeof(ConvertedBase), "base-type");
-            if (DeclaredTypeSelectionSupported)
-            {
-                Check(
-                    convertedBase == new ConvertedBase(
-                        "converted-base", TransferModels.TransferredMarker),
-                    "base-converter");
-            }
-            Check(
-                unconvertedDerived.GetType() == typeof(DerivedFromConvertedBase),
-                "exact-declaration-type");
-            Check(
-                unconvertedDerived == new DerivedFromConvertedBase(
-                    "unconverted-derived", "plain-extra", "derived-extra"),
-                "exact-declaration-value");
-            Check(plainBase.GetType() == typeof(PlainBase), "declared-plain-base-type");
-            if (DeclaredTypeSelectionSupported)
-            {
-                Check(
-                    plainBase == new PlainBase("plain-base", "plain-extra"),
-                    "declared-plain-base-value");
-            }
             Check(
                 convertedDerived == new ConvertedDerived(
                     "converted-derived",
@@ -375,33 +330,10 @@ sealed class BoxConverter<T> : ITemporalTransferTypeConverter
     }
 }
 
-[TemporalTransferTypeConverter(typeof(ConvertedBaseConverter))]
-record ConvertedBase(string Value, string Extra);
-
-record DerivedFromConvertedBase(string Value, string Extra, string DerivedExtra) :
-    ConvertedBase(Value, Extra);
-
-sealed class ConvertedBaseConverter : ITemporalTransferTypeConverter
-{
-    public Type TransferType => typeof(PlainBase);
-
-    public object ToTransferType(object? value) =>
-        new PlainBase(
-            ((ConvertedBase)value!).Value,
-            TransferModels.TransferredMarker);
-
-    public object FromTransferType(object? transferType)
-    {
-        var value = (PlainBase)transferType!;
-        return new ConvertedBase(value.Value, value.Extra);
-    }
-}
-
 record PlainBase(string Value, string Extra);
 
 [TemporalTransferTypeConverter(typeof(ConvertedDerivedConverter))]
-record ConvertedDerived(string Value, string Extra, string DerivedExtra) :
-    PlainBase(Value, Extra);
+record ConvertedDerived(string Value, string Extra, string DerivedExtra);
 
 sealed class ConvertedDerivedConverter : ITemporalTransferTypeConverter
 {

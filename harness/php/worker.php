@@ -62,7 +62,9 @@ try {
     $getWorker = static function (string $taskQueue) use (&$workers, $factory): WorkerInterface {
         return $workers[$taskQueue] ??= $factory->newWorker(
             $taskQueue,
-            WorkerOptions::new()->withMaxConcurrentActivityExecutionSize(10)
+            WorkerOptions::new()
+                ->withMaxConcurrentActivityExecutionSize(10)
+                ->withWorkerStopTimeout(10)
         );
     };
 

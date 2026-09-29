@@ -15,12 +15,13 @@ use std::{
 };
 use temporalio_client::{
     Client, ClientOptions, ClientTlsOptions, Connection, ConnectionOptions,
-    HttpConnectProxyOptions, TlsOptions, WorkflowHandle, WorkflowStartOptions,
+    HttpConnectProxyOptions, TlsOptions, WorkflowGetResultOptions, WorkflowHandle,
+    WorkflowStartOptions,
     grpc::WorkflowService,
     tonic::{Code, Request},
 };
 use temporalio_common::{
-    HasWorkflowDefinition,
+    HasWorkflowDefinition, WorkflowDefinition,
     protos::temporal::api::{
         common::v1::{Payload, WorkflowExecution},
         enums::v1::{EventType, UpdateWorkflowExecutionLifecycleStage},
@@ -29,7 +30,9 @@ use temporalio_common::{
         workflowservice::v1::{ListWorkerDeploymentsRequest, UpdateWorkflowExecutionRequest},
     },
 };
-use temporalio_sdk::{Runtime, Worker, WorkerOptions, runtime::RuntimeOptions};
+use temporalio_sdk::{
+    Runtime, Worker, WorkerOptions, runtime::RuntimeOptions, workflows::WorkflowImplementation,
+};
 use temporalio_sdk_core::Url;
 use tokio::sync::oneshot;
 use uuid::Uuid;
@@ -277,6 +280,88 @@ pub trait Feature: Send + Sync {
 
     /// Execute the feature and assert its result.
     async fn execute(&self, context: FeatureContext) -> Result<()>;
+}
+
+/// A conventional feature that starts one parameterless workflow and checks its result.
+///
+/// [`Feature`] remains available for features with nonstandard execution, such as client-only
+/// features or features that manage their own worker lifecycle.
+#[async_trait]
+pub trait WorkflowFeature: Send + Sync {
+    /// The primary workflow implementation for this feature.
+    type Workflow: WorkflowImplementation<Run: WorkflowDefinition<Input = ()>>
+        + HasWorkflowDefinition<Input = ()>
+        + Default
+        + Send
+        + Sync;
+
+    /// Add this feature's configuration to client options prepared by the harness.
+    fn client_options(&self, client_options: ClientOptions) -> Result<ClientOptions> {
+        Ok(client_options)
+    }
+
+    /// Add this feature's configuration to worker options prepared by the harness.
+    ///
+    /// The primary workflow is registered automatically. Implementations can register
+    /// activities or additional workflows here.
+    fn worker_options(&self, mut worker_options: WorkerOptions) -> Result<WorkerOptions> {
+        worker_options.register_workflow::<Self::Workflow>()?;
+        Ok(worker_options)
+    }
+
+    /// Whether the harness should run a worker for this feature.
+    fn uses_worker(&self) -> bool {
+        true
+    }
+
+    /// Server capability required by this feature, if any.
+    fn required_server_capability(&self) -> Option<ServerCapability> {
+        None
+    }
+
+    /// Check the primary workflow's execution result.
+    async fn check_result(
+        &self,
+        _context: &FeatureContext,
+        handle: WorkflowHandle<Client, Self::Workflow>,
+    ) -> Result<()> {
+        handle
+            .get_result(WorkflowGetResultOptions::default())
+            .await?;
+        Ok(())
+    }
+}
+
+/// Adapt conventional typed workflow features to the object-safe runner-facing trait.
+#[async_trait]
+impl<T: WorkflowFeature> Feature for T {
+    fn client_options(&self, client_options: ClientOptions) -> Result<ClientOptions> {
+        WorkflowFeature::client_options(self, client_options)
+    }
+
+    fn worker_options(&self, worker_options: WorkerOptions) -> Result<WorkerOptions> {
+        WorkflowFeature::worker_options(self, worker_options)
+    }
+
+    fn uses_worker(&self) -> bool {
+        WorkflowFeature::uses_worker(self)
+    }
+
+    fn required_server_capability(&self) -> Option<ServerCapability> {
+        WorkflowFeature::required_server_capability(self)
+    }
+
+    async fn execute(&self, context: FeatureContext) -> Result<()> {
+        let handle = context
+            .client
+            .start_workflow(
+                <T as WorkflowFeature>::Workflow::default(),
+                (),
+                context.workflow_start_options(),
+            )
+            .await?;
+        self.check_result(&context, handle).await
+    }
 }
 
 /// Run registered features using command-line arguments from the Go runner.

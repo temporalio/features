@@ -1,10 +1,10 @@
 use anyhow::{Result, anyhow, ensure};
 use std::time::Duration;
 use temporalio_client::{
-    WorkflowGetResultOptions, WorkflowStartOptions, errors::WorkflowGetResultError,
+    Client, WorkflowGetResultOptions, WorkflowHandle, errors::WorkflowGetResultError,
 };
 use temporalio_common::{RetryPolicy, error::IncomingError};
-use temporalio_features_harness::{Feature, FeatureContext, async_trait};
+use temporalio_features_harness::{Feature, FeatureContext, WorkflowFeature, async_trait};
 use temporalio_macros::{activities, workflow, workflow_methods};
 use temporalio_sdk::{
     ActivityOptions, ApplicationFailure, WorkerOptions, WorkflowContext, WorkflowResult,
@@ -19,8 +19,7 @@ pub struct RetryOnErrorWorkflow;
 impl RetryOnErrorWorkflow {
     #[run]
     pub async fn run(ctx: &mut WorkflowContext<Self>) -> WorkflowResult<()> {
-        #[allow(deprecated)]
-        ctx.start_activity(
+        ctx.execute_activity(
             RetryOnErrorActivities::always_fail,
             (),
             ActivityOptions::with_schedule_to_close_timeout(Duration::from_secs(60))
@@ -53,25 +52,19 @@ impl RetryOnErrorActivities {
 struct RetryOnErrorFeature;
 
 #[async_trait]
-impl Feature for RetryOnErrorFeature {
+impl WorkflowFeature for RetryOnErrorFeature {
+    type Workflow = RetryOnErrorWorkflow;
+
     fn worker_options(&self, mut worker_options: WorkerOptions) -> Result<WorkerOptions> {
-        worker_options
-            .register_workflow::<RetryOnErrorWorkflow>()?
-            .register_activities(RetryOnErrorActivities);
+        worker_options.register_activities(RetryOnErrorActivities);
         Ok(worker_options)
     }
 
-    async fn execute(&self, context: FeatureContext) -> Result<()> {
-        let handle = context
-            .client
-            .start_workflow(
-                RetryOnErrorWorkflow::run,
-                (),
-                WorkflowStartOptions::new(context.task_queue, context.workflow_id)
-                    .execution_timeout(Duration::from_secs(60))
-                    .build(),
-            )
-            .await?;
+    async fn check_result(
+        &self,
+        _context: &FeatureContext,
+        handle: WorkflowHandle<Client, RetryOnErrorWorkflow>,
+    ) -> Result<()> {
         let error = handle
             .get_result(WorkflowGetResultOptions::default())
             .await

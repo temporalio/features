@@ -211,9 +211,6 @@ func HelloUniverse() {
 - A Python feature should be in `feature.py`.
 - A Ruby feature should be in `feature.rb`.
 - A Rust feature should be in `feature.rs`.
-  - Cargo automatically discovers Rust features; no manifest registration is required.
-  - Implement `temporalio_features_harness::Feature` and return the concrete implementation from `feature()`.
-  - Run `cargo fmt --check` and `cargo clippy --workspace --all-targets -- -D warnings` from the repository root.
 - Add a README.md to each feature directory.
   - README should have a title summarizing the feature (only first letter needs to be in title case), then a short
     paragraph explaining the feature and its purpose, and then optionally another paragraph explaining details of the

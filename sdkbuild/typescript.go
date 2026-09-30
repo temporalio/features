@@ -154,6 +154,14 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 		return nil, fmt.Errorf("failed writing package.json: %w", err)
 	}
 
+	pnpmWorkspaceYAML := `allowBuilds:
+  '@swc/core': false
+  protobufjs: false
+`
+	if err := os.WriteFile(filepath.Join(dir, "pnpm-workspace.yaml"), []byte(pnpmWorkspaceYAML), 0644); err != nil {
+		return nil, fmt.Errorf("failed writing pnpm-workspace.yaml: %w", err)
+	}
+
 	// Create tsconfig
 	var tsConfigPathStr string
 	for name, paths := range options.TSConfigPaths {

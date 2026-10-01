@@ -1,6 +1,6 @@
 # Transfer Type Converter Behavioral Specification
 
-Last updated: 2026-09-18
+Last updated: 2026-10-01
 
 ## Motivation
 
@@ -147,6 +147,19 @@ sequenceDiagram
 4. Invoke the transfer converter to reconstruct the requested model value.
 
 ### SDK Behavior
+
+#### Payload converter visibility
+
+Payload converters exposed by data converters and SDK serialization context accessors
+must retain the SDK's transfer type wrapper, including those exposed by default data
+converters. Direct use of these converters must apply the same transfer conversion
+as SDK serialization: encoding accepts model values and decoding returns model values
+when the requested type has a transfer type converter.
+
+The configured payload converter inside the wrapper receives transfer values when
+encoding and produces transfer values when decoding. SDKs must preserve this wrapper
+when returning converters to users so direct conversion behaves consistently across
+data converters, workflows, and activities.
 
 #### Top-level values only
 

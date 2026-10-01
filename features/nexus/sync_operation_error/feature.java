@@ -1,15 +1,18 @@
-package nexus.sync_success;
+package nexus.sync_operation_error;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.nexusrpc.Operation;
+import io.nexusrpc.OperationException;
 import io.nexusrpc.Service;
 import io.nexusrpc.handler.OperationHandler;
 import io.nexusrpc.handler.OperationImpl;
 import io.nexusrpc.handler.ServiceImpl;
 import io.temporal.client.WorkflowOptions;
+import io.temporal.failure.ApplicationFailure;
+import io.temporal.failure.NexusOperationFailure;
 import io.temporal.sdkfeatures.Feature;
 import io.temporal.sdkfeatures.Run;
 import io.temporal.sdkfeatures.Runner;
@@ -22,13 +25,16 @@ import java.time.Duration;
 
 @WorkflowInterface
 public interface feature extends Feature {
+  String ERROR_TYPE = "TestFailure";
+  String ERROR_MESSAGE = "deliberate failure";
+
   @WorkflowMethod
   String workflow(String endpoint);
 
   @Service
   interface TestService {
     @Operation
-    String syncOperation(String name);
+    String failingOperation(String name);
   }
 
   class Impl implements feature {
@@ -43,7 +49,31 @@ public interface feature extends Feature {
                       .build())
               .build();
       TestService stub = Workflow.newNexusServiceStub(TestService.class, serviceOptions);
-      return stub.syncOperation("world");
+      try {
+        stub.failingOperation("world");
+        return "no error";
+      } catch (NexusOperationFailure e) {
+        var applicationFailure = findApplicationFailure(e, ERROR_TYPE);
+        if (applicationFailure == null) {
+          throw ApplicationFailure.newNonRetryableFailure(
+              "expected an application failure of type "
+                  + ERROR_TYPE
+                  + " in the cause chain, got "
+                  + e,
+              "AssertionFailure");
+        }
+        return applicationFailure.getType() + ": " + applicationFailure.getOriginalMessage();
+      }
+    }
+
+    private static ApplicationFailure findApplicationFailure(Throwable failure, String type) {
+      for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+        if (cause instanceof ApplicationFailure
+            && type.equals(((ApplicationFailure) cause).getType())) {
+          return (ApplicationFailure) cause;
+        }
+      }
+      return null;
     }
 
     @Override
@@ -64,23 +94,18 @@ public interface feature extends Feature {
     @Override
     public void checkResult(Runner runner, Run run) {
       var result = runner.waitForRunResult(run, String.class);
-      assertEquals("Hello, world!", result);
+      assertEquals(ERROR_TYPE + ": " + ERROR_MESSAGE, result);
     }
 
     @Override
     public void checkHistory(Runner runner, Run run) throws Exception {
-      // Assert that the sync operation transitioned straight from Scheduled to
-      // Completed with no Started event.
       var events = runner.getWorkflowHistory(run).getEventsList();
       assertTrue(
-          events.stream().anyMatch(e -> e.hasNexusOperationScheduledEventAttributes()),
-          "expected NexusOperationScheduled event in history");
-      assertTrue(
-          events.stream().anyMatch(e -> e.hasNexusOperationCompletedEventAttributes()),
-          "expected NexusOperationCompleted event in history");
+          events.stream().anyMatch(e -> e.hasNexusOperationFailedEventAttributes()),
+          "expected NexusOperationFailed event in history");
       assertFalse(
-          events.stream().anyMatch(e -> e.hasNexusOperationStartedEventAttributes()),
-          "unexpected NexusOperationStarted event for sync operation");
+          events.stream().anyMatch(e -> e.hasNexusOperationCompletedEventAttributes()),
+          "unexpected NexusOperationCompleted event in history");
       runner.checkCurrentAndPastHistories(run);
     }
   }
@@ -88,8 +113,12 @@ public interface feature extends Feature {
   @ServiceImpl(service = TestService.class)
   class TestServiceImpl {
     @OperationImpl
-    public OperationHandler<String, String> syncOperation() {
-      return OperationHandler.sync((ctx, details, name) -> "Hello, " + name + "!");
+    public OperationHandler<String, String> failingOperation() {
+      return OperationHandler.sync(
+          (context, details, name) -> {
+            throw OperationException.failure(
+                ApplicationFailure.newFailure(ERROR_MESSAGE, ERROR_TYPE));
+          });
     }
   }
 }

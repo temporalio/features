@@ -21,6 +21,7 @@ export async function callerWorkflow(targetId: string, taskQueue: string): Promi
     args: ['start-value'],
     id: targetId,
     taskQueue,
+    executionTimeout: 60000,
     signal: addSignal,
     signalArgs: ['signal-one'],
     idConflictPolicy: wf.WorkflowIdConflictPolicy.USE_EXISTING,

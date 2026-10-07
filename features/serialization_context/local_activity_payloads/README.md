@@ -16,9 +16,3 @@ Steps:
   signature with `IsLocal = true`
 
 Not implemented for TypeScript: the SDK has no local activities.
-
-Not implemented for Go: the SDK built the local activity environment from the
-worker's plain data converter, so the result was encoded without any context and
-then decoded as workflow scoped. temporalio/sdk-go#2562 fixes this. Add
-`feature.go` back, together with its entry in `features/features.go`, once that
-fix is in a release.

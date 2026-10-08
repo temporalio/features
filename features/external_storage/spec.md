@@ -600,9 +600,10 @@ Three channels identify the failure, and two of them are the same in every SDK:
 - A reference found with no external storage configured is `TMPRL1105`. This is where the
   difference between a misconfiguration and a driver outage is carried.
 - The task failure cause, where the path has one, is
-  `WORKFLOW_TASK_FAILED_CAUSE_EXTERNAL_STORAGE_FAILURE` for a workflow task and the
-  equivalent for an activity task, rather than a general worker failure. A Nexus operation
-  and a client request have no cause to set.
+  `WORKFLOW_TASK_FAILED_CAUSE_EXTERNAL_STORAGE_FAILURE` for a workflow task and
+  `ACTIVITY_TASK_FAILED_CAUSE_EXTERNAL_STORAGE_FAILURE` for an activity task, rather than a
+  general worker failure. A Nexus operation and a client request have no cause to set. The
+  cause does more than name the failure; see the failure metrics below.
 
 The type on the failure itself is not standardized, and an SDK need not use a separate type
 for each kind of storage failure.
@@ -630,6 +631,26 @@ the right value in the two places where nothing has been fetched yet: the limite
 policy, and the server's accounting.
 
 An SDK reports the type of each configured driver in its worker heartbeat.
+
+#### Failure metrics
+
+An SDK sets the task failure cause whenever it fails a task because of an external storage
+fault. This single act carries the classification to both places an operator looks.
+
+The cause is recorded in history. A customer reads it from the workflow task failed event and
+from the activity task failed event, and so can tell a storage fault from any other worker
+failure by inspecting the execution alone.
+
+The cause also tags the metric. A failure carrying one of these causes is counted with
+`failure_reason="ExternalStorageError"` on whichever metric counts it:
+`workflow_task_execution_failed`, `activity_execution_failed`, or
+`local_activity_execution_failed`. A local activity produces no task failed event in history,
+so for a local activity the cause exists only to tag the metric.
+
+The metric is emitted on every attempt, including the later attempts on which the SDK stays
+silent rather than reporting the failure to the server again. The silence is there to keep the
+server from hearing the same failure repeatedly; it must not also hide a worker that is
+failing repeatedly from the operator watching it.
 
 ### Lifecycle
 

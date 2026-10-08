@@ -261,11 +261,31 @@ codec-encoded, so step 1 finds them by the second metadata condition, already in
 
 Every payload an SDK sends to the server passes through external storage: workflow inputs and
 results, activity inputs and results, signals, queries, updates, headers, memo fields, Nexus
-operation inputs and results, and failure details.
+operation inputs and results, and the details of a failure the application produced.
 
-Search attributes are the one exception. The server indexes and searches their literal values,
-so replacing one with a reference would make it unsearchable and change the meaning of a
-query. An SDK must leave search attributes untouched on both paths.
+There are two exceptions.
+
+Search attributes are the first. The server indexes and searches their literal values, so
+replacing one with a reference would make it unsearchable and change the meaning of a query.
+An SDK must leave search attributes untouched on both paths.
+
+The second is a failure the SDK raises about its own processing of a task, rather than one the
+application produced. An SDK sends these inline. The exclusion covers every failure the SDK
+raises, not only one that a driver caused.
+
+Four requests carry a failure that the SDK may have raised itself:
+`RespondWorkflowTaskFailedRequest.failure`, `RespondActivityTaskFailedRequest.failure`,
+`RespondActivityTaskFailedByIdRequest.failure` and `RespondNexusTaskFailedRequest.failure`.
+
+Each of them carries either kind, so an SDK decides by the kind it is reporting, where it
+constructs the failure, and not by the request type. A workflow task failure in particular is
+not always the SDK's own: an exception that the worker is not configured to fail the workflow
+on fails the task instead, and the SDK converts that application error, details and all, into
+the failure it sends. The workflow task and activity requests carry the same distinction in
+their `cause` field. `RespondNexusTaskFailedRequest` has no such field.
+
+The `last_heartbeat_details` field of the activity requests is always application data and
+stays in scope.
 
 The paths to cover are every place payloads cross the boundary: a client request; a client
 response; a workflow task, in both directions; an activity task, in both directions; an

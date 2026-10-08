@@ -357,10 +357,12 @@ only on the claim.
 
 #### Which fields each call site provides
 
-Which fields are available is a property of the call site, not of the SDK. An operation that
-starts something knows the type but not the run id, because the server has not assigned one.
-An operation addressed to an existing execution knows the run id but not the type. No call
-site knows both. An SDK has a defect when it omits a field the call site could have supplied.
+Which fields are available is a property of the call site, not of the SDK. A request that
+starts something has no run id, because the server has not assigned one. A request addressed
+to an existing execution has a run id, and has the type only where something supplies it: the
+dispatched task, for a worker, or the caller, for a client API that already asks for the type
+in order to build the serialization context. An SDK has a defect when it omits a field the
+call site could have supplied.
 
 | Operation | Kind | What it identifies | Fields |
 | --- | --- | --- | --- |

@@ -7,7 +7,18 @@ import uuid
 from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Awaitable, Callable, Dict, List, Mapping, Optional, Type, Union
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Type,
+    Union,
+)
 
 from temporalio import workflow
 from temporalio.api.common.v1 import Payload
@@ -34,6 +45,7 @@ def register_feature(
     *,
     workflows: List[Type],
     activities: List[Callable] = [],
+    nexus_service_handlers: Sequence[Any] = (),
     expect_activity_error: Optional[str] = None,
     expect_run_result: Optional[Any] = None,
     file: Optional[str] = None,
@@ -60,6 +72,7 @@ def register_feature(
         rel_dir=rel_dir,
         workflows=workflows,
         activities=activities,
+        nexus_service_handlers=nexus_service_handlers,
         expect_activity_error=expect_activity_error,
         expect_run_result=expect_run_result,
         start=start,
@@ -95,6 +108,7 @@ class Feature:
     rel_dir: str  # Always relative to feature dir and uses forward slashes
     workflows: List[Type]
     activities: List[Callable]
+    nexus_service_handlers: Sequence[Any]
     expect_activity_error: Optional[str]
     expect_run_result: Optional[Any]
     start: Optional[Callable[[Runner], Awaitable[WorkflowHandle]]]
@@ -112,6 +126,7 @@ class Runner:
         address: str,
         namespace: str,
         task_queue: str,
+        nexus_endpoint: Optional[str],
         feature: Feature,
         tls_config: Optional[TLSConfig],
         http_proxy_url: Optional[str],
@@ -119,6 +134,7 @@ class Runner:
         self.address = address
         self.namespace = namespace
         self.task_queue = task_queue
+        self.nexus_endpoint = nexus_endpoint
         self.feature = feature
         self.worker: Optional[Worker] = None
         self._worker_task: Optional[asyncio.Task] = None
@@ -205,16 +221,20 @@ class Runner:
                 raise err
 
     def start_worker(self):
-        """Creates and starts worker with the task queue, workflows, and
-        activities set."""
+        """Create and start the worker for this feature."""
         if self.worker is not None:
             raise RuntimeError("Worker already started")
+        worker_config: Dict[str, Any] = dict(self.feature.worker_config or {})
+        if self.feature.nexus_service_handlers:
+            worker_config["nexus_service_handlers"] = (
+                self.feature.nexus_service_handlers
+            )
         self.worker = Worker(
             self.client,
             task_queue=self.task_queue,
             workflows=self.feature.workflows,
             activities=self.feature.activities,
-            **self.feature.worker_config,
+            **worker_config,
         )
         self._worker_task = asyncio.create_task(self.worker.run())
 

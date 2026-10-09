@@ -43,10 +43,10 @@ public class Runner
         }
     }
 
-
     internal Runner(
         TemporalClientConnectOptions clientConnectOptions,
         string taskQueue,
+        string? nexusEndpoint,
         PreparedFeature feature,
         ILoggerFactory loggerFactory,
         string? httpProxyUrl)
@@ -55,6 +55,7 @@ public class Runner
         Logger = loggerFactory.CreateLogger(PreparedFeature.FeatureType);
         Feature = (IFeature)Activator.CreateInstance(PreparedFeature.FeatureType, true)!;
         HttpProxyUrl = httpProxyUrl;
+        NexusEndpoint = nexusEndpoint;
 
         ClientOptions = (TemporalClientConnectOptions)clientConnectOptions.Clone();
         Feature.ConfigureClient(this, ClientOptions);
@@ -74,6 +75,8 @@ public class Runner
     public TemporalWorkerOptions WorkerOptions { get; private init; }
 
     public string? HttpProxyUrl { get; private init; }
+
+    public string? NexusEndpoint { get; private init; }
 
     /// <summary>
     /// Run the feature with the given cancellation token.
@@ -282,7 +285,7 @@ public class Runner
         timeout ??= TimeSpan.FromSeconds(30);
         var start = DateTime.UtcNow;
         var pollInterval = TimeSpan.FromMilliseconds(100);
-        
+
         while (DateTime.UtcNow - start < timeout)
         {
             var history = await handle.FetchHistoryAsync();
@@ -293,7 +296,7 @@ public class Runner
             }
             await Task.Delay(pollInterval);
         }
-        
+
         throw new TimeoutException($"Event not found within {timeout.Value.TotalMilliseconds}ms");
     }
 
@@ -305,8 +308,8 @@ public class Runner
     /// <returns>Task for completion.</returns>
     public async Task WaitForActivityTaskScheduledAsync(WorkflowHandle handle, TimeSpan? timeout = null)
     {
-        await WaitForEventAsync(handle, 
-            e => e.EventType == Temporalio.Api.Enums.V1.EventType.ActivityTaskScheduled, 
+        await WaitForEventAsync(handle,
+            e => e.EventType == Temporalio.Api.Enums.V1.EventType.ActivityTaskScheduled,
             timeout);
     }
 }

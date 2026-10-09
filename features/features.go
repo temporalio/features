@@ -45,6 +45,15 @@ import (
 	schedule_duplicate_error "github.com/temporalio/features/features/schedule/duplicate_error"
 	schedule_pause "github.com/temporalio/features/features/schedule/pause"
 	schedule_trigger "github.com/temporalio/features/features/schedule/trigger"
+	serialization_context_activity_payloads "github.com/temporalio/features/features/serialization_context/activity_payloads"
+	serialization_context_async_activity_completion "github.com/temporalio/features/features/serialization_context/async_activity_completion"
+	serialization_context_child_workflow_payloads "github.com/temporalio/features/features/serialization_context/child_workflow_payloads"
+	serialization_context_child_workflow_payloads_default_id "github.com/temporalio/features/features/serialization_context/child_workflow_payloads_default_id"
+	serialization_context_continue_as_new "github.com/temporalio/features/features/serialization_context/continue_as_new"
+	serialization_context_external_signal "github.com/temporalio/features/features/serialization_context/external_signal"
+	serialization_context_failure "github.com/temporalio/features/features/serialization_context/failure"
+	serialization_context_local_activity_payloads "github.com/temporalio/features/features/serialization_context/local_activity_payloads"
+	serialization_context_workflow_payloads "github.com/temporalio/features/features/serialization_context/workflow_payloads"
 	signal_external "github.com/temporalio/features/features/signal/external"
 	telemetry_metrics "github.com/temporalio/features/features/telemetry/metrics"
 	update_activities "github.com/temporalio/features/features/update/activities"
@@ -108,6 +117,15 @@ func init() {
 		schedule_duplicate_error.Feature,
 		schedule_pause.Feature,
 		schedule_trigger.Feature,
+		serialization_context_activity_payloads.Feature,
+		serialization_context_async_activity_completion.Feature,
+		serialization_context_child_workflow_payloads.Feature,
+		serialization_context_child_workflow_payloads_default_id.Feature,
+		serialization_context_continue_as_new.Feature,
+		serialization_context_external_signal.Feature,
+		serialization_context_failure.Feature,
+		serialization_context_local_activity_payloads.Feature,
+		serialization_context_workflow_payloads.Feature,
 		signal_external.Feature,
 		telemetry_metrics.Feature,
 		update_activities.Feature,

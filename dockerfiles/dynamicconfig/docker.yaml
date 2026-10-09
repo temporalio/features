@@ -22,3 +22,9 @@ frontend.enableUpdateWorkflowExecutionAsyncAccepted:
 frontend.workerVersioningWorkflowAPIs:
   - value: true
     constraints: {}
+nexusoperation.enableStandalone:
+  - value: true
+    constraints: {}
+history.enableCHASMCallbacks:
+  - value: true
+    constraints: {}

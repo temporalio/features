@@ -574,6 +574,13 @@ func (r *Runner) runBatch(ctx context.Context, batch runBatch) error {
 		if err == nil {
 			err = r.RunRubyExternal(ctx, batch.Run)
 		}
+	case "rs":
+		if config.DirName != "" {
+			r.program, err = sdkbuild.RustProgramFromDir(filepath.Join(r.rootDir, config.DirName))
+		}
+		if err == nil {
+			err = r.RunRustExternal(ctx, batch.Run)
+		}
 	default:
 		err = fmt.Errorf("unrecognized language")
 	}
@@ -956,7 +963,7 @@ func (r *Runner) destroyTempDir() {
 func normalizeLangName(lang string) (string, error) {
 	// Normalize to file extension
 	switch lang {
-	case "go", "java", "ts", "php", "py", "cs", "rb":
+	case "go", "java", "ts", "php", "py", "cs", "rb", "rs":
 	case "typescript":
 		lang = "ts"
 	case "python":
@@ -965,8 +972,10 @@ func normalizeLangName(lang string) (string, error) {
 		lang = "cs"
 	case "ruby":
 		lang = "rb"
+	case "rust":
+		lang = "rs"
 	default:
-		return "", fmt.Errorf("invalid language %q, must be one of: go or java or ts or py or cs or rb", lang)
+		return "", fmt.Errorf("invalid language %q, must be one of: go or java or ts or php or py or cs or rb or rs", lang)
 	}
 	return lang, nil
 }
@@ -974,7 +983,7 @@ func normalizeLangName(lang string) (string, error) {
 func expandLangName(lang string) (string, error) {
 	// Expand to lang name
 	switch lang {
-	case "go", "java", "typescript", "php", "python", "ruby":
+	case "go", "java", "typescript", "php", "python", "ruby", "rust":
 	case "ts":
 		lang = "typescript"
 	case "py":
@@ -983,8 +992,10 @@ func expandLangName(lang string) (string, error) {
 		lang = "dotnet"
 	case "rb":
 		lang = "ruby"
+	case "rs":
+		lang = "rust"
 	default:
-		return "", fmt.Errorf("invalid language %q, must be one of: go or java or ts or py or cs or rb", lang)
+		return "", fmt.Errorf("invalid language %q, must be one of: go or java or ts or php or py or cs or rb or rs", lang)
 	}
 	return lang, nil
 }
@@ -992,7 +1003,7 @@ func expandLangName(lang string) (string, error) {
 func langFlag(destination *string) *cli.StringFlag {
 	return &cli.StringFlag{
 		Name:        "lang",
-		Usage:       "SDK language to run ('go' or 'java' or 'ts' or 'py' or 'cs' or 'rb')",
+		Usage:       "SDK language to run ('go' or 'java' or 'ts' or 'php' or 'py' or 'cs' or 'rb' or 'rs')",
 		Required:    true,
 		Destination: destination,
 	}

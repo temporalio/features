@@ -1,4 +1,4 @@
-package sync_success
+package async_success
 
 import (
 	"context"
@@ -10,29 +10,42 @@ import (
 	enumspb "go.temporal.io/api/enums/v1"
 	historypb "go.temporal.io/api/history/v1"
 	"go.temporal.io/sdk/client"
+	"go.temporal.io/sdk/temporalnexus"
 	"go.temporal.io/sdk/workflow"
 )
 
 const ServiceName = "test-service"
 
-var SyncOperation = nexus.NewSyncOperation(
-	"say-hello",
-	func(ctx context.Context, name string, options nexus.StartOperationOptions) (string, error) {
-		return "Hello, " + name + "!", nil
+func HandlerWorkflow(ctx workflow.Context, name string) (string, error) {
+	return "Hello, " + name + "!", nil
+}
+
+var AsyncOperation = temporalnexus.NewWorkflowRunOperation(
+	"say-hello-async",
+	HandlerWorkflow,
+	func(ctx context.Context, name string, options nexus.StartOperationOptions) (client.StartWorkflowOptions, error) {
+		return client.StartWorkflowOptions{ID: "async-success-" + name}, nil
 	},
 )
 
 var Service = func() *nexus.Service {
 	s := nexus.NewService(ServiceName)
-	s.MustRegister(SyncOperation)
+	s.MustRegister(AsyncOperation)
 	return s
 }()
 
 func Workflow(ctx workflow.Context, endpoint string) (string, error) {
 	nc := workflow.NewNexusClient(endpoint, ServiceName)
-	fut := nc.ExecuteOperation(ctx, SyncOperation, "world", workflow.NexusOperationOptions{
+	fut := nc.ExecuteOperation(ctx, AsyncOperation, "world", workflow.NexusOperationOptions{
 		ScheduleToCloseTimeout: time.Minute,
 	})
+	var exec workflow.NexusOperationExecution
+	if err := fut.GetNexusOperationExecution().Get(ctx, &exec); err != nil {
+		return "", err
+	}
+	if exec.OperationToken == "" {
+		return "", harness.AppErrorf("expected a non-empty operation token")
+	}
 	var result string
 	if err := fut.Get(ctx, &result); err != nil {
 		return "", err
@@ -41,7 +54,7 @@ func Workflow(ctx workflow.Context, endpoint string) (string, error) {
 }
 
 var Feature = harness.Feature{
-	Workflows:       Workflow,
+	Workflows:       []interface{}{Workflow, HandlerWorkflow},
 	NexusServices:   Service,
 	ExpectRunResult: "Hello, world!",
 	Execute: func(ctx context.Context, runner *harness.Runner) (client.WorkflowRun, error) {
@@ -52,27 +65,19 @@ var Feature = harness.Feature{
 		return runner.Client.ExecuteWorkflow(ctx, opts, Workflow, runner.NexusEndpoint)
 	},
 	CheckHistory: func(ctx context.Context, runner *harness.Runner, run client.WorkflowRun) error {
-		// Sync Nexus operations should transition directly from Scheduled to Completed with
-		// no Started event in between.
-		hasEvent := func(t enumspb.EventType) (bool, error) {
+		for _, t := range []enumspb.EventType{
+			enumspb.EVENT_TYPE_NEXUS_OPERATION_SCHEDULED,
+			enumspb.EVENT_TYPE_NEXUS_OPERATION_STARTED,
+			enumspb.EVENT_TYPE_NEXUS_OPERATION_COMPLETED,
+		} {
 			hist := runner.Client.GetWorkflowHistory(ctx, run.GetID(), run.GetRunID(), false, enumspb.HISTORY_EVENT_FILTER_TYPE_ALL_EVENT)
 			ev, err := harness.FindEvent(hist, func(ev *historypb.HistoryEvent) bool { return ev.EventType == t })
-			return ev != nil, err
-		}
-		if ok, err := hasEvent(enumspb.EVENT_TYPE_NEXUS_OPERATION_SCHEDULED); err != nil {
-			return err
-		} else if !ok {
-			return fmt.Errorf("did not find NexusOperationScheduled event in history")
-		}
-		if ok, err := hasEvent(enumspb.EVENT_TYPE_NEXUS_OPERATION_COMPLETED); err != nil {
-			return err
-		} else if !ok {
-			return fmt.Errorf("did not find NexusOperationCompleted event in history")
-		}
-		if ok, err := hasEvent(enumspb.EVENT_TYPE_NEXUS_OPERATION_STARTED); err != nil {
-			return err
-		} else if ok {
-			return fmt.Errorf("unexpected NexusOperationStarted event for sync operation")
+			if err != nil {
+				return err
+			}
+			if ev == nil {
+				return fmt.Errorf("did not find %v event in history", t)
+			}
 		}
 		return runner.CheckHistoryDefault(ctx, run)
 	},

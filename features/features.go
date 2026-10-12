@@ -32,6 +32,10 @@ import (
 	deployment_versioning_routing_with_ramp "github.com/temporalio/features/features/deployment_versioning/routing_with_ramp"
 	eager_activity_non_remote_activities_worker "github.com/temporalio/features/features/eager_activity/non_remote_activities_worker"
 	eager_workflow_successful_start "github.com/temporalio/features/features/eager_workflow/successful_start"
+	nexus_async_cancellation "github.com/temporalio/features/features/nexus/async_cancellation"
+	nexus_async_success "github.com/temporalio/features/features/nexus/async_success"
+	nexus_parallel_sync_operations "github.com/temporalio/features/features/nexus/parallel_sync_operations"
+	nexus_sync_operation_error "github.com/temporalio/features/features/nexus/sync_operation_error"
 	nexus_sync_success "github.com/temporalio/features/features/nexus/sync_success"
 	query_successful_query "github.com/temporalio/features/features/query/successful_query"
 	query_timeout_due_to_no_active_workers "github.com/temporalio/features/features/query/timeout_due_to_no_active_workers"
@@ -45,6 +49,15 @@ import (
 	schedule_duplicate_error "github.com/temporalio/features/features/schedule/duplicate_error"
 	schedule_pause "github.com/temporalio/features/features/schedule/pause"
 	schedule_trigger "github.com/temporalio/features/features/schedule/trigger"
+	serialization_context_activity_payloads "github.com/temporalio/features/features/serialization_context/activity_payloads"
+	serialization_context_async_activity_completion "github.com/temporalio/features/features/serialization_context/async_activity_completion"
+	serialization_context_child_workflow_payloads "github.com/temporalio/features/features/serialization_context/child_workflow_payloads"
+	serialization_context_child_workflow_payloads_default_id "github.com/temporalio/features/features/serialization_context/child_workflow_payloads_default_id"
+	serialization_context_continue_as_new "github.com/temporalio/features/features/serialization_context/continue_as_new"
+	serialization_context_external_signal "github.com/temporalio/features/features/serialization_context/external_signal"
+	serialization_context_failure "github.com/temporalio/features/features/serialization_context/failure"
+	serialization_context_local_activity_payloads "github.com/temporalio/features/features/serialization_context/local_activity_payloads"
+	serialization_context_workflow_payloads "github.com/temporalio/features/features/serialization_context/workflow_payloads"
 	signal_external "github.com/temporalio/features/features/signal/external"
 	telemetry_metrics "github.com/temporalio/features/features/telemetry/metrics"
 	update_activities "github.com/temporalio/features/features/update/activities"
@@ -95,6 +108,10 @@ func init() {
 		deployment_versioning_routing_with_ramp.Feature,
 		eager_activity_non_remote_activities_worker.Feature,
 		eager_workflow_successful_start.Feature,
+		nexus_async_cancellation.Feature,
+		nexus_async_success.Feature,
+		nexus_parallel_sync_operations.Feature,
+		nexus_sync_operation_error.Feature,
 		nexus_sync_success.Feature,
 		query_successful_query.Feature,
 		query_timeout_due_to_no_active_workers.Feature,
@@ -108,6 +125,15 @@ func init() {
 		schedule_duplicate_error.Feature,
 		schedule_pause.Feature,
 		schedule_trigger.Feature,
+		serialization_context_activity_payloads.Feature,
+		serialization_context_async_activity_completion.Feature,
+		serialization_context_child_workflow_payloads.Feature,
+		serialization_context_child_workflow_payloads_default_id.Feature,
+		serialization_context_continue_as_new.Feature,
+		serialization_context_external_signal.Feature,
+		serialization_context_failure.Feature,
+		serialization_context_local_activity_payloads.Feature,
+		serialization_context_workflow_payloads.Feature,
 		signal_external.Feature,
 		telemetry_metrics.Feature,
 		update_activities.Feature,

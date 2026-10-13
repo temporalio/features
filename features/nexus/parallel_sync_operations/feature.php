@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Harness\Feature\Nexus\ParallelOperations;
+namespace Harness\Feature\Nexus\ParallelSyncOperations;
 
 use Harness\Attribute\Check;
 use Harness\Runtime\Feature;

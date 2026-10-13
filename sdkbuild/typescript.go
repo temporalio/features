@@ -141,22 +141,25 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
     "commander": "^8.3.0",
     "ms": "^3.0.0-canary.1",
     "nexus-rpc": "^0.0.1",
-    "proto3-json-serializer": "^1.1.1"
+    "protobufjs": "^8.7.1"
   },
   "devDependencies": {
     "@tsconfig/node24": "^24.0.4",
     "@types/node": "^24.1.0",
     "tsconfig-paths": "^3.12.0",
     "typescript": "^5.9.3"
-  },
-  "pnpm": {
-		"overrides": {
-			"protobufjs": "7.5.1"
-		}
   }
 }`
 	if err := os.WriteFile(filepath.Join(dir, "package.json"), []byte(packageJSON), 0644); err != nil {
 		return nil, fmt.Errorf("failed writing package.json: %w", err)
+	}
+
+	pnpmWorkspaceYAML := `allowBuilds:
+  '@swc/core': false
+  protobufjs: false
+`
+	if err := os.WriteFile(filepath.Join(dir, "pnpm-workspace.yaml"), []byte(pnpmWorkspaceYAML), 0644); err != nil {
+		return nil, fmt.Errorf("failed writing pnpm-workspace.yaml: %w", err)
 	}
 
 	// Create tsconfig
@@ -178,7 +181,16 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 	if len(options.Includes) > 0 {
 		includes = options.Includes
 	}
-	excludes := []string{"../node_modules", "../harness/go", "../harness/java"}
+	// The external storage snippets depend on the @temporalio/external-storage-*
+	// driver packages, which are not part of the package.json generated above and
+	// are versioned independently of the SDK under test. They are type-checked by
+	// the root tsconfig.json in the `build-typescript` CI job instead.
+	excludes := []string{
+		"../node_modules",
+		"../harness/go",
+		"../harness/java",
+		"../features/snippets/external_storage",
+	}
 	if len(options.Excludes) > 0 {
 		excludes = options.Excludes
 	}

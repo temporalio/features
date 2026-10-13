@@ -19,7 +19,7 @@ use Temporal\Workflow\WorkflowInterface;
 use Temporal\Workflow\WorkflowMethod;
 use Webmozart\Assert\Assert;
 
-const EXPECTED_RESULT = 0xDEADBEEF;
+const EXPECTED_RESULT = "\xDE\xAD\xBE\xEF";
 \define(__NAMESPACE__ . '\INPUT', (new DataBlob())->setData(EXPECTED_RESULT));
 
 #[WorkflowInterface]
@@ -81,6 +81,6 @@ class FeatureChecker
 
         Assert::same($payload->getMetadata()['encoding'], 'json/protobuf');
         Assert::same($payload->getMetadata()['messageType'], 'temporal.api.common.v1.DataBlob');
-        Assert::same($payload->getData(), '{"data":"MzczNTkyODU1OQ=="}');
+        Assert::same($payload->getData(), '{"data":"3q2+7w=="}');
     }
 }

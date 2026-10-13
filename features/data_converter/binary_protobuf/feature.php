@@ -20,7 +20,7 @@ use Temporal\Workflow\WorkflowInterface;
 use Temporal\Workflow\WorkflowMethod;
 use Webmozart\Assert\Assert;
 
-const EXPECTED_RESULT = 0xDEADBEEF;
+const EXPECTED_RESULT = "\xDE\xAD\xBE\xEF";
 \define(__NAMESPACE__ . '\INPUT', (new DataBlob())->setData(EXPECTED_RESULT));
 
 #[WorkflowInterface]

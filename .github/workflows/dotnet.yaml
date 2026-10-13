@@ -101,11 +101,18 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
 
+      # The step above installs stable; the bridge pins its own channel. Install that one
+      # up front so the parallel cargo runs in `dotnet build` don't race to install it.
+      - name: Install the bridge's pinned Rust toolchain
+        if: ${{ inputs.version-is-repo-ref }}
+        run: rustup toolchain install
+        working-directory: ./sdk-dotnet/src/Temporalio/Bridge/sdk-core
+
       - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         if: ${{ inputs.version-is-repo-ref }}
         with:
           cache-bin: false
-          workspaces: sdk-dotnet/src/Temporalio/Bridge
+          workspaces: sdk-dotnet/src/Temporalio/Bridge/sdk-core
 
       # Build .NET SDK if using repo
       # Don't build during install phase since we're going to explicitly build

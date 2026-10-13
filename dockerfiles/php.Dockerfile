@@ -1,5 +1,5 @@
 # Build in a full featured container
-FROM php:8.2-cli as build
+FROM php:8.2-cli-bookworm as build
 
 # Install protobuf compiler
 RUN apt-get update \
@@ -42,6 +42,8 @@ RUN CGO_ENABLED=0 ./temporal-features prepare --lang php --dir prepared --versio
 
 # Copy the CLI and prepared feature to a smaller container for running
 FROM spiralscout/php-grpc:8.2
+
+RUN pecl install -f protobuf
 
 COPY --from=build /app/dockerfiles/dynamicconfig /app/dockerfiles/dynamicconfig
 COPY --from=build /app/temporal-features /app/temporal-features

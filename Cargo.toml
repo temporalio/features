@@ -1,0 +1,28 @@
+[workspace]
+members = ["harness/rust"]
+resolver = "2"
+
+[package]
+name = "temporalio-features"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[lib]
+path = "harness/rust/src/features.rs"
+
+[dependencies]
+anyhow = "1"
+base64 = "0.22"
+futures = "0.3"
+prost = "0.14"
+serde_json = "1"
+temporalio-client = "0.8"
+temporalio-common = "0.8"
+temporalio-features-harness = { path = "harness/rust" }
+temporalio-macros = "0.8"
+temporalio-sdk = "0.8"
+temporalio-sdk-core = "0.8"
+temporalio-workflow = "0.8"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+uuid = { version = "1", features = ["v4"] }

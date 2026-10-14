@@ -1,0 +1,124 @@
+name: Rust Features Testing
+on:
+  workflow_call:
+    inputs:
+      rust-repo-path:
+        type: string
+        default: 'temporalio/sdk-rust'
+      version:
+        required: true
+        type: string
+      # When true, the version refers to a repo tag/ref. Otherwise it is a crate version.
+      version-is-repo-ref:
+        required: true
+        type: boolean
+      features-repo-path:
+        type: string
+        default: 'temporalio/features'
+      features-repo-ref:
+        type: string
+        default: 'main'
+      # If set, download and run the server from the provided Docker artifact.
+      docker-image-artifact-name:
+        type: string
+        required: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./features
+    steps:
+      - name: Print git info
+        run: 'echo head_ref: "$GITHUB_HEAD_REF", ref: "$GITHUB_REF", Rust sdk version: "$INPUT_VERSION"'
+        working-directory: '.'
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+
+      - name: Download docker artifacts
+        if: ${{ inputs.docker-image-artifact-name }}
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: ${{ inputs.docker-image-artifact-name }}
+          path: /tmp/server-docker
+
+      - name: Load server Docker images
+        if: ${{ inputs.docker-image-artifact-name }}
+        run: |
+          docker load --input /tmp/server-docker/temporal-server.tar
+          docker load --input /tmp/server-docker/temporal-admin-tools.tar
+        working-directory: '.'
+
+      - name: Override IMAGE_TAG environment variable
+        if: ${{ inputs.docker-image-artifact-name }}
+        run: |
+          image_tag=latest
+          if [ -f /tmp/server-docker/image_tag ]; then
+            image_tag=$(cat /tmp/server-docker/image_tag)
+          fi
+          echo "IMAGE_TAG=${image_tag}" >> "$GITHUB_ENV"
+        working-directory: '.'
+
+      - name: Checkout SDK features repo
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          path: features
+          repository: ${{ inputs.features-repo-path }}
+          ref: ${{ inputs.features-repo-ref }}
+
+      - name: Checkout Rust SDK repo
+        if: ${{ inputs.version-is-repo-ref }}
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: ${{ inputs.rust-repo-path }}
+          path: sdk-rust
+          ref: ${{ inputs.version }}
+
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
+        with:
+          go-version: '^1.22'
+      - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+      - name: Install protoc
+        uses: arduino/setup-protoc@c65c819552d16ad3c9b72d9dfd5ba5237b9c906b # v3
+        with:
+          version: '23.x'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          cache-bin: false
+
+      - name: Start containerized server and dependencies
+        if: ${{ inputs.docker-image-artifact-name }}
+        run: |
+          docker compose \
+            -f ./dockerfiles/docker-compose.yml \
+            up -d cassandra elasticsearch temporal-admin-tools temporal-server temporal-create-namespace
+
+      - name: Run SDK-features tests
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_VERSION_IS_REPO_REF: ${{ inputs.version-is-repo-ref }}
+          SERVER_IS_CONTAINERIZED: ${{ inputs.docker-image-artifact-name != '' }}
+        run: |
+          sdk_version="$INPUT_VERSION"
+          if [ "$INPUT_VERSION_IS_REPO_REF" = "true" ]; then
+            sdk_version=$(realpath ../sdk-rust)
+          fi
+          args=(run --lang rs --version "$sdk_version")
+          if [ "$SERVER_IS_CONTAINERIZED" = "true" ]; then
+            args+=(--server localhost:7233 --namespace default)
+          fi
+          go run . "${args[@]}"
+
+      - name: Show all container logs before teardown
+        if: always() && inputs.docker-image-artifact-name
+        run: docker compose -f ./dockerfiles/docker-compose.yml logs
+
+      - name: Tear down docker compose
+        if: inputs.docker-image-artifact-name && (success() || failure())
+        run: docker compose -f ./dockerfiles/docker-compose.yml down -v

@@ -27,6 +27,7 @@ public class PreparedFeature {
           nexus.parallel_sync_operations.feature.Impl.class,
           nexus.sync_operation_error.feature.Impl.class,
           nexus.sync_success.feature.Impl.class,
+          nexus.workflow_run_success.feature.Impl.class,
           query.successful_query.feature.Impl.class,
           query.timeout_due_to_no_active_workers.feature.Impl.class,
           query.unexpected_arguments.feature.Impl.class,

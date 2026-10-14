@@ -37,6 +37,7 @@ import (
 	nexus_parallel_sync_operations "github.com/temporalio/features/features/nexus/parallel_sync_operations"
 	nexus_sync_operation_error "github.com/temporalio/features/features/nexus/sync_operation_error"
 	nexus_sync_success "github.com/temporalio/features/features/nexus/sync_success"
+	nexus_workflow_run_success "github.com/temporalio/features/features/nexus/workflow_run_success"
 	query_successful_query "github.com/temporalio/features/features/query/successful_query"
 	query_timeout_due_to_no_active_workers "github.com/temporalio/features/features/query/timeout_due_to_no_active_workers"
 	query_unexpected_arguments "github.com/temporalio/features/features/query/unexpected_arguments"
@@ -113,6 +114,7 @@ func init() {
 		nexus_parallel_sync_operations.Feature,
 		nexus_sync_operation_error.Feature,
 		nexus_sync_success.Feature,
+		nexus_workflow_run_success.Feature,
 		query_successful_query.Feature,
 		query_timeout_due_to_no_active_workers.Feature,
 		query_unexpected_arguments.Feature,

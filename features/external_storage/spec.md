@@ -1,6 +1,6 @@
 # External Storage Specification
 
-Last updated: 2026-10-08
+Last updated: 2026-10-15
 
 ## Motivation
 
@@ -511,11 +511,11 @@ The first is the budget for one message, meaning one activation, one activity ta
 client request, or one Nexus operation. Every message gets its own. This stops a message
 carrying many large payloads from consuming the whole allowance and starving the others.
 
-The second is shared by every driver of one external storage configuration. This is the
-process-wide ceiling. An application that gives the same configuration to a worker and to a
-client gets a single budget across both; an application that gives each its own
-configuration gets separate budgets. The shared budget is what bounds a client, which has no
-slot supplier to bound it.
+The second is shared by every driver, and belongs to the worker or the client performing the
+operation: each gets its own concurrency limit of this size. An application that gives one external
+storage configuration to both a worker and a client therefore gives each of them a concurrency limit,
+not one between them. This concurrency limit is what bounds a client, which has no slot supplier to
+bound it.
 
 A permit takes the message budget first and the shared budget inside it.
 

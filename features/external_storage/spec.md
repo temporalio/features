@@ -512,9 +512,9 @@ client request, or one Nexus operation. Every message gets its own. This stops a
 carrying many large payloads from consuming the whole allowance and starving the others.
 
 The second is shared by every driver, and belongs to the worker or the client performing the
-operation: each gets its own budget of this size. An application that gives one external
-storage configuration to both a worker and a client therefore gives each of them a budget,
-not one between them. This budget is what bounds a client, which has no slot supplier to
+operation: each gets its own concurrency limit of this size. An application that gives one external
+storage configuration to both a worker and a client therefore gives each of them a concurrency limit,
+not one between them. This concurrency limit is what bounds a client, which has no slot supplier to
 bound it.
 
 A permit takes the message budget first and the shared budget inside it.

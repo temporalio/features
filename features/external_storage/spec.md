@@ -769,7 +769,7 @@ in code after an await.
 Rust's limiter hands back a permit rather than running the operation itself. A method that took the
 operation would have to be generic over that operation's output, and a trait with a generic method
 cannot be used as `dyn`, which is how the contexts hold the limiter. A driver therefore acquires a
-permit, holds it for the request, and drops it. This is the same arrangement as the budgets
+permit, holds it for the request, and drops it. This is the same arrangement as the concurrency limits
 described above: one permit per request, releasing when the request settles, and dropping the
 acquire future is what makes waiting cancellable.
 

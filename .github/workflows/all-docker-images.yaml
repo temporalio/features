@@ -1,8 +1,7 @@
 name: Build all language docker images
+# TODO: Add SDK repo-ref inputs for languages other than Go and Rust.
 on:
   workflow_call:
-    # TODO: Can eventually support repo refs too rather than just versions if/when we need that.
-    #   Can prefix with `repo:` and do a little parsing in a bash script and write to $GITHUB_ENV
     inputs:
       go-ver:
         description: Go SDK ver to build. Skipped if not specified. Must start with v.
@@ -27,6 +26,15 @@ on:
         type: string
       rb-ver:
         description: Ruby SDK ver to build. Skipped if not specified. Must start with v.
+        type: string
+      rs-ver:
+        description: Rust SDK release to build. Must start with v. Mutually exclusive with rs-repo-ref.
+        type: string
+      rs-repo-ref:
+        description: Rust SDK source ref to build. Mutually exclusive with rs-ver.
+        type: string
+      rs-repo-url:
+        description: Rust SDK source URL override (default temporalio/sdk-rust).
         type: string
       do-push:
         description: If set, push the built images to Docker Hub.
@@ -63,6 +71,15 @@ on:
         type: string
       rb-ver:
         description: Ruby SDK ver to build. Skipped if not specified. Must start with v.
+        type: string
+      rs-ver:
+        description: Rust SDK release to build. Must start with v. Mutually exclusive with rs-repo-ref.
+        type: string
+      rs-repo-ref:
+        description: Rust SDK source ref to build. Mutually exclusive with rs-ver.
+        type: string
+      rs-repo-url:
+        description: Rust SDK source URL override (default temporalio/sdk-rust).
         type: string
       do-push:
         description: If set, push the built images to Docker Hub.
@@ -151,6 +168,19 @@ jobs:
     with:
       lang: rb
       sdk-version: ${{ inputs.rb-ver }}
+      semver-latest: major
+      do-push: ${{ inputs.do-push }}
+      skip-cloud: ${{ inputs.skip-cloud }}
+
+  build-rs-docker-images:
+    if: inputs.rs-ver || inputs.rs-repo-ref
+    uses: ./.github/workflows/docker-images.yaml
+    secrets: inherit
+    with:
+      lang: rs
+      sdk-version: ${{ inputs.rs-ver }}
+      sdk-repo-ref: ${{ inputs.rs-repo-ref }}
+      sdk-repo-url: ${{ inputs.rs-repo-url }}
       semver-latest: major
       do-push: ${{ inputs.do-push }}
       skip-cloud: ${{ inputs.skip-cloud }}

@@ -147,6 +147,24 @@ var registryQueries = map[string]registryQuery{
 			return resp.Version, nil
 		},
 	},
+	"rust": {
+		url: "https://crates.io/api/v1/crates/temporalio-sdk",
+		extract: func(body []byte) (string, error) {
+			var resp struct {
+				Crate struct {
+					MaxStableVersion string `json:"max_stable_version"`
+				} `json:"crate"`
+			}
+			if err := json.Unmarshal(body, &resp); err != nil {
+				return "", err
+			}
+			// crates.io excludes prereleases and yanked releases from this field.
+			if resp.Crate.MaxStableVersion == "" {
+				return "", fmt.Errorf("no stable Rust SDK releases found on crates.io")
+			}
+			return resp.Crate.MaxStableVersion, nil
+		},
+	},
 }
 
 func getLatestSdkVersion(config LatestSdkVersionConfig) error {
@@ -160,7 +178,13 @@ func getLatestSdkVersion(config LatestSdkVersionConfig) error {
 		return fmt.Errorf("no package registry configured for language %q", lang)
 	}
 
-	resp, err := http.Get(query.url)
+	req, err := http.NewRequest(http.MethodGet, query.url, nil)
+	if err != nil {
+		return err
+	}
+	// Package registries may reject unidentified automated clients.
+	req.Header.Set("User-Agent", "temporal-sdk-features (https://github.com/temporalio/features)")
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to query package registry: %w", err)
 	}

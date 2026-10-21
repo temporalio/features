@@ -220,6 +220,28 @@ jobs:
       - run: dotnet build
       - run: dotnet test
 
+  build-rust:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print build information
+        run: 'echo head_ref: "$GITHUB_HEAD_REF", ref: "$GITHUB_REF"'
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+        with:
+          toolchain: '1.94'
+          components: clippy, rustfmt
+      - name: Install protoc
+        uses: arduino/setup-protoc@c65c819552d16ad3c9b72d9dfd5ba5237b9c906b # v3
+        with:
+          version: '23.x'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          cache-bin: false
+      - run: cargo fmt --check
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+      - run: cargo test --workspace
+
   build-ruby:
     strategy:
       fail-fast: true
@@ -317,6 +339,18 @@ jobs:
     uses: ./.github/workflows/ruby.yaml
     with:
       version: ${{ needs.build-go.outputs.ruby_latest }}
+      version-is-repo-ref: false
+      features-repo-ref: ${{ github.head_ref }}
+      features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}
+
+  feature-tests-rust:
+    permissions:
+      contents: read
+      actions: read
+    needs: build-go
+    uses: ./.github/workflows/rust.yaml
+    with:
+      version: 0.8.0
       version-is-repo-ref: false
       features-repo-ref: ${{ github.head_ref }}
       features-repo-path: ${{ github.event.pull_request.head.repo.full_name }}

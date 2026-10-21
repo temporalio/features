@@ -53,3 +53,22 @@ func TestScrub(t *testing.T) {
 	}
 	assert.Equal(t, expected, actual)
 }
+
+func TestScrubSignalRequestID(t *testing.T) {
+	attrs := &history.WorkflowExecutionSignaledEventAttributes{
+		SignalName: "my_signal",
+		Identity:   "client",
+		RequestId:  "56fd6977-f9f5-4a75-b282-297b19214996",
+		Input:      &common.Payloads{Payloads: []*common.Payload{{Data: []byte(`"arg"`)}}},
+	}
+	hist := Histories{{Events: []*history.HistoryEvent{{
+		Attributes: &history.HistoryEvent_WorkflowExecutionSignaledEventAttributes{
+			WorkflowExecutionSignaledEventAttributes: attrs,
+		},
+	}}}}
+	hist.ScrubRunSpecificFields()
+	assert.Empty(t, attrs.Identity)
+	assert.Empty(t, attrs.RequestId)
+	assert.Equal(t, "my_signal", attrs.SignalName)
+	assert.Equal(t, []byte(`"arg"`), attrs.Input.Payloads[0].Data)
+}

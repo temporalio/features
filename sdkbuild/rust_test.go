@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -20,6 +21,30 @@ func TestRustManifestSelection(t *testing.T) {
 		t.Fatal(err)
 	}
 	baseline := strings.TrimPrefix(original["dependencies"].(map[string]any)["temporalio-sdk"].(string), "=")
+	t.Run("string", func(t *testing.T) {
+		testRustManifestSelection(t, source, baseline, false)
+	})
+	for _, crate := range rustSDKCrates {
+		if crate.direct {
+			original["dependencies"].(map[string]any)[crate.name] = map[string]any{
+				"version":          "=" + baseline,
+				"features":         []string{"test-feature"},
+				"default-features": false,
+				"path":             "old-path",
+			}
+		}
+	}
+	source, err = toml.Marshal(original)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Run("table", func(t *testing.T) {
+		testRustManifestSelection(t, source, baseline, true)
+	})
+}
+
+func testRustManifestSelection(t *testing.T, source []byte, baseline string, tables bool) {
+	t.Helper()
 	for _, version := range []string{"", baseline, "v" + baseline, "9.8.7"} {
 		got, locked, err := rustManifest(source, BuildRustProgramOptions{Version: version})
 		if err != nil {
@@ -40,7 +65,21 @@ func TestRustManifestSelection(t *testing.T) {
 			want = "=" + baseline
 		}
 		for _, crate := range rustSDKCrates {
-			if crate.direct && manifest["dependencies"].(map[string]any)[crate.name] != want {
+			if !crate.direct {
+				continue
+			}
+			dep := manifest["dependencies"].(map[string]any)[crate.name]
+			if tables {
+				table := dep.(map[string]any)
+				if !reflect.DeepEqual(table["features"], []any{"test-feature"}) || table["default-features"] != false {
+					t.Fatalf("lost dependency settings for %s: %v", crate.name, table)
+				}
+				if !locked && table["path"] != nil {
+					t.Fatalf("published selection retained path for %s", crate.name)
+				}
+				dep = table["version"]
+			}
+			if dep != want {
 				t.Fatalf("incorrect selection for %s", crate.name)
 			}
 		}
@@ -66,11 +105,17 @@ func TestRustManifestSelection(t *testing.T) {
 	patches := manifest["patch"].(map[string]any)["crates-io"].(map[string]any)
 	for _, crate := range rustSDKCrates {
 		want := filepath.Join(sdk, crate.path)
-		if patches[crate.name].(map[string]any)["path"] != want {
+		if !reflect.DeepEqual(patches[crate.name], map[string]any{"path": want}) {
 			t.Fatalf("missing local patch for %s", crate.name)
 		}
-		if crate.direct && manifest["dependencies"].(map[string]any)[crate.name].(map[string]any)["path"] != want {
-			t.Fatalf("missing direct path for %s", crate.name)
+		if crate.direct {
+			dep := manifest["dependencies"].(map[string]any)[crate.name].(map[string]any)
+			if dep["path"] != want || dep["version"] != nil {
+				t.Fatalf("incorrect local selection for %s: %v", crate.name, dep)
+			}
+			if tables && (!reflect.DeepEqual(dep["features"], []any{"test-feature"}) || dep["default-features"] != false) {
+				t.Fatalf("lost dependency settings for %s: %v", crate.name, dep)
+			}
 		}
 	}
 }

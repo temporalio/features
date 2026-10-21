@@ -16,8 +16,8 @@ import (
 
 // BuildRustProgramOptions are options for BuildRustProgram.
 type BuildRustProgramOptions struct {
-	// PackageDir is the checked-in Cargo package. BaseDir must be beneath the
-	// features repository so the copied build script can discover its features.
+	// PackageDir is the source Cargo package. Its build script must support
+	// running from the prepared directory beneath BaseDir.
 	PackageDir string
 	// Directory that will have a temporary directory created underneath.
 	BaseDir string
@@ -79,12 +79,42 @@ func BuildRustProgram(ctx context.Context, options BuildRustProgramOptions) (*Ru
 	if err != nil {
 		return nil, fmt.Errorf("create Rust project directory: %w", err)
 	}
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return nil, err
+	}
+	// Resolve symlinks before checking both directions: clearing copied sources
+	// must never remove any part of the source package.
+	packageDir, err := filepath.EvalSymlinks(filepath.Join(options.PackageDir, "src"))
+	if err != nil {
+		return nil, err
+	}
+	packageDir, err = filepath.Abs(packageDir)
+	if err != nil {
+		return nil, err
+	}
+	preparedDir, err := filepath.EvalSymlinks(dir)
+	if err != nil {
+		return nil, err
+	}
+	preparedDir = filepath.Join(preparedDir, "src")
+	for _, paths := range [][2]string{{packageDir, preparedDir}, {preparedDir, packageDir}} {
+		rel, err := filepath.Rel(paths[0], paths[1])
+		if err != nil {
+			return nil, err
+		}
+		if rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+			return nil, fmt.Errorf("Rust source and prepared directories must not overlap")
+		}
+	}
 	success := false
 	defer func() {
 		if !success && options.DirName == "" {
 			_ = os.RemoveAll(dir)
 		}
 	}()
+	if err := os.RemoveAll(filepath.Join(dir, "src")); err != nil {
+		return nil, fmt.Errorf("clear copied Rust sources: %w", err)
+	}
 	if err := os.CopyFS(filepath.Join(dir, "src"), os.DirFS(filepath.Join(options.PackageDir, "src"))); err != nil {
 		return nil, fmt.Errorf("copy Rust sources: %w", err)
 	}
@@ -144,7 +174,11 @@ func rustManifest(source []byte, options BuildRustProgramOptions) ([]byte, bool,
 	if !ok {
 		return nil, false, fmt.Errorf("Rust package requires dependencies")
 	}
-	baseline, ok := deps["temporalio-sdk"].(string)
+	sdkVersion := deps["temporalio-sdk"]
+	if table, ok := sdkVersion.(map[string]any); ok {
+		sdkVersion = table["version"]
+	}
+	baseline, ok := sdkVersion.(string)
 	if !ok || !strings.HasPrefix(baseline, "=") {
 		return nil, false, fmt.Errorf("Rust package requires an exact temporalio-sdk version")
 	}
@@ -186,6 +220,16 @@ func rustManifest(source []byte, options BuildRustProgramOptions) ([]byte, bool,
 			patches[crate.name] = dep
 		}
 		if crate.direct {
+			if table, ok := deps[crate.name].(map[string]any); ok {
+				if sdkPath == "" {
+					delete(table, "path")
+					table["version"] = "=" + version
+				} else {
+					delete(table, "version")
+					table["path"] = filepath.Join(sdkPath, crate.path)
+				}
+				dep = table
+			}
 			deps[crate.name] = dep
 		}
 	}

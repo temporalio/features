@@ -33,6 +33,7 @@ class CallerWorkflow:
             "start-value",
             id=target_id,
             task_queue=task_queue,
+            execution_timeout=timedelta(minutes=1),
             signal=TargetWorkflow.add,
             signal_args="signal-one",
             id_conflict_policy=WorkflowIDConflictPolicy.USE_EXISTING,

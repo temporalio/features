@@ -1,6 +1,6 @@
 # External Storage Specification
 
-Last updated: 2026-10-08
+Last updated: 2026-10-15
 
 ## Motivation
 
@@ -511,11 +511,11 @@ The first is the budget for one message, meaning one activation, one activity ta
 client request, or one Nexus operation. Every message gets its own. This stops a message
 carrying many large payloads from consuming the whole allowance and starving the others.
 
-The second is shared by every driver of one external storage configuration. This is the
-process-wide ceiling. An application that gives the same configuration to a worker and to a
-client gets a single budget across both; an application that gives each its own
-configuration gets separate budgets. The shared budget is what bounds a client, which has no
-slot supplier to bound it.
+The second is shared by every driver, and belongs to the worker or the client performing the
+operation: each gets its own concurrency limit of this size. An application that gives one external
+storage configuration to both a worker and a client therefore gives each of them a concurrency limit,
+not one between them. This concurrency limit is what bounds a client, which has no slot supplier to
+bound it.
 
 A permit takes the message budget first and the shared budget inside it.
 
@@ -714,6 +714,13 @@ itself.
 These are differences that a language forces, and that this specification accepts. It is not
 a list of places where an SDK deviates.
 
+### .NET
+
+.NET expresses cancellation as a `CancellationToken` passed to an operation rather than as a field
+on a context, and its framework guidelines require that token to be the operation's last parameter.
+The driver's store and retrieve operations take one directly, as does the limiter, and the contexts
+carry none.
+
 ### Go
 
 A Go configuration struct has a zero value, and the zero value has to mean that the feature
@@ -744,6 +751,27 @@ Python is built on asyncio, so cancellation is ambient: cancelling the surroundi
 raises inside the driver at its next suspension point. The driver contexts therefore carry no
 cancellation field, and this is the idiomatic result rather than a missing feature. The
 consequence for a driver author is that a driver must not swallow the cancellation exception.
+
+### Rust
+
+A Rust future does no work unless it is polled, so dropping it cancels whatever it was doing.
+Cancellation is therefore ambient, as it is in Python: the SDK drops the future and the driver's
+work stops at its next await point. The driver contexts carry no cancellation field, and this is
+the idiomatic result rather than a missing feature. Rust expresses no ambient deadline either, so
+there is none to propagate.
+
+The consequence for a driver author differs from Python's. Python raises inside the driver, which
+can observe the cancellation and must not swallow it. A dropped Rust future delivers no value to
+observe at all, so a driver has only what it does on drop: it must leave its own state consistent
+without being told, and anything that must happen on cancellation belongs in a guard rather than
+in code after an await.
+
+Rust's limiter hands back a permit rather than running the operation itself. A method that took the
+operation would have to be generic over that operation's output, and a trait with a generic method
+cannot be used as `dyn`, which is how the contexts hold the limiter. A driver therefore acquires a
+permit, holds it for the request, and drops it. This is the same arrangement as the concurrency limits
+described above: one permit per request, releasing when the request settles, and dropping the
+acquire future is what makes waiting cancellable.
 
 ### TypeScript
 

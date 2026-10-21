@@ -33,15 +33,16 @@ pub enum FeatureOutcome {
     Skipped(String),
 }
 
-/// The compile-time registry contains one factory result per feature path.
+/// Maps each feature path to that feature's `feature()` result.
+/// Paths are relative to `features/`, with `/` separators.
 pub type Registry = Vec<(&'static str, Box<dyn Feature>)>;
 
-/// Each `feature.rs` exports `pub fn feature() -> Box<dyn Feature>`.
+/// Each `feature.rs` must export `pub fn feature() -> Box<dyn Feature>`.
 ///
-/// Registration remains typed inside the module. Return worker options to have
-/// the harness own polling, cancellation, and shutdown. Client-only features can
-/// leave worker options unset. Return replay options for workflow features;
-/// the harness discovers their current histories after worker shutdown.
+/// Return `Some` from [`Feature::worker_options`] to have the harness own worker
+/// polling, cancellation, and shutdown. Return `Some` from [`Feature::replay_options`]
+/// to enable replay of the feature's current execution histories after worker shutdown.
+/// Client-only features can leave worker and replay options unset.
 pub trait Feature {
     /// Override data conversion, interceptors, or other public client options.
     fn configure_client(&self, client: Client) -> Result<Client> {
@@ -111,9 +112,9 @@ impl FeatureContext {
 const SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(30);
 const FEATURE_TIMEOUT: Duration = Duration::from_secs(180);
 
-/// Execute all selections and close the summary transport before returning.
+/// Execute the features specified by the command-line arguments and report their outcomes.
 ///
-/// `Ok(false)` means one or more failed selections; configuration/transport
+/// `Ok(false)` means one or more features failed; configuration/transport
 /// failures return `Err`. Unknown feature names are reported as failed entries.
 pub async fn run(args: impl Iterator<Item = String>, registry: Registry) -> Result<bool> {
     let options = Options::parse(args)?;
@@ -192,8 +193,6 @@ pub async fn run(args: impl Iterator<Item = String>, registry: Registry) -> Resu
             message: &message,
         })?;
     }
-    // No background writer owns the socket: dropping it delivers EOF promptly.
-    drop(summary);
     Ok(all_passed)
 }
 
@@ -354,7 +353,7 @@ fn validated_history(mut history: History, workflow_id: &str) -> Result<Workflow
     Ok(history.into())
 }
 
-/// Poll the worker and driver on the same task; never spawn the local worker.
+/// Poll the worker and feature driver on the same task.
 async fn supervise<T>(
     worker: impl Future<Output = Result<(), temporalio_sdk::WorkerRunError>>,
     shutdown: impl Fn(),

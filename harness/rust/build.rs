@@ -18,8 +18,7 @@ fn discover(dir: &Path, sources: &mut Vec<PathBuf>) {
 }
 
 fn main() {
-    // Both the checked-in package and prepared packages live beneath the repo.
-    // Locate its feature tree by identity, not by a fixed number of parents.
+    // Locate the repository root containing the feature tree and Rust package.
     let manifest_dir = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap());
     let root = manifest_dir
         .ancestors()
@@ -43,7 +42,7 @@ fn main() {
             .map(|part| part.as_os_str().to_str().expect("UTF-8 feature path"))
             .collect::<Vec<_>>()
             .join("/");
-        // Hex encoding is injective, even for punctuation and Unicode paths.
+        // Hex-encoded path bytes produce distinct, valid Rust module names.
         let mut module = String::from("feature_");
         for byte in key.bytes() {
             write!(module, "{byte:02x}").unwrap();

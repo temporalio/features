@@ -182,7 +182,7 @@ func getLatestSdkVersion(config LatestSdkVersionConfig) error {
 	if err != nil {
 		return err
 	}
-	// Package registries may reject unidentified automated clients.
+	// crates.io's API policy requires an identifying User-Agent for automated clients.
 	req.Header.Set("User-Agent", "temporal-sdk-features (https://github.com/temporalio/features)")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

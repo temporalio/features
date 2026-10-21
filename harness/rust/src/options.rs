@@ -39,9 +39,9 @@ pub(crate) struct Options {
     server: String,
     #[arg(long, value_parser = clap::builder::NonEmptyStringValueParser::new())]
     pub namespace: String,
-    #[arg(long)]
+    #[arg(long, requires = "client_key_path")]
     client_cert_path: Option<String>,
-    #[arg(long)]
+    #[arg(long, requires = "client_cert_path")]
     client_key_path: Option<String>,
     #[arg(long)]
     ca_cert_path: Option<String>,
@@ -67,10 +67,6 @@ impl Options {
     pub fn connection_options(&self) -> Result<ConnectionOptions> {
         let cert = self.client_cert_path.as_deref();
         let key = self.client_key_path.as_deref();
-        ensure!(
-            cert.is_some() == key.is_some(),
-            "client certificate and key must be supplied together"
-        );
         let ca = self.ca_cert_path.as_deref();
         let domain = self.tls_server_name.as_deref();
         let explicit_tls = cert.is_some() || ca.is_some() || domain.is_some();
@@ -227,12 +223,8 @@ mod tests {
         assert!(proxy.dns_load_balancing.is_none());
         let proxy = proxy.http_connect_proxy.unwrap();
         assert_eq!(proxy.basic_auth, Some(("a@b".into(), "p:ss".into())));
-        assert!(
-            parse(&["--client-cert-path", "/missing", "a:q"])
-                .unwrap()
-                .connection_options()
-                .is_err()
-        );
+        assert!(parse(&["--client-cert-path", "/missing", "a:q"]).is_err());
+        assert!(parse(&["--client-key-path", "/missing", "a:q"]).is_err());
         assert!(
             parse(&["--http-proxy-url", "https://proxy", "a:q"])
                 .unwrap()

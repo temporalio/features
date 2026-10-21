@@ -97,23 +97,6 @@ cargo clippy --locked -- -D warnings
 Rust-analyzer can load this Cargo package directly, without `prepare`. When opening the repository
 root, select `harness/rust/Cargo.toml` as a linked project if your editor does not discover it.
 
-Run from this repository root:
-
-```sh
-# Repository baseline, built on demand.
-go run . run --lang rs activity/basic_no_workflow_timeout signal/basic
-
-# Exact released SDK version (with or without the leading v).
-go run . run --lang rust --version v1.1.0 activity/basic_no_workflow_timeout signal/basic
-
-# Local SDK source workspace; no SDK files or build outputs are written there.
-go run . run --lang rs --version ../sdk-rust activity/basic_no_workflow_timeout signal/basic
-
-# Prepare once, then execute without Cargo or the SDK checkout.
-go run . prepare --lang rs --dir program-rust
-go run . run --lang rust --prepared-dir program-rust activity/basic_no_workflow_timeout signal/basic
-```
-
 Local paths must contain the SDK workspace's `crates/` tree; include a slash to distinguish
 them from release versions. Every preparation starts with the checked-in lockfile. Baseline
 builds use `--locked`; other selections update the copied lockfile as needed without changing
@@ -161,7 +144,7 @@ history checks are performed:
 
 1. Specific languages use their replayers to replay the just-executed workflow's history to confirm it works.
 2. Specific languages use their replayers to replay all history files with versions <= the current version to confirm it
-   works. Rust currently replays only current executions, not stored histories.
+   works.
 3. The primary runner scrubs the history of the just-executed workflow of all execution-dependent values. Then it
    compares the exact events to all similarly-scrubbed history files.
 
@@ -279,29 +262,11 @@ func HelloUniverse() {
 
 ### Rust feature conventions
 
-Each `feature.rs` exports `pub fn feature() -> Box<dyn Feature>` using `crate::harness`;
-Cargo discovers it automatically. Follow the
+Each `feature.rs` must export `pub fn feature() -> Box<dyn Feature>` using `crate::harness`;
+Cargo registers these files automatically. See
 [`signal/basic`](features/signal/basic/feature.rs) and
-[`activity/basic_no_workflow_timeout`](features/activity/basic_no_workflow_timeout/feature.rs) examples.
-
-- Implement `Feature::worker_options` with typed workflow/activity registrations on
-  `ctx.task_queue`. The harness owns worker polling, cancellation, draining, and replay.
-- Implement `Feature::execute` as a boxed local future (`FeatureFuture`). Start workflows
-  using `ctx.start_options()` and assert their observable results. Its default workflow execution
-  timeout is one minute; clear it explicitly when testing the absence of a timeout.
-- Await results with `handle.get_result(WorkflowGetResultOptions::default())`.
-  After worker shutdown, the harness automatically collects and natively replays every current
-  run on the isolated queue; workflows must close first. Stored fixtures are not natively replayed.
-  `--no-history-check` disables replay and outer fixture comparison, not result assertions.
-- Return equivalent registrations/converters from `Feature::replay_options`;
-  `ctx.replay_options::<Workflow>()` handles a single workflow. Client/activity-only features
-  may leave worker/replay options unset. Document any intentional replay exclusion.
-- `configure_client` supports custom converters/interceptors. `FeatureContext` also exposes
-  namespace, isolated queue, Nexus endpoint, and validated namespace capabilities.
-- Return `FeatureOutcome::Passed` or `Skipped(reason)`; return an error for assertion failures.
-  Keep deterministic workflow code separate from driver-side I/O.
-
-The harness bounds each feature to three minutes.
+[`activity/basic_no_workflow_timeout`](features/activity/basic_no_workflow_timeout/feature.rs)
+for worker setup, result assertions, and replay registration.
 
 #### Generating History
 

@@ -32,7 +32,7 @@ fn main() {
     sources.sort();
     let mut registry = String::new();
     let mut entries = String::new();
-    for source in sources {
+    for (index, source) in sources.into_iter().enumerate() {
         let key = source
             .parent()
             .unwrap()
@@ -42,11 +42,7 @@ fn main() {
             .map(|part| part.as_os_str().to_str().expect("UTF-8 feature path"))
             .collect::<Vec<_>>()
             .join("/");
-        // Hex-encoded path bytes produce distinct, valid Rust module names.
-        let mut module = String::from("feature_");
-        for byte in key.bytes() {
-            write!(module, "{byte:02x}").unwrap();
-        }
+        let module = format!("feature_{index}");
         writeln!(
             registry,
             "#[path = {:?}]\npub mod {module};",

@@ -1,0 +1,31 @@
+[package]
+name = "sdk-features-rust"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[[bin]]
+name = "program"
+path = "src/main.rs"
+
+[package.metadata.harness]
+protoc-version = "36.1"
+
+[dependencies]
+temporalio-sdk = "=1.1.0"
+temporalio-client = "=1.1.0"
+temporalio-workflow = "=1.1.0"
+temporalio-macros = "=1.1.0"
+temporalio-common = "=1.1.0"
+anyhow = "1"
+clap = { version = "4", default-features = false, features = ["derive", "std", "error-context"] }
+futures = "0.3"
+percent-encoding = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "time", "net", "io-util", "signal", "sync"] }
+tokio-util = { version = "0.7", features = ["rt"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+url = "2"

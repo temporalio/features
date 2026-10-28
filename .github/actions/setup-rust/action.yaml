@@ -1,0 +1,40 @@
+name: Set up Rust harness
+description: Install the harness toolchain and protoc from its checked-in configuration
+runs:
+  using: composite
+  steps:
+    - name: Read harness prerequisites
+      id: versions
+      shell: bash
+      working-directory: ${{ github.action_path }}/../../../harness/rust
+      run: |
+        python3 - <<'PY' >> "$GITHUB_OUTPUT"
+        import tomllib
+        with open("rust-toolchain.toml", "rb") as f:
+            toolchain = tomllib.load(f)["toolchain"]
+            print("toolchain=" + toolchain["channel"])
+            print("profile=" + toolchain["profile"])
+            print("components=" + ",".join(toolchain["components"]))
+        with open("Cargo.toml", "rb") as f:
+            print("protoc=" + tomllib.load(f)["package"]["metadata"]["harness"]["protoc-version"])
+        PY
+    - name: Install Rust and native dependencies
+      shell: bash
+      working-directory: ${{ github.action_path }}/../../../harness/rust
+      env:
+        PROTOC_VERSION: ${{ steps.versions.outputs.protoc }}
+        RUSTUP_TOOLCHAIN: ${{ steps.versions.outputs.toolchain }}
+        RUSTUP_PROFILE: ${{ steps.versions.outputs.profile }}
+        RUSTUP_COMPONENTS: ${{ steps.versions.outputs.components }}
+      run: |
+        sudo apt-get update
+        sudo apt-get install --no-install-recommends --assume-yes build-essential pkg-config unzip
+        rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile "$RUSTUP_PROFILE" --component "$RUSTUP_COMPONENTS"
+        cargo --version
+        # Cache setup runs outside the package and must select the same compiler.
+        echo "RUSTUP_TOOLCHAIN=$RUSTUP_TOOLCHAIN" >> "$GITHUB_ENV"
+        curl --fail --silent --show-error --location \
+          "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip" \
+          --output "$RUNNER_TEMP/protoc.zip"
+        unzip -q "$RUNNER_TEMP/protoc.zip" -d "$RUNNER_TEMP/protoc"
+        echo "$RUNNER_TEMP/protoc/bin" >> "$GITHUB_PATH"

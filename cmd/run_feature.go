@@ -19,12 +19,27 @@ type RunFeature struct {
 // GlobFeatures collects all features for this runner using the given patterns
 // or all features if no patterns given.
 func (r *Runner) GlobFeatures(patterns []string) ([]*RunFeature, error) {
+	return r.globFeatures(patterns, false)
+}
+
+func (r *Runner) GlobCrossLanguageFeatures(patterns []string) ([]*RunFeature, error) {
+	return r.globFeatures(patterns, true)
+}
+
+func (r *Runner) globFeatures(patterns []string, crossLanguage bool) ([]*RunFeature, error) {
 	// Collect all feature dirs that have a lang entry
 	var features []*RunFeature
 	featuresDir := filepath.Join(r.rootDir, "features")
-	err := filepath.WalkDir(featuresDir, func(path string, _ fs.DirEntry, _ error) error {
+	err := filepath.WalkDir(featuresDir, func(path string, _ fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
 		// Only files that are feature + ext matter
-		if filepath.Base(path) != "feature."+r.config.Lang {
+		name := "feature." + r.config.Lang
+		if crossLanguage {
+			name = "config.json"
+		}
+		if filepath.Base(path) != name {
 			return nil
 		}
 
@@ -35,6 +50,13 @@ func (r *Runner) GlobFeatures(patterns []string) ([]*RunFeature, error) {
 			return err
 		}
 		dir = filepath.ToSlash(dir)
+		feature := &RunFeature{Dir: dir}
+		if err := feature.Config.LoadFromDir(filepath.Dir(path)); err != nil {
+			return fmt.Errorf("failed reading config from %v: %w", path, err)
+		}
+		if feature.Config.CrossLanguage != crossLanguage {
+			return nil
+		}
 
 		// If no patterns present, all match. Otherwise, check dir or file on each.
 		if len(patterns) > 0 {
@@ -43,7 +65,7 @@ func (r *Runner) GlobFeatures(patterns []string) ([]*RunFeature, error) {
 				pattern = strings.TrimPrefix(pattern, "features/")
 				match, err := filepath.Match(pattern, dir)
 				if !match && err == nil {
-					match, err = filepath.Match(pattern, dir+"/feature."+r.config.Lang)
+					match, err = filepath.Match(pattern, dir+"/"+name)
 				}
 				if err != nil {
 					return fmt.Errorf("invalid pattern %q: %w", pattern, err)
@@ -55,12 +77,6 @@ func (r *Runner) GlobFeatures(patterns []string) ([]*RunFeature, error) {
 			if !foundMatch {
 				return nil
 			}
-		}
-
-		// Load config
-		feature := &RunFeature{Dir: dir}
-		if err := feature.Config.LoadFromDir(filepath.Dir(path)); err != nil {
-			return fmt.Errorf("failed reading config from %v: %w", path, err)
 		}
 
 		// If there's a min version, check we're within it

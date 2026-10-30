@@ -151,6 +151,39 @@ history checks are performed:
 Currently there are not ways for features to opt out of specific history checks. To opt out of all history checking for
 a specific run, use `--no-history-check`.
 
+## Cross-language features
+
+A feature with `"crossLanguage": true` in its `config.json` has a conventional
+`driver/` Go program and ordinary `feature.<language>` participants. Run these
+features with their own subcommand:
+
+```sh
+go run . run-cross-language tracing/encoded_headers
+```
+
+The runner discovers participants from the files, prepares each participating SDK
+once, and supplies the driver with prepared harness commands, a server, namespace,
+and unique task-queue prefix through `FEATURE_CROSS_LANGUAGE`. The
+`harness/go/crosslanguage` package reads this manifest and invokes harnesses in
+`client` or `worker` roles. Workers announce readiness before clients are run.
+The driver chooses scenarios, pairs, and assertions; the runner does not generate
+a language matrix. A nonzero driver exit fails the feature in the normal summary.
+
+Use repeated `--sdk-version language=version-or-local-checkout` options to select
+SDKs independently. For example:
+
+```sh
+go run . run-cross-language --sdk-version cs=1.21.1 --sdk-version ts=/path/to/sdk-typescript tracing/encoded_headers
+```
+
+Only the .NET and TypeScript harnesses currently expose separate roles. Other
+languages can be added as features require them. Cross-language features own their
+history assertions and do not use the single-language history comparison/generation
+mechanism. This subcommand exposes SDK selection, server/namespace/TLS options,
+and temporary-build retention, but not history-generation or prepared-directory flags.
+The existing `run` and `prepare` subcommands continue to require `--lang` and select
+only single-language features.
+
 ## Writing Features
 
 Developers can write workflows and activities that represent a SDK "feature". These are organized into directories under

@@ -82,29 +82,43 @@ public class Runner
     /// Run the feature with the given cancellation token.
     /// </summary>
     /// <param name="cancellationToken"></param>
+    /// <param name="role">Run both portions, only the client, or only the worker.</param>
     /// <returns></returns>
-    public async Task RunAsync(CancellationToken cancellationToken)
+    public async Task RunAsync(CancellationToken cancellationToken, string role = "all")
     {
         Logger.LogInformation("Executing feature {Feature}", PreparedFeature.Dir);
         runCancelToken = cancellationToken;
         client = await TemporalClient.ConnectAsync(ClientOptions);
         Feature.ConfigureWorker(this, WorkerOptions);
-        StartWorker();
-
-        var run = await Feature.ExecuteAsync(this);
-        if (run == null)
+        if (role != "client")
         {
-            Logger.LogInformation("Feature {Feature} returned null", PreparedFeature.Dir);
-            return;
+            StartWorker();
         }
-
-        Logger.LogInformation("Checking result of feature {Feature}", PreparedFeature.Dir);
-        await Feature.CheckResultAsync(this, run);
-        await Feature.CheckHistoryAsync(this, run);
-
-        if (workerState != null)
+        try
         {
-            await workerState.StopAndWait();
+            if (role == "worker")
+            {
+                Console.WriteLine("FEATURE_WORKER_READY");
+                await Task.Delay(Timeout.Infinite, cancellationToken);
+                return;
+            }
+            var run = await Feature.ExecuteAsync(this);
+            if (run == null)
+            {
+                Logger.LogInformation("Feature {Feature} returned null", PreparedFeature.Dir);
+                return;
+            }
+            Logger.LogInformation("Checking result of feature {Feature}", PreparedFeature.Dir);
+            await Feature.CheckResultAsync(this, run);
+            if (role == "all")
+            {
+                // A client-only run may target another SDK's workflow implementation.
+                await Feature.CheckHistoryAsync(this, run);
+            }
+        }
+        finally
+        {
+            await StopWorker();
         }
     }
 

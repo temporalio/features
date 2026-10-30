@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/temporalio/features/harness/go/cmd"
 	"github.com/temporalio/features/sdkbuild"
@@ -32,10 +33,42 @@ func (p *Preparer) BuildTypeScriptProgram(ctx context.Context) (sdkbuild.Program
 		}
 	}
 
+	var dependencies map[string]string
+	var excludes []string
+	if p.config.crossLanguage {
+		tracingVersion := strings.TrimPrefix(version, "v")
+		if strings.ContainsAny(version, `/\`) {
+			path, err := filepath.Abs(filepath.Join(version, "contrib", "interceptors-opentelemetry"))
+			if err != nil {
+				return nil, err
+			}
+			tracingVersion = "link:" + path
+		}
+		dependencies = map[string]string{
+			"@temporalio/interceptors-opentelemetry": tracingVersion,
+			"@opentelemetry/api":                     "1.9.0",
+			"@opentelemetry/resources":               "^1.30.1",
+			"@opentelemetry/sdk-trace-base":          "^1.30.1",
+		}
+	} else {
+		// Cross-language participants may depend on newer SDK APIs than the ordinary
+		// features selected for a historical single-language run.
+		runner := NewRunner(RunConfig{})
+		runner.rootDir = p.rootDir
+		features, err := runner.GlobCrossLanguageFeatures(nil)
+		if err != nil {
+			return nil, err
+		}
+		for _, feature := range features {
+			excludes = append(excludes, "../features/"+feature.Dir)
+		}
+	}
 	prog, err := sdkbuild.BuildTypeScriptProgram(ctx, sdkbuild.BuildTypeScriptProgramOptions{
-		BaseDir: p.rootDir,
-		DirName: p.config.DirName,
-		Version: version,
+		BaseDir:            p.rootDir,
+		DirName:            p.config.DirName,
+		Version:            version,
+		MoreDependencies:   dependencies,
+		AdditionalExcludes: excludes,
 		TSConfigPaths: map[string][]string{
 			"@temporalio/harness": {"./tslib/harness/ts/harness.js", "../harness/ts/harness.ts"},
 		},

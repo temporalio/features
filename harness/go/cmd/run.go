@@ -101,6 +101,7 @@ func (r RunFeature) SummaryName() string {
 
 // RunFeatureConfig is config from config.json.
 type RunFeatureConfig struct {
+	CrossLanguage            bool               `json:"crossLanguage"`
 	NoWorkflow               bool               `json:"noWorkflow"`
 	NeedsNexusEndpoint       bool               `json:"needsNexusEndpoint"`
 	Go                       RunFeatureConfigGo `json:"go"`

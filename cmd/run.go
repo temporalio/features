@@ -155,9 +155,12 @@ type Runner struct {
 	log    log.Logger
 	config RunConfig
 	// Root of the features repo
-	rootDir    string
-	createTime time.Time
-	program    sdkbuild.Program
+	rootDir       string
+	createTime    time.Time
+	program       sdkbuild.Program
+	crossPrograms map[string]sdkbuild.Program
+	crossLanguage bool
+	crossVersions map[string]string
 }
 
 type runBatch struct {
@@ -366,6 +369,10 @@ func (r *Runner) Run(ctx context.Context, patterns []string) error {
 			}
 		}
 	}
+	return r.runFeatures(ctx, features, patterns)
+}
+
+func (r *Runner) runFeatures(ctx context.Context, features []*RunFeature, patterns []string) error {
 	features = r.filterFeaturesForExternalServer(features, patterns)
 	if len(features) == 0 {
 		return fmt.Errorf("no features matched")
@@ -479,6 +486,10 @@ func (r *Runner) runBatch(ctx context.Context, batch runBatch) error {
 		config.HTTPProxyURL = "http://" + proxyServer.Address
 		r.log.Info("Started HTTP CONNECT proxy server", "address", proxyServer.Address)
 		defer proxyServer.Close()
+	}
+
+	if r.crossLanguage {
+		return r.runCrossLanguageBatch(ctx, config, batch)
 	}
 
 	l, err := net.Listen("tcp", summaryListenAddr)
@@ -958,6 +969,9 @@ func (r *Runner) createNexusEndpoints(ctx context.Context, config RunConfig, run
 func (r *Runner) destroyTempDir() {
 	if r.program != nil {
 		_ = os.RemoveAll(r.program.Dir())
+	}
+	for _, program := range r.crossPrograms {
+		_ = os.RemoveAll(program.Dir())
 	}
 }
 

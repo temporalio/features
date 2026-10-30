@@ -32,7 +32,7 @@ path (relative paths are resolved from the repository root):
 go run . run-cross-language --sdk-version cs=1.21.1 --sdk-version ts=/path/to/sdk-typescript tracing/encoded_headers
 ```
 
-The TS feature requests header codec processing with `encodeHeaders: true`.
+The TS feature requests worker-side header codec processing with `codecHeaders: true`.
 SDKs without that option ignore it and fail the test. There is no test interceptor
 that decodes the header on the SDK's behalf.
 

@@ -33,17 +33,18 @@ class WrappingCodec implements PayloadCodec {
 }
 
 // Keep the codec on the worker boundary; an interceptor workaround would mask the regression.
-const dataConverter = { payloadCodecs: [new WrappingCodec()], encodeHeaders: true };
+const workerOptions = {
+  codecHeaders: true,
+  plugins: [
+    new OpenTelemetryPlugin({
+      resource: new Resource({ 'service.name': 'encoded-headers-feature' }),
+      spanProcessor: new SimpleSpanProcessor(new InMemorySpanExporter()),
+    }),
+  ],
+};
 
 export const feature = new Feature({
   workflowsPath: require.resolve('./workflow'),
-  dataConverter,
-  workerOptions: {
-    plugins: [
-      new OpenTelemetryPlugin({
-        resource: new Resource({ 'service.name': 'encoded-headers-feature' }),
-        spanProcessor: new SimpleSpanProcessor(new InMemorySpanExporter()),
-      }),
-    ],
-  },
+  dataConverter: { payloadCodecs: [new WrappingCodec()] },
+  workerOptions,
 });

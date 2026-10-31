@@ -14,6 +14,10 @@ import (
 // root directory.
 func (p *Preparer) BuildJavaProgram(ctx context.Context, build bool) (sdkbuild.Program, error) {
 	p.log.Info("Building Java project", "DirName", p.config.DirName)
+	var modules []string
+	if p.config.crossLanguage {
+		modules = []string{"temporal-opentracing"}
+	}
 	prog, err := sdkbuild.BuildJavaProgram(ctx, sdkbuild.BuildJavaProgramOptions{
 		BaseDir:           p.rootDir,
 		DirName:           p.config.DirName,
@@ -21,6 +25,7 @@ func (p *Preparer) BuildJavaProgram(ctx context.Context, build bool) (sdkbuild.P
 		HarnessDependency: "io.temporal:features:0.1.0",
 		MainClass:         "io.temporal.sdkfeatures.Main",
 		Build:             build,
+		SDKModules:        modules,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed preparing: %w", err)

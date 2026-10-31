@@ -176,8 +176,16 @@ SDKs independently. For example:
 go run . run-cross-language --sdk-version cs=1.21.1 --sdk-version ts=/path/to/sdk-typescript tracing/encoded_headers
 ```
 
-Only the .NET and TypeScript harnesses currently expose separate roles. Other
-languages can be added as features require them. Cross-language features own their
+Use repeated `--sdk-language` options to prepare only selected participants, without
+imposing pair policy on the runner. For the focused original regression:
+
+```sh
+go run . run-cross-language --sdk-language cs --sdk-language ts --sdk-version cs=1.21.1 --sdk-version ts=/path/to/sdk-typescript tracing/encoded_headers
+```
+
+Go, Java, Python, Ruby, Rust, .NET and TypeScript harnesses expose separate roles.
+See the feature's README for which roles its participants support and its
+feature-specific scenario filters. Cross-language features own their
 history assertions and do not use the single-language history comparison/generation
 mechanism. This subcommand exposes SDK selection, server/namespace/TLS options,
 and temporary-build retention, but not history-generation or prepared-directory flags.

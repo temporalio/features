@@ -378,6 +378,8 @@ go.temporal.io/sdk/contrib/gcp/gcsdriver v0.1.0 h1:pWclkV4CA6bAQ4gasJzIgNffJdRTb
 go.temporal.io/sdk/contrib/gcp/gcsdriver v0.1.0/go.mod h1:4rjw/25qkAjku1odNdeVVyEyfczGPv132km2gEP4QKk=
 go.temporal.io/sdk/contrib/gcp/gcsdriver/gcssdk v0.1.0 h1:mT0Cfqjr+pwbKMch60dVd2Fcidx6XXScF/eJSbfLy/w=
 go.temporal.io/sdk/contrib/gcp/gcsdriver/gcssdk v0.1.0/go.mod h1:eg5XhF762ultvKxIaLxM8Bu22kEFg84bJev/0sXypm8=
+go.temporal.io/sdk/contrib/opentelemetry v0.8.1 h1:wmQnxBWUsQQN6QihaEuUmsn8ZK6d+2G9oQF5bN4ObiY=
+go.temporal.io/sdk/contrib/opentelemetry v0.8.1/go.mod h1:NnJgL/EwJIaWZVx4Vmb/qMh18a0fTu00VG/ojQ7tHPY=
 go.temporal.io/sdk/contrib/sysinfo v0.1.0 h1:jqP6BFZ/n+BoTt/OnlD+llufgSJSoxlq+aAIZCxnBdI=
 go.temporal.io/sdk/contrib/sysinfo v0.1.0/go.mod h1:1i61HTH1W1M331FprZF3SHeLFhZQSmb/YEbFsPhI654=
 go.temporal.io/sdk/contrib/tally v0.2.0 h1:XnTJIQcjOv+WuCJ1u8Ve2nq+s2H4i/fys34MnWDRrOo=

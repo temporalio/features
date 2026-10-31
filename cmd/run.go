@@ -155,12 +155,13 @@ type Runner struct {
 	log    log.Logger
 	config RunConfig
 	// Root of the features repo
-	rootDir       string
-	createTime    time.Time
-	program       sdkbuild.Program
-	crossPrograms map[string]sdkbuild.Program
-	crossLanguage bool
-	crossVersions map[string]string
+	rootDir        string
+	createTime     time.Time
+	program        sdkbuild.Program
+	crossPrograms  map[string]sdkbuild.Program
+	crossLanguage  bool
+	crossVersions  map[string]string
+	crossLanguages []string
 }
 
 type runBatch struct {

@@ -10,9 +10,25 @@ using Temporalio.Converters;
 using Temporalio.Extensions.OpenTelemetry;
 using Temporalio.Features.Harness;
 using Temporalio.Worker;
+using Temporalio.Workflows;
 
 public class Feature : IFeature
 {
+    private static readonly ActivityListener Listener;
+
+    static Feature()
+    {
+        var clientSourceName = TracingInterceptor.ClientSource.Name;
+        var workflowSourceName = TracingInterceptor.WorkflowsSource.Name;
+        Listener = new()
+        {
+            ShouldListenTo = source => source.Name == "header-codec-feature" ||
+                source.Name == clientSourceName || source.Name == workflowSourceName,
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
+        };
+        ActivitySource.AddActivityListener(Listener);
+    }
+
     public void ConfigureClient(Runner runner, TemporalClientConnectOptions options)
     {
         options.DataConverter = DataConverter.Default with { PayloadCodec = new WrappingCodec() };
@@ -22,18 +38,11 @@ public class Feature : IFeature
         };
     }
 
-    public void ConfigureWorker(Runner runner, TemporalWorkerOptions options) { }
+    public void ConfigureWorker(Runner runner, TemporalWorkerOptions options) =>
+        options.AddWorkflow<WorkflowImpl>();
 
     public async Task<WorkflowHandle?> ExecuteAsync(Runner runner)
     {
-        var clientSourceName = TracingInterceptor.ClientSource.Name;
-        using var listener = new ActivityListener
-        {
-            ShouldListenTo = source => source.Name == "header-codec-feature" ||
-                source.Name == clientSourceName,
-            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
-        };
-        ActivitySource.AddActivityListener(listener);
         using var source = new ActivitySource("header-codec-feature");
         using var parent = source.StartActivity("dotnet-caller")!;
         var options = runner.NewWorkflowOptions();
@@ -66,6 +75,23 @@ public class Feature : IFeature
                 }
             }
             throw;
+        }
+    }
+
+    [Workflow("workflow")]
+    public class WorkflowImpl
+    {
+        [WorkflowRun]
+        public Task<Dictionary<string, string>> RunAsync(string message)
+        {
+            var activity = WorkflowDiagnosticActivity.Current ??
+                throw new InvalidOperationException("No active workflow tracing span");
+            Assert.NotEqual(default, activity.Context.TraceId);
+            return Task.FromResult(new Dictionary<string, string>
+            {
+                ["message"] = message,
+                ["traceId"] = activity.Context.TraceId.ToHexString(),
+            });
         }
     }
 

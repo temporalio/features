@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -18,7 +19,8 @@ import (
 
 type CrossLanguageRunConfig struct {
 	RunConfig
-	SDKVersions cli.StringSlice
+	SDKVersions  cli.StringSlice
+	SDKLanguages cli.StringSlice
 }
 
 func runCrossLanguageCmd() *cli.Command {
@@ -30,6 +32,10 @@ func runCrossLanguageCmd() *cli.Command {
 			&cli.StringSliceFlag{
 				Name: "sdk-version", Destination: &config.SDKVersions,
 				Usage: "SDK selection, e.g. cs=1.21.1 or ts=/path/to/sdk",
+			},
+			&cli.StringSliceFlag{
+				Name: "sdk-language", Destination: &config.SDKLanguages,
+				Usage: "Prepare only these participants (repeatable; default: all discovered languages)",
 			},
 			&cli.BoolFlag{
 				Name: "retain-temp-dir", Destination: &config.RetainTempDir,
@@ -43,6 +49,13 @@ func runCrossLanguageCmd() *cli.Command {
 			}
 			runner := NewRunner(config.RunConfig)
 			runner.crossLanguage, runner.crossVersions = true, versions
+			for _, language := range config.SDKLanguages.Value() {
+				lang, err := normalizeLangName(language)
+				if err != nil {
+					return err
+				}
+				runner.crossLanguages = append(runner.crossLanguages, lang)
+			}
 			features, err := runner.GlobCrossLanguageFeatures(ctx.Args().Slice())
 			if err != nil {
 				return err
@@ -112,6 +125,9 @@ func (r *Runner) runCrossLanguageFeature(
 		if _, err := normalizeLangName(lang); err != nil {
 			continue
 		}
+		if len(r.crossLanguages) != 0 && !slices.Contains(r.crossLanguages, lang) {
+			continue
+		}
 		program, err := r.crossLanguageProgram(ctx, lang, versions[lang])
 		if err != nil {
 			return fmt.Errorf("prepare %s: %w", lang, err)
@@ -128,6 +144,10 @@ func (r *Runner) runCrossLanguageFeature(
 		}
 		if lang == "ts" {
 			args = append([]string{"./tslib/harness/ts/main.js"}, args...)
+		} else if lang == "go" {
+			args = append([]string{"run"}, args...)
+		} else if lang == "py" {
+			args = append([]string{"harness.python.main"}, args...)
 		}
 		command, err := program.NewCommand(ctx, args...)
 		if err != nil {
@@ -181,6 +201,16 @@ func (r *Runner) crossLanguageProgram(ctx context.Context, lang, version string)
 		program, err = p.BuildDotNetProgram(ctx)
 	case "ts":
 		program, err = p.BuildTypeScriptProgram(ctx)
+	case "go":
+		program, err = p.BuildGoProgram(ctx)
+	case "py":
+		program, err = p.BuildPythonProgram(ctx)
+	case "java":
+		program, err = p.BuildJavaProgram(ctx, true)
+	case "rb":
+		program, err = p.BuildRubyProgram(ctx)
+	case "rs":
+		program, err = p.BuildRustProgram(ctx)
 	default:
 		return nil, fmt.Errorf("cross-language harness roles are not implemented for %s yet", lang)
 	}

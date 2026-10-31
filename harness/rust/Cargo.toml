@@ -6,6 +6,12 @@ publish = false
 
 [workspace]
 
+[features]
+cross-language = ["temporalio-sdk/experimental", "temporalio-sdk/opentelemetry", "dep:opentelemetry", "dep:opentelemetry_sdk", "dep:prost"]
+
+[build-dependencies]
+serde_json = "1"
+
 [[bin]]
 name = "program"
 path = "src/main.rs"
@@ -29,3 +35,6 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread", "time", "net",
 tokio-util = { version = "0.7", features = ["rt"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 url = "2"
+opentelemetry = { version = "0.32", optional = true }
+opentelemetry_sdk = { version = "0.32", optional = true }
+prost = { version = "0.14", optional = true }

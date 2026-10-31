@@ -75,8 +75,11 @@ public class Main implements Runnable {
 
   private static final Logger log = LoggerFactory.getLogger(Main.class);
 
-  @Option(names = "--summary-uri", description = "The URL of the summary server", required = true)
+  @Option(names = "--summary-uri", description = "The URL of the summary server")
   private String summaryUri;
+
+  @Option(names = "--role", description = "Cross-language harness role")
+  private String role;
 
   @Option(names = "--server", description = "The host:port of the server", required = true)
   private String server;
@@ -104,6 +107,12 @@ public class Main implements Runnable {
 
   @Override
   public void run() {
+    if (role != null && !role.equals("client") && !role.equals("worker")) {
+      throw new IllegalArgumentException("role must be client or worker");
+    }
+    if (role == null && summaryUri == null) {
+      throw new IllegalArgumentException("Missing --summary-uri");
+    }
     // Load TLS certs if specified
     SslContext sslContext = null;
     if (StringUtils.isNotEmpty(clientCertPath)) {
@@ -146,7 +155,8 @@ public class Main implements Runnable {
       throw new RuntimeException("Client cert path must be specified since key path is");
     }
 
-    try (BufferedWriter writer = createSummaryServerWriter()) {
+    try (BufferedWriter writer =
+        role == null ? createSummaryServerWriter() : new BufferedWriter(Writer.nullWriter())) {
       ObjectMapper mapper = new ObjectMapper();
 
       // Run each
@@ -157,7 +167,7 @@ public class Main implements Runnable {
         var pieces = featureWithTaskQueue.split(":", 3);
         // Find feature
         var feature =
-            Arrays.stream(PreparedFeature.ALL)
+            Arrays.stream(role == null ? PreparedFeature.ALL : crossLanguageFeature(pieces[0]))
                 .filter(p -> p.dir.equals(pieces[0]))
                 .findAny()
                 .orElseThrow(
@@ -175,6 +185,7 @@ public class Main implements Runnable {
         config.sslContext = sslContext;
         config.tlsServerName = tlsServerName;
         config.taskQueue = pieces[1];
+        config.role = role;
         if (pieces.length == 3) {
           config.nexusEndpoint = pieces[2];
         }
@@ -212,5 +223,15 @@ public class Main implements Runnable {
 
   public static void main(String... args) {
     System.exit(new CommandLine(new Main()).execute(args));
+  }
+
+  @SuppressWarnings("unchecked")
+  private PreparedFeature[] crossLanguageFeature(String dir) {
+    try {
+      return PreparedFeature.prepareFeatures(
+          (Class<? extends Feature>) Class.forName(dir.replace('/', '.') + ".feature$Impl"));
+    } catch (ClassNotFoundException e) {
+      throw new IllegalArgumentException("No Java participant for " + dir, e);
+    }
   }
 }

@@ -196,11 +196,17 @@ func PythonProgramFromDir(dir string) (*PythonProgram, error) {
 // Dir is the directory to run in.
 func (p *PythonProgram) Dir() string { return p.dir }
 
-// NewCommand makes a new uv command. The first argument needs to be the
+// NewCommand runs the prepared interpreter directly so cancellation owns the
+// Python process, rather than leaving it behind an exited package-manager wrapper.
+// The first argument needs to be the
 // name of the module.
 func (p *PythonProgram) NewCommand(ctx context.Context, args ...string) (*exec.Cmd, error) {
-	args = append([]string{"run", "python", "-m"}, args...)
-	cmd := exec.CommandContext(ctx, "uv", args...)
+	python := filepath.Join(p.dir, ".venv", "bin", "python")
+	if runtime.GOOS == "windows" {
+		python = filepath.Join(p.dir, ".venv", "Scripts", "python.exe")
+	}
+	args = append([]string{"-m"}, args...)
+	cmd := exec.CommandContext(ctx, python, args...)
 	cmd.Dir = p.dir
 	setupCommandIO(cmd, nil, nil)
 	return cmd, nil

@@ -49,7 +49,7 @@ func run() error {
 	return errors.Join(failures...)
 }
 
-var clients = []string{"cs", "go", "java", "py", "rb"}
+var clients = []string{"cs", "go", "java", "py", "rb", "rs", "ts"}
 var workers = []string{"cs", "go", "java", "py", "rb", "rs", "ts"}
 
 func selectPairs(manifest *crosslanguage.Manifest, filter string) ([][2]string, error) {
@@ -58,7 +58,7 @@ func selectPairs(manifest *crosslanguage.Manifest, filter string) ([][2]string, 
 		for _, selection := range strings.Split(filter, ",") {
 			client, worker, ok := strings.Cut(selection, ":")
 			if !ok || !slices.Contains(clients, client) || !slices.Contains(workers, worker) {
-				return nil, fmt.Errorf("invalid ENCODED_HEADERS_PAIRS pair %q: clients=%v workers=%v; PHP has no tracing integration; Rust/TS have no encoded tracing producer opt-in", selection, clients, workers)
+				return nil, fmt.Errorf("invalid ENCODED_HEADERS_PAIRS pair %q: clients=%v workers=%v; PHP has no tracing integration", selection, clients, workers)
 			}
 			if _, ok := manifest.Programs[client]; !ok {
 				return nil, fmt.Errorf("client %s is not prepared; include --sdk-language %s", client, client)

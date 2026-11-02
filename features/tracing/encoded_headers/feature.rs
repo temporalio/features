@@ -1,19 +1,19 @@
-use crate::harness::{Feature, FeatureContext, FeatureFuture};
-use anyhow::{Result, bail};
+use crate::harness::{Feature, FeatureContext, FeatureFuture, FeatureOutcome};
+use anyhow::{Result, ensure};
 use futures::{FutureExt, future::BoxFuture};
 use opentelemetry::{
     Context,
-    trace::{TraceContextExt, TracerProvider},
+    trace::{FutureExt as _, TraceContextExt, Tracer, TracerProvider},
 };
 use prost::Message;
-use std::collections::HashMap;
-use temporalio_client::{Client, ClientOptions};
+use std::{collections::HashMap, time::Duration};
+use temporalio_client::{Client, ClientOptions, WorkflowGetResultOptions};
 use temporalio_common::{
     data_converters::{
         DataConverter, DefaultFailureConverter, PayloadCodec, PayloadConversionError,
         PayloadConverter, SerializationContextData,
     },
-    protos::temporal::api::common::v1::Payload,
+    protos::temporal::api::{common::v1::Payload, history::v1::history_event::Attributes},
 };
 use temporalio_macros::{workflow, workflow_methods};
 use temporalio_sdk::{
@@ -118,6 +118,12 @@ impl Feature for EncodedHeaders {
                 DefaultFailureConverter::default(),
                 WrappingCodec,
             ))
+            .plugin(
+                OpenTelemetryPlugin::builder()
+                    .tracer(self.provider.tracer("encoded-headers-feature"))
+                    .encode_client_headers(true)
+                    .build(),
+            )
             .build();
         Ok(Client::new(client.connection().clone(), options)?)
     }
@@ -125,19 +131,70 @@ impl Feature for EncodedHeaders {
     fn worker_options(&self, ctx: &FeatureContext) -> Result<Option<WorkerOptions>> {
         Ok(Some(
             WorkerOptions::new(ctx.task_queue.clone())
-                .worker_plugin(
-                    OpenTelemetryPlugin::builder()
-                        .tracer(self.provider.tracer("encoded-headers-feature"))
-                        .build(),
-                )
                 .register_workflow::<Workflow>()?
                 .build(),
         ))
     }
 
-    fn execute<'a>(&'a self, _: &'a FeatureContext) -> FeatureFuture<'a> {
-        Box::pin(async {
-            bail!("Rust is worker-only: the client tracing producer has no codec opt-in")
+    fn execute<'a>(&'a self, ctx: &'a FeatureContext) -> FeatureFuture<'a> {
+        Box::pin(async move {
+            let tracer = self.provider.tracer("encoded-headers-feature");
+            let parent = Context::new().with_span(tracer.start("rust-caller"));
+            let trace_id = parent.span().span_context().trace_id().to_string();
+            let result = async {
+                let mut options = ctx.start_options();
+                options.execution_timeout = Some(Duration::from_secs(15));
+                let handle = ctx
+                    .client
+                    .start_workflow(Workflow::run, "hello".to_owned(), options)
+                    .await?;
+                let result = handle.get_result(WorkflowGetResultOptions::default()).await;
+                let events = handle
+                    .fetch_history(Default::default())
+                    .into_events()
+                    .await?;
+                for event in &events {
+                    ensure!(
+                        !matches!(
+                            event.attributes,
+                            Some(Attributes::WorkflowTaskFailedEventAttributes(_))
+                        ),
+                        "Workflow Task failed: {event:?}"
+                    );
+                }
+                let Some(Attributes::WorkflowExecutionStartedEventAttributes(started)) =
+                    events.first().and_then(|event| event.attributes.as_ref())
+                else {
+                    anyhow::bail!("Missing workflow start event");
+                };
+                let header = &started.header.as_ref().unwrap().fields["_tracer-data"];
+                let decoded = WrappingCodec
+                    .decode(
+                        &SerializationContextData::Workflow(
+                            temporalio_common::data_converters::WorkflowSerializationContext::new(),
+                        ),
+                        vec![header.clone()],
+                    )
+                    .await?;
+                let carrier: HashMap<String, String> = serde_json::from_slice(&decoded[0].data)?;
+                ensure!(
+                    carrier["traceparent"].split('-').nth(1) == Some(trace_id.as_str()),
+                    "History trace identity mismatch"
+                );
+                ensure!(
+                    result?
+                        == HashMap::from([
+                            ("message".to_owned(), "hello".to_owned()),
+                            ("traceId".to_owned(), trace_id),
+                        ]),
+                    "Workflow input/result or trace identity mismatch"
+                );
+                Ok(FeatureOutcome::Passed)
+            }
+            .with_context(parent.clone())
+            .await;
+            parent.span().end();
+            result
         })
     }
 }

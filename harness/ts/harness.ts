@@ -10,6 +10,7 @@ import {
   WorkflowStartOptions,
   TLSConfig,
   ConnectionOptions,
+  ClientOptions,
 } from '@temporalio/client';
 import * as proto from '@temporalio/proto';
 import { DataConverter, UntypedActivities, Workflow, WorkflowResultType } from '@temporalio/common';
@@ -27,6 +28,9 @@ export { getConnection, getClient, Context } from './activity-interceptors';
 export type { ReplaceNested };
 
 export interface FeatureOptions<W extends Workflow, A extends UntypedActivities> {
+  /** Additional client configuration, including client-side tracing plugins. */
+  clientOptions?: Partial<ClientOptions>;
+
   /**
    * Workflow to execute. This defaults to `import(workflowsPath).workflow` if
    * unset.
@@ -142,6 +146,7 @@ export class Runner<W extends Workflow, A extends UntypedActivities> {
       connection,
       namespace: options.namespace,
       dataConverter: feature.options.dataConverter,
+      ...feature.options.clientOptions,
     });
 
     // Create a connection for the Worker

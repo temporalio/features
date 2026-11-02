@@ -26,19 +26,15 @@ or manually rewrite tracing headers.
 | Java (`java`) | Yes | Yes | OpenTracing interceptors with the OpenTelemetry shim/W3C propagator and producer-specific `setEncodeHeaders(true)`; client codec |
 | Python (`py`) | Yes | Yes | `TracingInterceptor`, client `HeaderCodecBehavior.CODEC` and codec |
 | Ruby (`rb`) | Yes | Yes | OpenTelemetry tracing interceptor and client codec; worker codec thread pool |
-| Rust (`rs`) | No | Yes | Experimental OpenTelemetry worker plugin and existing activation codec traversal |
-| TypeScript (`ts`) | No | Yes | OpenTelemetry plugin, worker `codecHeaders: true` and payload codecs |
+| Rust (`rs`) | Yes | Yes | OpenTelemetry plugin with `encode_client_headers(true)` and existing worker activation codec traversal |
+| TypeScript (`ts`) | Yes | Yes | OpenTelemetry plugin with `encodeClientHeaders: true`, worker `codecHeaders: true`, and payload codecs |
 | PHP (`php`) | No | No | No SDK tracing integration in the inspected checkout; no participant is fabricated |
 
-Rust's tracing client producer currently serializes an ordinary tracing carrier
-without a producer-specific codec opt-in. It therefore cannot supply this
-feature's encoded start header. Its worker already decodes activation headers
-before tracing extraction and participates without SDK changes. The intentionally
-closed Rust converter-wide encoding proposal is not needed or reinstated.
-TypeScript's client tracing producer also emits a normally serialized carrier
-and has no codec opt-in under the wire-ready client-header policy. It is therefore
-unsupported as an encoded producer, not merely untested. The worker option
-`codecHeaders` cannot enable client tracing production.
+Rust and TypeScript encode only the tracing carrier produced by their plugins;
+other client-supplied Payload headers remain wire-ready and untouched. These
+producer opt-ins are independent of worker processing: Rust workers already decode
+activation headers, while TypeScript workers use `codecHeaders`. The Rust
+converter-wide encoding proposal is not needed or reinstated.
 PHP would first need a real tracing integration and a codec/header policy.
 
 ## Running
@@ -72,6 +68,10 @@ module; local Java selection substitutes its OpenTracing module. Older releases
 without the opt-ins cannot run these producer participants and fail rather than
 silently testing unencoded headers. SDKs must be fixed/merged before this feature
 change lands.
+
+Rust and TypeScript producer cases likewise require SDKs containing their new
+OTel plugin flags. Select those checkouts with `--sdk-version rs=/path/to/sdk-rust`
+and `--sdk-version ts=/path/to/sdk-typescript` while the changes are unreleased.
 
 Use `ENCODED_HEADERS_PAIRS` only when focusing on particular scenarios:
 

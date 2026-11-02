@@ -49,6 +49,7 @@ func (p *Preparer) BuildTypeScriptProgram(ctx context.Context) (sdkbuild.Program
 			"@opentelemetry/api":                     "1.9.0",
 			"@opentelemetry/resources":               "^1.30.1",
 			"@opentelemetry/sdk-trace-base":          "^1.30.1",
+			"@opentelemetry/sdk-trace-node":          "^1.30.1",
 		}
 	} else {
 		// Cross-language participants may depend on newer SDK APIs than the ordinary

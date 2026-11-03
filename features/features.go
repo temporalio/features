@@ -5,6 +5,7 @@ import (
 	activity_cancel_try_cancel "github.com/temporalio/features/features/activity/cancel_try_cancel"
 	activity_retry_on_error "github.com/temporalio/features/features/activity/retry_on_error"
 	activity_shutdown "github.com/temporalio/features/features/activity/shutdown"
+	activity_standalone "github.com/temporalio/features/features/activity/standalone"
 	bugs_go_activity_start_race "github.com/temporalio/features/features/bugs/go/activity_start_race"
 	bugs_go_child_workflow_cancel_panic "github.com/temporalio/features/features/bugs/go/child_workflow_cancel_panic"
 	build_id_versioning_activity_and_child_on_correct_version "github.com/temporalio/features/features/build_id_versioning/activity_and_child_on_correct_version"
@@ -81,6 +82,7 @@ func init() {
 		activity_cancel_try_cancel.Feature,
 		activity_retry_on_error.Feature,
 		activity_shutdown.Feature,
+		activity_standalone.Feature,
 		bugs_go_activity_start_race.Feature,
 		bugs_go_child_workflow_cancel_panic.Feature,
 		build_id_versioning_activity_and_child_on_correct_version.Feature,

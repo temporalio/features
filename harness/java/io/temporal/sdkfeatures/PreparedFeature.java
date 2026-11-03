@@ -10,6 +10,7 @@ public class PreparedFeature {
           activity.retry_on_error.feature.Impl.class,
           activity.cancel_try_cancel.feature.Impl.class,
           activity.shutdown.feature.Impl.class,
+          activity.standalone.feature.Impl.class,
           child_workflow.result.feature.Impl.class,
           child_workflow.signal.feature.Impl.class,
           client.http_proxy.feature.Impl.class,

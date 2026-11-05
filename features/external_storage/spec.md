@@ -405,19 +405,23 @@ call site could have supplied.
 | --- | --- | --- | --- |
 | Start a workflow, or signal with start | workflow | the workflow being started | namespace, workflow id, workflow type |
 | Signal, update, query, cancel or terminate a workflow | workflow | the workflow addressed | namespace, workflow id, run id |
-| Create or update a schedule | workflow | the workflow the schedule starts | namespace, workflow id, workflow type |
-| Report an activity result — complete, fail, cancel or heartbeat — addressed by workflow id | **workflow** | the workflow that scheduled the activity | namespace, workflow id, run id, workflow type |
+| Create or update a schedule: the start-workflow action's payloads | workflow | the workflow the schedule starts | namespace, workflow id, workflow type |
+| Create or update a schedule: the schedule's memo | none | — | — |
+| Report an activity result — complete, fail, cancel or heartbeat — addressed by workflow id | workflow | the workflow that scheduled the activity | namespace, workflow id, run id, workflow type |
 | The same, addressed by activity id | activity | the standalone activity | namespace, activity id, run id, activity type |
 | The same, addressed by task token | whatever the caller supplied, or none | see below | see below |
 | Workflow task completion | workflow | the current workflow, retargeted for each command below | namespace, workflow id, run id, workflow type |
-| Activity task, scheduled by a workflow | **workflow** | the workflow that scheduled the activity | namespace, workflow id, run id, workflow type |
+| Activity task, scheduled by a workflow | workflow | the workflow that scheduled the activity | namespace, workflow id, run id, workflow type |
 | Activity task, standalone | activity | the activity itself | namespace, activity id, run id, activity type |
 | Nexus operation | nexus | the operation being handled | endpoint, service, operation |
 
-The two rows in bold are the ones that surprise. An operation about an activity carries a
-**workflow** target whenever a workflow scheduled that activity, because the workflow is what
-replays and therefore what reads the payload again. Only a standalone activity carries an
-activity target.
+Two cases take their target from the execution that reads the payload again, not from what the
+operation addresses:
+
+- Storage operations for workflow activities receive a workflow target, because the workflow is
+  what replays. Only a standalone activity receives an activity target.
+- Storage operations for a schedule's memo receive no target, because only a server-internal
+  workflow reads it again, never the workflows the schedule starts.
 
 A task token is opaque to the SDK. The SDK cannot read a namespace, a workflow id or an
 activity id out of it, so it has nothing of its own to build a target from.

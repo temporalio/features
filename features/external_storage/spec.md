@@ -176,9 +176,9 @@ held had the payload stayed inline.
 
 ### Retrieval
 
-The retrieval path runs whenever an SDK receives payloads from the server. It is the inverse
-of the offload path, but it is not symmetric with it, because the marker lets the SDK find
-the references without decoding anything first.
+The retrieval path runs whenever an SDK decodes payloads it received from the server. It is the
+inverse of the offload path, but it is not symmetric with it, because the marker lets the SDK find the references
+without decoding anything first.
 
 ```mermaid
 sequenceDiagram
@@ -256,6 +256,23 @@ user to configure something it does not have. Detecting this needs no codec and 
 
 A history written before the marker existed still reads: its references were never
 codec-encoded, so step 1 finds them by the second metadata condition, already in plain form.
+
+#### When to retrieve
+
+An SDK retrieves a payload when it decodes that payload, not when the response carrying it
+arrives. A payload that is never decoded is never retrieved, and a raw payload handed to the
+caller is handed over as the server sent it.
+
+This matters for describe and list calls, whose responses carry payloads that a caller often
+never reads. An SDK that retrieves the whole response on arrival fails the call with
+`TMPRL1105` over a field nobody asked for when no external storage is configured, and calls the
+driver for data the caller discards when it is.
+
+A worker is the same rule applied to a whole task: it decodes the entire task before running
+it, so it retrieves the entire task first.
+
+The simplest way to meet this rule is to retrieve within the data converter's decode path
+rather than in a pass over each response.
 
 ### Coverage
 

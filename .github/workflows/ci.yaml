@@ -232,7 +232,7 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5
       - run: dotnet build
-      - run: dotnet test
+      - run: dotnet test tests/dotnet/Temporalio.Features.Harness.Tests.csproj
 
   build-ruby:
     strategy:

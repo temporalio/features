@@ -1,6 +1,6 @@
 # External Storage Specification
 
-Last updated: 2026-10-15
+Last updated: 2026-11-09
 
 ## Motivation
 
@@ -87,12 +87,15 @@ offloaded bytes. It is not part of the exchange contract: a producer that omits 
 produces a reference that any SDK can read, and a consumer must not depend on it being
 present.
 
-The payload that finally goes into the request also carries the metadata item
-`__temporal_external_storage_reference`, with the value `true`. The SDK attaches this item after the
-codec has encoded the reference, so it sits on the outermost payload where a reader can see
-it without decoding anything. When no codec is configured the reference is itself the
-outermost payload, and it carries the item just the same. This follows the same convention as
-the `__temporal_system_payload` item that marks a system Nexus envelope.
+`__temporal_external_storage_reference` is a metadata item, with the value `true`, that
+identifies a payload as a reference. It exists because the payload codec also encodes the
+reference, and after that the encoding and message type above are no longer visible, so a
+reader could not otherwise tell a reference from any other payload. The SDK attaches this item
+after the codec has encoded the reference, so it sits on the outermost payload, the one that
+goes into the request, where a reader can see it without decoding anything. When no codec is
+configured the reference is itself the outermost payload, and it carries the item just the
+same. This follows the same convention as the `__temporal_system_payload` item that marks a
+system Nexus envelope.
 
 A payload therefore needs retrieval when either of two conditions holds, and both are
 readable from metadata alone:
@@ -103,7 +106,8 @@ readable from metadata alone:
 
 Neither half of the second condition is sufficient on its own, because `json/protobuf` is an
 ordinary encoding used for any protobuf payload. The second condition exists for a reference
-that no codec encoded, and for a history written before the marker existed.
+that no codec encoded, and for a history written before `__temporal_external_storage_reference`
+existed.
 
 Earlier prereleases used an encoding of `json/external-storage-reference` with a different
 body. That encoding is being removed before general availability. An SDK must not produce it,
@@ -141,7 +145,7 @@ sequenceDiagram
 
     SDK->>+Codec: encode(the new references only)
     Codec-->>-SDK: encoded references
-    Note over SDK: mark each encoded reference<br/>and restore its recorded size
+    Note over SDK: add __temporal_external_storage_reference<br/>to each encoded reference<br/>and restore its recorded size
 
     SDK->>-Server: outgoing request
 ```
@@ -177,8 +181,8 @@ held had the payload stayed inline.
 ### Retrieval
 
 The retrieval path runs whenever an SDK decodes payloads it received from the server. It is the
-inverse of the offload path, but it is not symmetric with it, because the marker lets the SDK find the references
-without decoding anything first.
+inverse of the offload path, but it is not symmetric with it, because `__temporal_external_storage_reference`
+lets the SDK find the references without decoding anything first.
 
 ```mermaid
 sequenceDiagram
@@ -191,14 +195,14 @@ sequenceDiagram
     actor App as Application
 
     Server->>+SDK: incoming response
-    Note over SDK: find the marked payloads<br/>from metadata alone
+    Note over SDK: find the references<br/>from metadata alone
 
-    SDK->>+Store: retrieve(the marked payloads)
-    Store->>+Codec: decode(a marked payload)
+    SDK->>+Store: retrieve(the references)
+    Store->>+Codec: decode(an encoded reference)
     Codec-->>-Store: the reference
     Store->>+Driver: retrieve(context, claims)
     Driver-->>-Store: stored payloads, still encoded
-    Store-->>-SDK: each marked payload replaced by its stored payload
+    Store-->>-SDK: each reference replaced by its stored payload
 
     SDK->>+Codec: decode(all payloads)
     Codec-->>-SDK: decoded payloads
@@ -214,9 +218,19 @@ The steps are:
 1. Find the payloads that need retrieval, using the two metadata conditions in the wire
    format section. This reads metadata only. No payload is decoded, and a payload that needs
    no retrieval is not touched.
-2. For each of those payloads, obtain the reference. A payload carrying the marker was
-   encoded by the codec, so decode that one payload to get the reference. A payload that
-   matches on encoding and message type is already the reference.
+2. For each of those payloads, obtain the reference. A payload that matches on encoding and
+   message type is already the reference. A payload carrying
+   `__temporal_external_storage_reference` was encoded by the codec, so decode that one
+   payload, as it appears in history, to get the reference. Then check that the result is a
+   reference, by the encoding and message type condition. If it is not, fail with
+   `TMPRL1106`. This is what happens when the codec that wrote the reference is not the codec
+   configured to read it. When no codec is configured, a payload carrying
+   `__temporal_external_storage_reference` is already the reference, and it must still pass
+   the same check.
+
+   `__temporal_external_storage_reference` and `external_payloads` stay on the payload the
+   codec decodes. A codec must already tolerate them, because a codec server receives these
+   payloads exactly as they appear in history.
 3. Read the driver name and the claim data. Group the claims by driver name and look up each
    driver by that name. A reference naming a driver that is not registered is an error.
 4. Call each driver once with its group of claims. A driver returns one payload for each
@@ -239,7 +253,8 @@ has already decoded.
 Step 1 reads metadata and nothing else. An SDK that applies its codec downstream of this
 point, per data-converter call, cannot decode every payload here to look for references: the
 payloads would reach the data converter already decoded and be decoded again. Detecting from
-metadata, and decoding only a marked payload, leaves every other payload untouched.
+metadata, and decoding only a payload carrying `__temporal_external_storage_reference`, leaves
+every other payload untouched.
 
 The codec still runs the same number of times as an unconditional decode would have given it:
 once for a payload that was never offloaded, twice for one that was.
@@ -252,9 +267,10 @@ An SDK that finds a payload needing retrieval and has no external storage config
 fail with `TMPRL1105`. This applies to every SDK, including one with no external storage
 support at all; the alternative is handing a reference to application code as though it were
 the application's own data. Such an SDK should say so in the error rather than telling the
-user to configure something it does not have. Detecting this needs no codec and no driver.
+user to configure something it does not have. Detecting this needs no codec and no driver, so
+an SDK checks for it before decoding any reference.
 
-A history written before the marker existed still reads: its references were never
+A history written before `__temporal_external_storage_reference` existed still reads: its references were never
 codec-encoded, so step 1 finds them by the second metadata condition, already in plain form.
 
 #### When to retrieve
@@ -636,6 +652,9 @@ Three channels identify the failure, and two of them are the same in every SDK:
   operator alerts on.
 - A reference found with no external storage configured is `TMPRL1105`. This is where the
   difference between a misconfiguration and a driver outage is carried.
+- A payload carrying `__temporal_external_storage_reference` that the configured codec does
+  not decode to a reference is `TMPRL1106`.
+  This is a codec misconfiguration, not a driver outage.
 - The task failure cause, where the path has one, is
   `WORKFLOW_TASK_FAILED_CAUSE_EXTERNAL_STORAGE_FAILURE` for a workflow task and
   `ACTIVITY_TASK_FAILED_CAUSE_EXTERNAL_STORAGE_FAILURE` for an activity task, rather than a
@@ -645,8 +664,8 @@ Three channels identify the failure, and two of them are the same in every SDK:
 The type on the failure itself is not standardized, and an SDK need not use a separate type
 for each kind of storage failure.
 
-`TMPRL1105` stays retryable: the customer fixes it by configuring external storage, so the
-worker retries until the unit of work exhausts its attempts or its timeout. The cost is that
+`TMPRL1105` and `TMPRL1106` stay retryable: the customer fixes them by configuring external
+storage or the right codec, so the worker retries until the unit of work exhausts its attempts or its timeout. The cost is that
 a misconfigured worker stalls quietly, which is why the observability below is required and
 not optional.
 
@@ -752,15 +771,15 @@ compare names instead, rather than letting the panic escape.
 
 Go applies the payload codec per data-converter call, inside workflow execution, rather than
 as one pass over a message. The external storage layer must therefore be able to invoke the
-codec itself: to decode a marked payload on the inbound path, and to encode a new reference
-on the outbound path.
+codec itself: to decode an encoded reference on the inbound path, and to encode a new
+reference on the outbound path.
 
 ### Java
 
 Java applies the payload codec per data-converter call, inside the data converter the user
 supplies, rather than as one pass over a message. The external storage layer must therefore
-be able to invoke the codec itself: to decode a marked payload on the inbound path, and to
-encode a new reference on the outbound path.
+be able to invoke the codec itself: to decode an encoded reference on the inbound path, and
+to encode a new reference on the outbound path.
 
 ### Python
 

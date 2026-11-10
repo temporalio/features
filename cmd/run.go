@@ -36,7 +36,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// nexusFeatureDirPrefix marks features that require a per-test Nexus endpoint.
+// nexusFeatureDirPrefix preserves automatic endpoint creation for Nexus features.
 const nexusFeatureDirPrefix = "nexus/"
 
 const (
@@ -457,9 +457,8 @@ func (r *Runner) runBatch(ctx context.Context, batch runBatch) error {
 		return err
 	}
 
-	// Create a Nexus endpoint per feature under features/nexus/ targeting that feature's task
-	// queue. Endpoint names are passed to the lang harness through RunFeature.NexusEndpoint and
-	// the endpoints are deleted once the lang harness completes.
+	// Create a Nexus endpoint for Nexus features and other features that request one. Endpoint
+	// names are passed to the language harness and deleted once it completes.
 	deleteEndpoints, err := r.createNexusEndpoints(ctx, config, batch.Run)
 	if err != nil {
 		return err
@@ -487,7 +486,7 @@ func (r *Runner) runBatch(ctx context.Context, batch runBatch) error {
 		return err
 	}
 	defer l.Close()
-	summaryChan := make(chan Summary)
+	summaryChan := make(chan Summary, 1)
 	go r.summaryServer(l, summaryChan)
 	config.SummaryURI = "tcp://" + l.Addr().String()
 
@@ -574,6 +573,13 @@ func (r *Runner) runBatch(ctx context.Context, batch runBatch) error {
 		}
 		if err == nil {
 			err = r.RunRubyExternal(ctx, batch.Run)
+		}
+	case "rs":
+		if config.DirName != "" {
+			r.program, err = sdkbuild.RustProgramFromDir(filepath.Join(r.rootDir, config.DirName))
+		}
+		if err == nil {
+			err = r.RunRustExternal(ctx, batch.Run)
 		}
 	default:
 		err = fmt.Errorf("unrecognized language")
@@ -825,6 +831,7 @@ func (r *Runner) summaryServer(l net.Listener, out chan<- Summary) {
 		close(out)
 		return
 	}
+	defer conn.Close()
 	summary := Summary{}
 	rdr := bufio.NewReaderSize(conn, 4096)
 	for {
@@ -853,14 +860,14 @@ func rootDir() string {
 	return filepath.Dir(filepath.Dir(currFile))
 }
 
-// createNexusEndpoints creates a Nexus endpoint per RunFeature whose Dir is under
-// features/nexus, populating RunFeature.NexusEndpoint. It returns a cleanup function that
-// deletes the created endpoints. The cleanup function is always safe to call.
+// createNexusEndpoints creates an endpoint for Nexus features and features that request one.
+// It returns a cleanup function that is always safe to call.
 func (r *Runner) createNexusEndpoints(ctx context.Context, config RunConfig, run *cmd.Run) (func(), error) {
 	noop := func() {}
 	var nexusFeatures []*cmd.RunFeature
 	for i := range run.Features {
-		if strings.HasPrefix(run.Features[i].Dir, nexusFeatureDirPrefix) {
+		if strings.HasPrefix(run.Features[i].Dir, nexusFeatureDirPrefix) ||
+			run.Features[i].Config.NeedsNexusEndpoint {
 			nexusFeatures = append(nexusFeatures, &run.Features[i])
 		}
 	}
@@ -930,6 +937,9 @@ func (r *Runner) createNexusEndpoints(ctx context.Context, config RunConfig, run
 			r.log.Warn("Skipping Nexus features: server does not support Nexus endpoint creation",
 				"Feature", feature.Dir, "Error", err)
 			cleanup()
+			for i := range run.Features {
+				run.Features[i].NexusEndpoint = ""
+			}
 			kept := run.Features[:0]
 			for _, f := range run.Features {
 				if !strings.HasPrefix(f.Dir, nexusFeatureDirPrefix) {
@@ -954,7 +964,7 @@ func (r *Runner) destroyTempDir() {
 func normalizeLangName(lang string) (string, error) {
 	// Normalize to file extension
 	switch lang {
-	case "go", "java", "ts", "php", "py", "cs", "rb":
+	case "go", "java", "ts", "php", "py", "cs", "rb", "rs":
 	case "typescript":
 		lang = "ts"
 	case "python":
@@ -963,8 +973,10 @@ func normalizeLangName(lang string) (string, error) {
 		lang = "cs"
 	case "ruby":
 		lang = "rb"
+	case "rust":
+		lang = "rs"
 	default:
-		return "", fmt.Errorf("invalid language %q, must be one of: go or java or ts or py or cs or rb", lang)
+		return "", fmt.Errorf("invalid language %q, must be one of: go or java or ts or php or py or cs or rb or rs", lang)
 	}
 	return lang, nil
 }
@@ -972,7 +984,7 @@ func normalizeLangName(lang string) (string, error) {
 func expandLangName(lang string) (string, error) {
 	// Expand to lang name
 	switch lang {
-	case "go", "java", "typescript", "php", "python", "ruby":
+	case "go", "java", "typescript", "php", "python", "ruby", "rust":
 	case "ts":
 		lang = "typescript"
 	case "py":
@@ -981,8 +993,10 @@ func expandLangName(lang string) (string, error) {
 		lang = "dotnet"
 	case "rb":
 		lang = "ruby"
+	case "rs":
+		lang = "rust"
 	default:
-		return "", fmt.Errorf("invalid language %q, must be one of: go or java or ts or py or cs or rb", lang)
+		return "", fmt.Errorf("invalid language %q, must be one of: go or java or ts or php or py or cs or rb or rs", lang)
 	}
 	return lang, nil
 }
@@ -990,7 +1004,7 @@ func expandLangName(lang string) (string, error) {
 func langFlag(destination *string) *cli.StringFlag {
 	return &cli.StringFlag{
 		Name:        "lang",
-		Usage:       "SDK language to run ('go' or 'java' or 'ts' or 'py' or 'cs' or 'rb')",
+		Usage:       "SDK language to run ('go' or 'java' or 'ts' or 'php' or 'py' or 'cs' or 'rb' or 'rs'; 'rust' is an alias for 'rs')",
 		Required:    true,
 		Destination: destination,
 	}

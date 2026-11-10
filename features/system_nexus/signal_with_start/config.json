@@ -1,0 +1,10 @@
+{
+  "runVariants": [
+    {
+      "name": "feature-enabled",
+      "dynamicConfig": {
+        "history.enableSignalWithStartFromWorkflow": true
+      }
+    }
+  ]
+}

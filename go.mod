@@ -4,6 +4,7 @@ go 1.26.0
 
 require (
 	github.com/google/uuid v1.6.0
+	github.com/pelletier/go-toml/v2 v2.2.4
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
 	github.com/temporalio/features/features v0.0.0-00010101000000-000000000000
 	github.com/temporalio/features/harness/go v0.0.0-00010101000000-000000000000

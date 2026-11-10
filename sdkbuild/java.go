@@ -27,8 +27,9 @@ type BuildJavaProgramOptions struct {
 	HarnessDependency string
 	// Required fully-qualified class name for main.
 	MainClass string
-	// If true, performs an eager build. This is often just to prime system-level
-	// caches and do extra validation, the build won't be used by NewCommand.
+	// If true, performs an eager build and installs the program, which
+	// NewCommand then runs directly. Otherwise NewCommand compiles and runs it
+	// with gradle run.
 	Build bool
 	// If present, this directory is expected to exist beneath base dir. Otherwise
 	// a temporary dir is created.
@@ -137,12 +138,10 @@ includeBuild('` + asAbsPath + `') {
 		return nil, fmt.Errorf("failed writing settings.gradle: %w", err)
 	}
 
-	// Build if wanted
+	// Build if wanted, installing the program for NewCommand to run
 	if options.Build {
-		// This is really only to prime the system-level caches. The build won't be
-		// used by run.
 		cmd := j.buildGradleCommand(ctx, dir, true,
-			options.ApplyToCommand, "--no-daemon", "--include-build", "../", "build")
+			options.ApplyToCommand, "--no-daemon", "--include-build", "../", "build", "installDist")
 		setupCommandIO(cmd, options.Stdout, options.Stderr)
 		if err := cmd.Run(); err != nil {
 			return nil, err
@@ -169,8 +168,18 @@ func JavaProgramFromDir(dir string) (*JavaProgram, error) {
 // Dir is the directory to run in.
 func (j *JavaProgram) Dir() string { return j.dir }
 
-// NewCommand makes a new command for the given args.
+// NewCommand makes a new command for the given args. A program built with
+// BuildJavaProgramOptions.Build runs its installed start script, which execs
+// the JVM, so the command's process is the program. Otherwise gradle run
+// compiles and runs it, in a JVM Gradle's daemon starts.
 func (j *JavaProgram) NewCommand(ctx context.Context, args ...string) (*exec.Cmd, error) {
+	script := j.installedScript()
+	if _, err := os.Stat(script); err == nil {
+		cmd := exec.CommandContext(ctx, script, args...)
+		cmd.Dir = j.dir
+		setupCommandIO(cmd, nil, nil)
+		return cmd, nil
+	}
 	// Since args have to be a string, we disallow quotes
 	var argsStr string
 	for _, arg := range args {
@@ -185,6 +194,16 @@ func (j *JavaProgram) NewCommand(ctx context.Context, args ...string) (*exec.Cmd
 	cmd := j.buildGradleCommand(ctx, j.dir, true, nil, "--include-build", "../", "run", "--args", argsStr)
 	setupCommandIO(cmd, nil, nil)
 	return cmd, nil
+}
+
+// installedScript is the start script installDist writes for the program.
+func (j *JavaProgram) installedScript() string {
+	name := filepath.Base(j.dir)
+	script := filepath.Join(j.dir, "build", "install", name, "bin", name)
+	if runtime.GOOS == "windows" {
+		script += ".bat"
+	}
+	return script
 }
 
 func (j *JavaProgram) buildGradleCommand(

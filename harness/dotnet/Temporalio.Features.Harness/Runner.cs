@@ -43,10 +43,10 @@ public class Runner
         }
     }
 
-
     internal Runner(
         TemporalClientConnectOptions clientConnectOptions,
         string taskQueue,
+        string? nexusEndpoint,
         PreparedFeature feature,
         ILoggerFactory loggerFactory,
         string? httpProxyUrl)
@@ -55,6 +55,7 @@ public class Runner
         Logger = loggerFactory.CreateLogger(PreparedFeature.FeatureType);
         Feature = (IFeature)Activator.CreateInstance(PreparedFeature.FeatureType, true)!;
         HttpProxyUrl = httpProxyUrl;
+        NexusEndpoint = nexusEndpoint;
 
         ClientOptions = (TemporalClientConnectOptions)clientConnectOptions.Clone();
         Feature.ConfigureClient(this, ClientOptions);
@@ -75,6 +76,8 @@ public class Runner
 
     public string? HttpProxyUrl { get; private init; }
 
+    public string? NexusEndpoint { get; private init; }
+
     /// <summary>
     /// Run the feature with the given cancellation token.
     /// </summary>
@@ -88,20 +91,35 @@ public class Runner
         Feature.ConfigureWorker(this, WorkerOptions);
         StartWorker();
 
-        var run = await Feature.ExecuteAsync(this);
-        if (run == null)
+        var featureFailed = false;
+        try
         {
-            Logger.LogInformation("Feature {Feature} returned null", PreparedFeature.Dir);
-            return;
+            var run = await Feature.ExecuteAsync(this);
+            if (run == null)
+            {
+                Logger.LogInformation("Feature {Feature} returned null", PreparedFeature.Dir);
+                return;
+            }
+
+            Logger.LogInformation("Checking result of feature {Feature}", PreparedFeature.Dir);
+            await Feature.CheckResultAsync(this, run);
+            await Feature.CheckHistoryAsync(this, run);
         }
-
-        Logger.LogInformation("Checking result of feature {Feature}", PreparedFeature.Dir);
-        await Feature.CheckResultAsync(this, run);
-        await Feature.CheckHistoryAsync(this, run);
-
-        if (workerState != null)
+        catch
         {
-            await workerState.StopAndWait();
+            featureFailed = true;
+            throw;
+        }
+        finally
+        {
+            try
+            {
+                await StopWorker();
+            }
+            catch (Exception e) when (featureFailed)
+            {
+                Logger.LogError(e, "Failed stopping worker for feature {Feature}", PreparedFeature.Dir);
+            }
         }
     }
 
@@ -282,7 +300,7 @@ public class Runner
         timeout ??= TimeSpan.FromSeconds(30);
         var start = DateTime.UtcNow;
         var pollInterval = TimeSpan.FromMilliseconds(100);
-        
+
         while (DateTime.UtcNow - start < timeout)
         {
             var history = await handle.FetchHistoryAsync();
@@ -293,7 +311,7 @@ public class Runner
             }
             await Task.Delay(pollInterval);
         }
-        
+
         throw new TimeoutException($"Event not found within {timeout.Value.TotalMilliseconds}ms");
     }
 
@@ -305,8 +323,8 @@ public class Runner
     /// <returns>Task for completion.</returns>
     public async Task WaitForActivityTaskScheduledAsync(WorkflowHandle handle, TimeSpan? timeout = null)
     {
-        await WaitForEventAsync(handle, 
-            e => e.EventType == Temporalio.Api.Enums.V1.EventType.ActivityTaskScheduled, 
+        await WaitForEventAsync(handle,
+            e => e.EventType == Temporalio.Api.Enums.V1.EventType.ActivityTaskScheduled,
             timeout);
     }
 }

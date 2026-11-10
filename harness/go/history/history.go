@@ -261,6 +261,8 @@ func scrubRunSpecificScalars(v interface{}) {
 	case *history.MarkerRecordedEventAttributes:
 	case *history.WorkflowExecutionSignaledEventAttributes:
 		v.Identity = ""
+		// Signal deduplication IDs are generated per request by clients.
+		v.RequestId = ""
 	case *history.WorkflowExecutionTerminatedEventAttributes:
 		v.Identity = ""
 	case *history.WorkflowExecutionCancelRequestedEventAttributes:

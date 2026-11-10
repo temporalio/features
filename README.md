@@ -34,6 +34,7 @@ and lockfiles:
 - [.NET](https://dotnet.microsoft.com)
 - [PHP](https://www.php.net/) / [Composer](https://getcomposer.org/)
 - [Ruby](https://www.ruby-lang.org/)
+- [Rust](https://rustup.rs/) and `protoc` for Rust preparation; see [Rust SDK](#rust-sdk).
 
 Command:
 
@@ -41,8 +42,10 @@ Command:
 
 Note, `go run .` can be used in place of `go build` + `temporal-features` to save on the build step.
 
-`LANG` can be `go`, `java`, `ts`, `php`, `py`, `cs`, or `rb`. `VERSION` is per SDK and if left off, uses the latest version set for
-the language in this repository.
+`LANG` can be `go`, `java`, `ts`, `php`, `py`, `cs`, `rb`, or `rs` (`rust` is an alias).
+`VERSION` is per SDK. If omitted, dependency selection follows that language's repository
+configuration and package manager: Rust uses its checked-in default Cargo package and lockfile,
+while unconstrained Ruby/Python SDK dependencies resolve to the latest available release.
 
 `VERSION` may also be a path to a local checkout of the matching SDK repository. This is useful for sanity checking a
 feature against unreleased SDK changes before cutting a release:
@@ -68,9 +71,39 @@ The command to prepare is:
 
     temporal-features prepare --lang LANG --version VERSION --dir DIR
 
-The version is required and the directory is a simple string name of a not-yet-existing directory to be created directly
+The version may be omitted to use the language's default dependency selection described above. The directory is a simple string name of a not-yet-existing directory to be created directly
 beneath this SDK features directory. That same directory value can then be provided as `--prepared-dir` to `run`. When
 using a prepared directory on `run`, a version cannot be specified.
+
+### Rust SDK
+
+[`harness/rust/Cargo.toml`](harness/rust/Cargo.toml) is a normal Cargo package. Its exact
+`temporalio-sdk` dependency defines the default SDK release, and `Cargo.lock` retains the graph.
+Install [rustup](https://rustup.rs/), the `protoc` version specified in that manifest's
+`package.metadata.harness`, and a C/C++ linker toolchain (`build-essential` on Debian/Ubuntu).
+Cargo automatically selects the compiler and development components from
+[`rust-toolchain.toml`](harness/rust/rust-toolchain.toml); no `RUSTUP_TOOLCHAIN` override is needed.
+Go must satisfy `go.mod`.
+
+For local development, run directly in `harness/rust`:
+
+```sh
+cd harness/rust
+cargo fmt -- --check
+cargo test --locked
+cargo clippy --locked -- -D warnings
+```
+
+Rust-analyzer can load this Cargo package directly, without `prepare`. When opening the repository
+root, select `harness/rust/Cargo.toml` as a linked project if your editor does not discover it.
+
+Local paths must contain the SDK workspace's `crates/` tree; include a slash to distinguish
+them from release versions. Every preparation starts with the checked-in lockfile. Baseline
+builds use `--locked`; other selections update the copied lockfile as needed without changing
+the original. Cargo output is shared in `harness/rust/target` by default; `CARGO_TARGET_DIR`
+overrides it (relative paths resolve from the prepared package). The executable is copied,
+not removed from the cache. Prepared binaries are host-native; the outer CLI still needs
+the repository's feature files and configuration.
 
 ### Building docker images
 
@@ -209,6 +242,7 @@ func HelloUniverse() {
 
 - A Python feature should be in `feature.py`.
 - A Ruby feature should be in `feature.rb`.
+- A Rust feature should be in `feature.rs`; see [Rust feature conventions](#rust-feature-conventions).
 - Add a README.md to each feature directory.
   - README should have a title summarizing the feature (only first letter needs to be in title case), then a short
     paragraph explaining the feature and its purpose, and then optionally another paragraph explaining details of the
@@ -225,6 +259,14 @@ func HelloUniverse() {
     that has value to another, extract and put in helper/harness and have both use it.
 - History should be generated for each feature on the earliest version the feature is expected to work at without
   history changes.
+
+### Rust feature conventions
+
+Each `feature.rs` must export `pub fn feature() -> Box<dyn Feature>` using `crate::harness`;
+Cargo registers these files automatically. See
+[`signal/basic`](features/signal/basic/feature.rs) and
+[`activity/basic_no_workflow_timeout`](features/activity/basic_no_workflow_timeout/feature.rs)
+for worker setup, result assertions, and replay registration.
 
 #### Generating History
 

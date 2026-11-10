@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"time"
@@ -160,7 +161,12 @@ func (i *ImageBuilder) buildFromRepo(ctx context.Context) error {
 		return err
 	}
 
-	tags := []string{fmt.Sprintf("%s-%s", i.config.Lang, i.config.RepoRef)}
+	// Git refs can contain slashes and other characters Docker tags reject.
+	tag := i.config.Lang + "-" + regexp.MustCompile(`[^a-zA-Z0-9_.-]`).ReplaceAllString(i.config.RepoRef, "-")
+	if len(tag) > 128 {
+		tag = tag[:128]
+	}
+	tags := []string{tag}
 
 	return i.dockerBuild(ctx, buildConfig{
 		tags: tags,
@@ -335,10 +341,30 @@ func (i *ImageBuilder) gitClone(ctx context.Context, rootDir string) (string, er
 	targetDir := filepath.Join(rootDir, repoBaseDir)
 	args := []string{"clone", "--recurse-submodules", i.config.RepoURL, targetDir}
 	i.log.Info("Fetching git repo", "Args", args)
-	gitClone := exec.Command("git", args...)
+	gitClone := exec.CommandContext(ctx, "git", args...)
 	gitClone.Stdout = os.Stdout
 	gitClone.Stderr = os.Stderr
-	return repoBaseDir, gitClone.Run()
+	if err := gitClone.Run(); err != nil {
+		return "", err
+	}
+	// Fetch the explicit ref so nondefault branches and unadvertised commit IDs
+	// resolve too; cloning alone only checks out the repository's default branch.
+	fetch := exec.CommandContext(ctx, "git", "-C", targetDir, "fetch", "--no-tags", "origin", i.config.RepoRef)
+	fetch.Stdout = os.Stdout
+	fetch.Stderr = os.Stderr
+	if err := fetch.Run(); err != nil {
+		return "", err
+	}
+	checkout := exec.CommandContext(ctx, "git", "-C", targetDir, "checkout", "--detach", "FETCH_HEAD")
+	checkout.Stdout = os.Stdout
+	checkout.Stderr = os.Stderr
+	if err := checkout.Run(); err != nil {
+		return "", err
+	}
+	submodules := exec.CommandContext(ctx, "git", "-C", targetDir, "submodule", "update", "--init", "--recursive")
+	submodules.Stdout = os.Stdout
+	submodules.Stderr = os.Stderr
+	return repoBaseDir, submodules.Run()
 }
 
 func defaultRepoURL(lang string) (string, error) {

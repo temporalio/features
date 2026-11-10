@@ -74,6 +74,6 @@ var Feature = harness.Feature{
 		} else if ok {
 			return fmt.Errorf("unexpected NexusOperationStarted event for sync operation")
 		}
-		return nil
+		return runner.CheckHistoryDefault(ctx, run)
 	},
 }

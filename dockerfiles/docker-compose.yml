@@ -199,3 +199,12 @@ services:
     depends_on:
       temporal-create-namespace:
         condition: service_completed_successfully
+
+  features-tests-rs:
+    image: temporaliotest/features:rs
+    environment:
+      - WAIT_EXTRA_FOR_NAMESPACE
+    command: ['--server', 'temporal-server:7233', '--namespace', 'default']
+    depends_on:
+      temporal-create-namespace:
+        condition: service_completed_successfully

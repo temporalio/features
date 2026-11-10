@@ -1,0 +1,116 @@
+name: Rust Features Testing
+on:
+  workflow_call:
+    inputs:
+      rust-repo-path:
+        type: string
+        default: 'temporalio/sdk-rust'
+      version:
+        required: true
+        type: string
+      # False selects an exact crates.io release; true checks out real SDK source.
+      version-is-repo-ref:
+        required: true
+        type: boolean
+      features-repo-path:
+        type: string
+        default: 'temporalio/features'
+      features-repo-ref:
+        type: string
+        default: 'main'
+      docker-image-artifact-name:
+        description: Optional server artifact containing temporal-server.tar and temporal-admin-tools.tar
+        type: string
+      dynamic-config-values:
+        description: Additional YAML appended to the server dynamic config
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      CARGO_BUILD_JOBS: '4'
+    defaults:
+      run:
+        working-directory: ./features
+    steps:
+      - name: Checkout SDK features repo
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          path: features
+          repository: ${{ inputs.features-repo-path }}
+          ref: ${{ inputs.features-repo-ref }}
+      - name: Checkout Rust SDK repo
+        if: inputs.version-is-repo-ref
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: ${{ inputs.rust-repo-path }}
+          ref: ${{ inputs.version }}
+          path: sdk-rust
+          submodules: recursive
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
+        with:
+          go-version-file: features/go.mod
+          cache-dependency-path: |
+            features/go.sum
+            features/features/go.sum
+            features/harness/go/go.sum
+      - uses: ./features/.github/actions/setup-rust
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          cache-bin: false
+          workspaces: features/harness/rust
+      - name: Build CLI and prepare selected Rust SDK
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          SOURCE_BUILD: ${{ inputs.version-is-repo-ref }}
+        run: |
+          protoc --version
+          go build -o temporal-features .
+          version="$INPUT_VERSION"
+          if [ "$SOURCE_BUILD" = true ]; then version="$(realpath ../sdk-rust)"; fi
+          ./temporal-features prepare --lang rs --version "$version" --dir program-ci-rust
+      - name: Download server artifact
+        if: inputs.docker-image-artifact-name
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: ${{ inputs.docker-image-artifact-name }}
+          path: /tmp/server-docker
+      - name: Load server images
+        if: inputs.docker-image-artifact-name
+        run: |
+          docker load --input /tmp/server-docker/temporal-server.tar
+          docker load --input /tmp/server-docker/temporal-admin-tools.tar
+          image_tag=latest
+          if [ -f /tmp/server-docker/image_tag ]; then image_tag=$(cat /tmp/server-docker/image_tag); fi
+          echo "IMAGE_TAG=$image_tag" >> "$GITHUB_ENV"
+      - name: Append custom dynamic config
+        if: inputs.dynamic-config-values
+        env:
+          DYNAMIC_CONFIG_VALUES: ${{ inputs.dynamic-config-values }}
+        run: printf '\n%s\n' "$DYNAMIC_CONFIG_VALUES" >> dockerfiles/dynamicconfig/docker.yaml
+      - name: Start artifact server
+        if: inputs.docker-image-artifact-name
+        run: |
+          docker compose -f dockerfiles/docker-compose.yml up -d \
+            cassandra elasticsearch temporal-admin-tools temporal-server temporal-create-namespace
+          docker compose -f dockerfiles/docker-compose.yml wait temporal-create-namespace
+      # Run the selected native binary, not the published features-tests-rs image.
+      - name: Run features with current native replay and outer history comparison
+        env:
+          SERVER_ARTIFACT: ${{ inputs.docker-image-artifact-name }}
+          WAIT_EXTRA_FOR_NAMESPACE: 'true'
+        run: |
+          args=()
+          if [ -n "$SERVER_ARTIFACT" ]; then args+=(--server localhost:7233 --namespace default); fi
+          ./temporal-features run --lang rs --prepared-dir program-ci-rust "${args[@]}"
+      - name: Show server logs
+        if: always() && inputs.docker-image-artifact-name
+        run: docker compose -f dockerfiles/docker-compose.yml logs
+      - name: Tear down server
+        if: always() && inputs.docker-image-artifact-name
+        run: docker compose -f dockerfiles/docker-compose.yml down -v

@@ -188,7 +188,7 @@ public interface feature extends Feature {
 
     private static S3AsyncClient newS3Client() {
       var builder = S3AsyncClient.builder();
-      if (ENDPOINT != null) {
+      if (ENDPOINT != null && !ENDPOINT.isEmpty()) {
         builder.endpointOverride(URI.create(ENDPOINT)).forcePathStyle(true);
       }
       return builder.build();

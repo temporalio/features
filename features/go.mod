@@ -4,6 +4,7 @@ go 1.26.0
 
 require (
 	cloud.google.com/go/storage v1.57.2
+	github.com/aws/aws-sdk-go-v2 v1.41.5
 	github.com/aws/aws-sdk-go-v2/config v1.32.14
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.99.0
 	github.com/google/uuid v1.6.0
@@ -14,8 +15,8 @@ require (
 	github.com/urfave/cli/v2 v2.3.0
 	go.temporal.io/api v1.63.5
 	go.temporal.io/sdk v1.49.0
-	go.temporal.io/sdk/contrib/aws/s3driver v0.1.1
-	go.temporal.io/sdk/contrib/aws/s3driver/awssdkv2 v0.1.1
+	go.temporal.io/sdk/contrib/aws/s3driver v0.3.0
+	go.temporal.io/sdk/contrib/aws/s3driver/awssdkv2 v0.3.0
 	go.temporal.io/sdk/contrib/gcp/gcsdriver v0.1.0
 	go.temporal.io/sdk/contrib/gcp/gcsdriver/gcssdk v0.1.0
 	go.temporal.io/sdk/contrib/sysinfo v0.1.0
@@ -36,7 +37,6 @@ require (
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.33.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.53.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.53.0 // indirect
-	github.com/aws/aws-sdk-go-v2 v1.41.5 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.8 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.14 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.21 // indirect

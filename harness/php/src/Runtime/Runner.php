@@ -43,6 +43,21 @@ final class Runner
         $run->tlsCert === null or $rrCommand = [...$rrCommand, '-o', "temporal.tls.cert={$run->tlsCert}"];
         $run->tlsCaCert === null or $rrCommand = [...$rrCommand, '-o', "temporal.tls.ca-cert={$run->tlsCaCert}"];
 
+        $s3Bucket = (string) \getenv('TEMPORAL_FEATURES_S3_BUCKET');
+        if ($s3Bucket !== '') {
+            $rrCommand = [...$rrCommand, '-o', "temporal.external_storage.bucket={$s3Bucket}"];
+            $s3Endpoint = (string) \getenv('TEMPORAL_FEATURES_S3_ENDPOINT');
+            if ($s3Endpoint !== '') {
+                $rrCommand = [
+                    ...$rrCommand,
+                    '-o',
+                    "temporal.external_storage.endpoint={$s3Endpoint}",
+                    '-o',
+                    'temporal.external_storage.force_path_style=true',
+                ];
+            }
+        }
+
         $this->process = new Process($rrCommand);
         $this->process->setTimeout(null);
         $this->process->start();

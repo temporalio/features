@@ -370,10 +370,10 @@ go.temporal.io/api v1.63.5/go.mod h1:SrlW2JMwVlDP4nRWSNznUFqnSHd+YeMDS1BkYo63HCQ
 go.temporal.io/sdk v1.12.0/go.mod h1:lSp3lH1lI0TyOsus0arnO3FYvjVXBZGi/G7DjnAnm6o=
 go.temporal.io/sdk v1.49.0 h1:CtGI0BUe/SCo3eoqTwuWWtXKueii9GBVus7KrKKH1Vo=
 go.temporal.io/sdk v1.49.0/go.mod h1:xP0FulN5JJSfisESUP60LlWsrKz2tLSStGjVdk8r5cc=
-go.temporal.io/sdk/contrib/aws/s3driver v0.3.0 h1:RjpvE8yNnVPevL02ufcmzfGtIc6WrHEO/MdSJrdaCd4=
-go.temporal.io/sdk/contrib/aws/s3driver v0.3.0/go.mod h1:7lELxZBQ51a6FEOLMTEW9zQ5bG4jiexjVaqA7oCv5tc=
-go.temporal.io/sdk/contrib/aws/s3driver/awssdkv2 v0.3.0 h1:Jqk5vZsdhrNNZ62ISKw6QS6MEzTx6U59Z7ontUM3vDI=
-go.temporal.io/sdk/contrib/aws/s3driver/awssdkv2 v0.3.0/go.mod h1:fxkpsJ+rcvX+98BuVVkR/9GMeMub+vvlGTsNtJdKNGk=
+go.temporal.io/sdk/contrib/aws/s3driver v0.1.1 h1:cV0nhvb5rTDxP06L3XVAqwTSgFDXFVBFaA3b9dQl4rk=
+go.temporal.io/sdk/contrib/aws/s3driver v0.1.1/go.mod h1:/sYQljwSaVsL5bjdLeehUfKFlzA3y4jvbLShNv4PZ5Q=
+go.temporal.io/sdk/contrib/aws/s3driver/awssdkv2 v0.1.1 h1:qNEdOWhbn+SeceOoCdd+WatLbIXFSuJa5EmiWhgH2F4=
+go.temporal.io/sdk/contrib/aws/s3driver/awssdkv2 v0.1.1/go.mod h1:xAZx5FRbvG1MHG1TIhjcTiVnUdTSDyPHenbjWTQv4eA=
 go.temporal.io/sdk/contrib/gcp/gcsdriver v0.1.0 h1:pWclkV4CA6bAQ4gasJzIgNffJdRTbPv1zpETugnbZYg=
 go.temporal.io/sdk/contrib/gcp/gcsdriver v0.1.0/go.mod h1:4rjw/25qkAjku1odNdeVVyEyfczGPv132km2gEP4QKk=
 go.temporal.io/sdk/contrib/gcp/gcsdriver/gcssdk v0.1.0 h1:mT0Cfqjr+pwbKMch60dVd2Fcidx6XXScF/eJSbfLy/w=

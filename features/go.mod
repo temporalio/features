@@ -15,8 +15,8 @@ require (
 	github.com/urfave/cli/v2 v2.3.0
 	go.temporal.io/api v1.63.5
 	go.temporal.io/sdk v1.49.0
-	go.temporal.io/sdk/contrib/aws/s3driver v0.3.0
-	go.temporal.io/sdk/contrib/aws/s3driver/awssdkv2 v0.3.0
+	go.temporal.io/sdk/contrib/aws/s3driver v0.1.1
+	go.temporal.io/sdk/contrib/aws/s3driver/awssdkv2 v0.1.1
 	go.temporal.io/sdk/contrib/gcp/gcsdriver v0.1.0
 	go.temporal.io/sdk/contrib/gcp/gcsdriver/gcssdk v0.1.0
 	go.temporal.io/sdk/contrib/sysinfo v0.1.0

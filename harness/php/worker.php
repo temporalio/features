@@ -58,14 +58,6 @@ try {
     $converter = new DataConverter(...$converters);
     $container->bindSingleton(DataConverter::class, $converter);
 
-    $factory = WorkerFactory::create(converter: $converter);
-    $getWorker = static function (string $taskQueue) use (&$workers, $factory): WorkerInterface {
-        return $workers[$taskQueue] ??= $factory->newWorker(
-            $taskQueue,
-            WorkerOptions::new()->withMaxConcurrentActivityExecutionSize(10)
-        );
-    };
-
     // Create client services
     $serviceClient = $runtime->command->tlsKey === null && $runtime->command->tlsCert === null
         ? ServiceClient::create($runtime->address)
@@ -78,6 +70,14 @@ try {
     $options = (new ClientOptions())->withNamespace($runtime->namespace);
     $workflowClient = WorkflowClient::create(serviceClient: $serviceClient, options: $options, converter: $converter);
     $scheduleClient = ScheduleClient::create(serviceClient: $serviceClient, options: $options, converter: $converter);
+
+    $factory = WorkerFactory::create(converter: $converter, client: $workflowClient);
+    $getWorker = static function (string $taskQueue) use (&$workers, $factory): WorkerInterface {
+        return $workers[$taskQueue] ??= $factory->newWorker(
+            $taskQueue,
+            WorkerOptions::new()->withMaxConcurrentActivityExecutionSize(10)
+        );
+    };
 
     // Bind services
     $container->bindSingleton(State::class, $runtime);
@@ -98,6 +98,11 @@ try {
     // Register Activities
     foreach ($runtime->activities() as $feature => $activity) {
         $getWorker($feature->taskQueue)->registerActivityImplementations($container->make($activity));
+    }
+
+    // Register Nexus Services
+    foreach ($runtime->nexusServices() as $feature => $service) {
+        $getWorker($feature->taskQueue)->registerNexusServiceImplementation($container->make($service));
     }
 
     $factory->run();

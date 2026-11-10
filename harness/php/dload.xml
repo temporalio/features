@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<dload xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <actions>
+        <velox velox-version="3.0.0" config-file="../harness/php/velox.toml" binary-path="./rr"/>
+    </actions>
+</dload>

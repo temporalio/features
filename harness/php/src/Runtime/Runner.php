@@ -45,15 +45,15 @@ final class Runner
 
         $s3Bucket = (string) \getenv('TEMPORAL_FEATURES_S3_BUCKET');
         if ($s3Bucket !== '') {
-            $rrCommand = [...$rrCommand, '-o', "temporal.external_storage.bucket={$s3Bucket}"];
+            $rrCommand = [...$rrCommand, '-o', "temporal.external_storage.s3.bucket={$s3Bucket}"];
             $s3Endpoint = (string) \getenv('TEMPORAL_FEATURES_S3_ENDPOINT');
             if ($s3Endpoint !== '') {
                 $rrCommand = [
                     ...$rrCommand,
                     '-o',
-                    "temporal.external_storage.endpoint={$s3Endpoint}",
+                    "temporal.external_storage.s3.endpoint={$s3Endpoint}",
                     '-o',
-                    'temporal.external_storage.force_path_style=true',
+                    'temporal.external_storage.s3.force_path_style=true',
                 ];
             }
         }

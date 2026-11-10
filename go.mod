@@ -8,8 +8,8 @@ require (
 	github.com/temporalio/features/features v0.0.0-00010101000000-000000000000
 	github.com/temporalio/features/harness/go v0.0.0-00010101000000-000000000000
 	github.com/urfave/cli/v2 v2.25.7
-	go.temporal.io/api v1.63.5
-	go.temporal.io/sdk v1.49.0
+	go.temporal.io/api v1.64.3
+	go.temporal.io/sdk v1.51.0
 	golang.org/x/mod v0.38.0
 	google.golang.org/protobuf v1.36.11
 	gopkg.in/yaml.v3 v3.0.1

@@ -33,6 +33,8 @@ dependencies {
     implementation 'com.jayway.jsonpath:json-path:2.6.0'
     implementation 'info.picocli:picocli:4.6.2'
     implementation 'io.temporal:temporal-sdk:latest.release'
+    implementation 'io.temporal:temporal-payload-storage-s3driver:latest.release'
+    implementation 'io.temporal:temporal-payload-storage-s3driver-awssdkv2:latest.release'
     implementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
     implementation 'org.reflections:reflections:0.10.2'
 }

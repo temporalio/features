@@ -94,6 +94,7 @@ public class Runner
         {
             StartWorker();
         }
+        var featureFailed = false;
         try
         {
             if (role == "worker")
@@ -116,9 +117,21 @@ public class Runner
                 await Feature.CheckHistoryAsync(this, run);
             }
         }
+        catch
+        {
+            featureFailed = true;
+            throw;
+        }
         finally
         {
-            await StopWorker();
+            try
+            {
+                await StopWorker();
+            }
+            catch (Exception e) when (featureFailed)
+            {
+                Logger.LogError(e, "Failed stopping worker for feature {Feature}", PreparedFeature.Dir);
+            }
         }
     }
 

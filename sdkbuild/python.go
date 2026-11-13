@@ -89,29 +89,34 @@ name = "python-program-` + filepath.Base(dir) + `"
 version = "0.1.0"
 description = "Temporal SDK Python Test"
 authors = [{ name = "Temporal Technologies Inc", email = "sdk@temporal.io" }]
-requires-python = "~=3.10"
+requires-python = "~=3.11.0"
 `
 	if err := os.WriteFile(filepath.Join(dir, "pyproject.toml"), []byte(pyProjectTOML), 0644); err != nil {
 		return nil, fmt.Errorf("failed writing pyproject.toml: %w", err)
 	}
 
+	requirement := "temporalio"
 	if options.VersionFromPyProj != "" {
-		executeCommand("uv", "add", options.VersionFromPyProj)
+		requirement = options.VersionFromPyProj
 	} else if strings.ContainsAny(options.Version, `/\`) {
 		// It's a path; install from wheel
 		wheel, err := getWheel(ctx, options.Version, options.Stdout, options.Stderr)
 		if err != nil {
 			return nil, err
 		}
-		executeCommand("uv", "add", wheel)
+		requirement = wheel
 	} else if options.Version != "" {
-		executeCommand("uv", "add", fmt.Sprintf("temporalio==%s", strings.TrimPrefix(options.Version, "v")))
-	} else {
-		// No version constraint — uv resolves to latest from PyPI
-		executeCommand("uv", "add", "temporalio")
+		requirement = fmt.Sprintf("temporalio==%s", strings.TrimPrefix(options.Version, "v"))
+	}
+	err := executeCommand("uv", "add", requirement)
+	if err != nil {
+		// Stop before adding features, which could otherwise resolve its SDK dependency from PyPI.
+		return nil, fmt.Errorf("failed installing Python SDK %q: %w", requirement, err)
 	}
 	// Add the `features` python package
-	executeCommand("uv", "add", "--editable", "../")
+	if err := executeCommand("uv", "add", "--editable", "../"); err != nil {
+		return nil, fmt.Errorf("failed installing features: %w", err)
+	}
 
 	if err := executeCommand("uv", "sync"); err != nil {
 		return nil, fmt.Errorf("failed installing: %w", err)

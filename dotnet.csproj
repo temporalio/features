@@ -50,6 +50,7 @@
   <ItemGroup>
     <Using Include="Microsoft.Extensions.Logging" />
     <Using Include="Xunit" />
+    <InternalsVisibleTo Include="Temporalio.Features.Harness.Tests" />
   </ItemGroup>
 
 </Project>

@@ -14,8 +14,8 @@ require (
 	github.com/urfave/cli/v2 v2.3.0
 	go.opentelemetry.io/otel v1.44.0
 	go.opentelemetry.io/otel/sdk v1.44.0
-	go.temporal.io/api v1.63.5
-	go.temporal.io/sdk v1.49.0
+	go.temporal.io/api v1.64.3
+	go.temporal.io/sdk v1.51.0
 	go.temporal.io/sdk/contrib/aws/s3driver v0.1.1
 	go.temporal.io/sdk/contrib/aws/s3driver/awssdkv2 v0.1.1
 	go.temporal.io/sdk/contrib/gcp/gcsdriver v0.1.0

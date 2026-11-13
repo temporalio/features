@@ -173,14 +173,14 @@ Use repeated `--sdk-version language=version-or-local-checkout` options to selec
 SDKs independently. For example:
 
 ```sh
-go run . run-cross-language --sdk-version cs=1.21.1 --sdk-version ts=/path/to/sdk-typescript tracing/encoded_headers
+go run . run-cross-language --sdk-version cs=1.22.0 --sdk-version ts=/path/to/sdk-typescript tracing/encoded_headers
 ```
 
 Use repeated `--sdk-language` options to prepare only selected participants, without
 imposing pair policy on the runner. For the focused original regression:
 
 ```sh
-go run . run-cross-language --sdk-language cs --sdk-language ts --sdk-version cs=1.21.1 --sdk-version ts=/path/to/sdk-typescript tracing/encoded_headers
+ENCODED_HEADERS_PAIRS=cs:ts go run . run-cross-language --sdk-language cs --sdk-language ts --sdk-version cs=1.22.0 --sdk-version ts=/path/to/sdk-typescript tracing/encoded_headers
 ```
 
 Go, Java, Python, Ruby, Rust, .NET and TypeScript harnesses expose separate roles.

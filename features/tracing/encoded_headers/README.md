@@ -13,9 +13,9 @@ No interceptor decodes headers on an SDK's behalf. Every client checks that:
 
 All participants wrap the entire serialized protobuf `Payload` with XOR `0x5a`
 and set `metadata.encoding=binary/encrypted`. This deterministic test codec is
-**not encryption**. Every codec rejects double encoding. Raw client-supplied
-Payloads are wire-ready; this feature does not install a converter-wide wrapper
-or manually rewrite tracing headers.
+**not encryption**. Every codec rejects double encoding. User-provided Payload
+headers must already include any required codec encoding; this feature does not
+install a converter-wide wrapper or manually rewrite tracing headers.
 
 ## Participants
 
@@ -31,11 +31,31 @@ or manually rewrite tracing headers.
 | PHP (`php`) | No | No | No SDK tracing integration in the inspected checkout; no participant is fabricated |
 
 Rust and TypeScript encode only the tracing carrier produced by their plugins;
-other client-supplied Payload headers remain wire-ready and untouched. These
+user-provided client Payload headers are unchanged. These
 producer opt-ins are independent of worker processing: Rust workers already decode
-activation headers, while TypeScript workers use `codecHeaders`. The Rust
-converter-wide encoding proposal is not needed or reinstated.
+activation headers, while TypeScript workers use `codecHeaders`.
 PHP would first need a real tracing integration and a codec/header policy.
+
+## Release availability
+
+The following versions were checked on November 13, 2026. Merged changes are not
+necessarily published SDK releases.
+
+| SDK | Published version | Availability for this feature |
+| --- | --- | --- |
+| .NET | 1.22.0 | Available |
+| Python | 1.36.0 | Available |
+| Ruby | 1.11.0 | Available |
+| Rust | 1.2.0 | Available; the harness pins this release |
+| Go | SDK 1.51.0; OpenTelemetry module 0.8.1 | Blocked: the SDK contains the change, but the separately versioned OpenTelemetry module does not expose `EncodeHeaders` yet |
+| Java | 1.40.0 | Blocked: the merged `setEncodeHeaders` option is not published yet |
+| TypeScript | 1.25.0 | Blocked: the merged `codecHeaders` and `encodeClientHeaders` options are not published yet |
+
+Keep this feature PR in draft until the last three releases are available. Update
+the Go OpenTelemetry dependency in `features/go.mod` and the TypeScript packages
+in `package.json` when they are published; Java selects `latest.release`.
+The default seven-language matrix remains enabled and must pass before landing.
+Unreleased participants are not silently skipped or counted as successful.
 
 ## Running
 
@@ -46,37 +66,41 @@ deadline; failures are labeled and aggregated while later pairs continue. Worker
 are stopped and reaped on success, failure and cancellation. No tracing backend
 is required.
 
-The original .NET → TypeScript case remains independently runnable:
+Run the currently available releases without any local SDK checkouts:
 
 ```sh
-go run . run-cross-language --sdk-language cs --sdk-language ts --sdk-version cs=1.21.1 --sdk-version ts=/path/to/sdk-typescript tracing/encoded_headers
+go run . run-cross-language \
+  --sdk-language cs --sdk-language py --sdk-language rb --sdk-language rs \
+  --sdk-version cs=1.22.0 --sdk-version py=1.36.0 \
+  --sdk-version rb=1.11.0 --sdk-version rs=1.2.0 tracing/encoded_headers
+```
+
+This runs all 16 client/worker combinations among those four SDKs.
+
+The original .NET → TypeScript case remains independently runnable against a
+checkout containing the merged TypeScript fix:
+
+```sh
+ENCODED_HEADERS_PAIRS=cs:ts go run . run-cross-language \
+  --sdk-language cs --sdk-language ts --sdk-version cs=1.22.0 \
+  --sdk-version ts=/path/to/sdk-typescript tracing/encoded_headers
 ```
 
 With `ts=1.25.0` this is a **failing regression test**, not an expected-failure
 success: tracing extraction raises `Unknown encoding: binary/encrypted`.
-The fixed TypeScript worker uses `codecHeaders`, not the removed data-converter
-`encodeHeaders` flag.
 
-To validate the Go and Java producer opt-ins against branches under development:
-
-```sh
-go run . run-cross-language --sdk-language go --sdk-language java --sdk-language py --sdk-version go=/path/to/sdk-go --sdk-version java=/path/to/sdk-java tracing/encoded_headers
-```
-
+Use `--sdk-version go=/path/to/sdk-go` and
+`--sdk-version java=/path/to/sdk-java` to validate their merged but unreleased
+tracing integrations.
 Local Go selection also substitutes its independently versioned OpenTelemetry
 module; local Java selection substitutes its OpenTracing module. Older releases
 without the opt-ins cannot run these producer participants and fail rather than
-silently testing unencoded headers. SDKs must be fixed/merged before this feature
-change lands.
-
-Rust and TypeScript producer cases likewise require SDKs containing their new
-OTel plugin flags. Select those checkouts with `--sdk-version rs=/path/to/sdk-rust`
-and `--sdk-version ts=/path/to/sdk-typescript` while the changes are unreleased.
+silently testing unencoded headers.
 
 Use `ENCODED_HEADERS_PAIRS` only when focusing on particular scenarios:
 
 ```sh
-ENCODED_HEADERS_PAIRS=py:rs go run . run-cross-language --sdk-language py --sdk-language rs --sdk-version rs=/path/to/sdk-rust tracing/encoded_headers
+ENCODED_HEADERS_PAIRS=py:rs go run . run-cross-language --sdk-language py --sdk-language rs --sdk-version py=1.36.0 --sdk-version rs=1.2.0 tracing/encoded_headers
 ```
 
 The filter is a comma-separated list of `client:worker` language codes. Requested

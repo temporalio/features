@@ -26,9 +26,10 @@ func prepareCmd() *cli.Command {
 
 // PrepareConfig is configuration for NewPreparer.
 type PrepareConfig struct {
-	DirName string
-	Lang    string
-	Version string
+	DirName       string
+	Lang          string
+	Version       string
+	crossLanguage bool
 }
 
 func (p *PrepareConfig) flags() []cli.Flag {

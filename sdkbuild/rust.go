@@ -26,7 +26,8 @@ type BuildRustProgramOptions struct {
 	DirName string
 	// Version selects an exact published SDK version, defaulting to Cargo.toml.
 	// A value containing a slash or backslash selects a local SDK workspace.
-	Version string
+	Version       string
+	CrossLanguage bool
 	// If present, custom writers that will capture stdout/stderr.
 	Stdout io.Writer
 	Stderr io.Writer
@@ -142,6 +143,9 @@ func BuildRustProgram(ctx context.Context, options BuildRustProgramOptions) (*Ru
 		}
 	}
 	args := []string{"build", "--release", "--bin", "program", "--target-dir", target}
+	if options.CrossLanguage {
+		args = append(args, "--features", "cross-language")
+	}
 	if locked {
 		args = append(args, "--locked")
 	}

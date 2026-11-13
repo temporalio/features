@@ -130,6 +130,7 @@ class Runner:
         feature: Feature,
         tls_config: Optional[TLSConfig],
         http_proxy_url: Optional[str],
+        role: Optional[str] = None,
     ) -> None:
         self.address = address
         self.namespace = namespace
@@ -143,6 +144,7 @@ class Runner:
             self.tls_config = tls_config
         self.http_proxy_url = http_proxy_url
         self.client: Client
+        self.role = role
 
     async def run(self) -> None:
         logger.info("Executing feature %s", self.feature.rel_dir)
@@ -157,8 +159,13 @@ class Runner:
         )
 
         # Run worker
-        self.start_worker()
+        if self.role != "client":
+            self.start_worker()
         try:
+            if self.role == "worker":
+                print("FEATURE_WORKER_READY", flush=True)
+                await self._worker_task
+                return
             # Start and get handle
             handle: WorkflowHandle
             if self.feature.start:

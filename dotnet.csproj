@@ -39,10 +39,12 @@
 
   <ItemGroup Condition="'$(TemporalioVersion)' != ''">
     <PackageReference Include="Temporalio" Version="$(TemporalioVersion)" />
+    <PackageReference Include="Temporalio.Extensions.OpenTelemetry" Version="$(TemporalioVersion)" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TemporalioProjectReference)' != ''">
     <ProjectReference Include="$(TemporalioProjectReference)" />
+    <ProjectReference Include="$([System.IO.Path]::GetDirectoryName('$(TemporalioProjectReference)'))/../Temporalio.Extensions.OpenTelemetry/Temporalio.Extensions.OpenTelemetry.csproj" />
   </ItemGroup>
 
   <ItemGroup>

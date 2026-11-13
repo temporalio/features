@@ -38,6 +38,7 @@ public class Runner implements Closeable {
   private static final Logger log = LoggerFactory.getLogger(Main.class);
 
   public static class Config {
+    public String role;
     public String serverHostPort;
     public String namespace;
     public String taskQueue;
@@ -91,7 +92,9 @@ public class Runner implements Closeable {
       client = WorkflowClient.newInstance(service, clientBuild.build());
 
       // Build worker
-      restartWorker();
+      if (!"client".equals(config.role)) {
+        restartWorker();
+      }
     } catch (Throwable e) {
       service.shutdownNow();
       throw e;
@@ -132,6 +135,11 @@ public class Runner implements Closeable {
   }
 
   void run() throws Exception {
+    if ("worker".equals(config.role)) {
+      System.out.println("FEATURE_WORKER_READY");
+      new java.util.concurrent.CountDownLatch(1).await();
+      return;
+    }
     log.info("Executing feature {}", featureInfo.dir);
     var run = feature.execute(this);
     if (run == null) {
@@ -322,7 +330,9 @@ public class Runner implements Closeable {
 
   public void close() {
     try {
-      workerFactory.shutdownNow();
+      if (workerFactory != null) {
+        workerFactory.shutdownNow();
+      }
     } catch (Throwable e) {
       try {
         service.shutdownNow();

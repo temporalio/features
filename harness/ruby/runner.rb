@@ -67,6 +67,7 @@ module Harness
         opts.on('--tls-server-name NAME', 'TLS server name override') { |v| @tls_server_name = v }
         opts.on('--http-proxy-url URL', 'HTTP proxy URL') { |v| @http_proxy_url = v }
         opts.on('--summary-uri URI', 'Where to stream the test summary JSONL') { |v| @summary_uri = v }
+        opts.on('--role ROLE', %w[client worker], 'Cross-language harness role') { |v| @role = v }
       end
 
       @features_arg = parser.parse(argv)
@@ -97,8 +98,8 @@ module Harness
       summary_io.flush
     end
 
-    def connect_client
-      connect_options = {}
+    def connect_client(feature)
+      connect_options = feature.client_options.dup
 
       if @client_cert_path
         raise ArgumentError, 'Client cert specified, but not client key!' unless @client_key_path
@@ -131,7 +132,7 @@ module Harness
       feature = Harness.features[rel_dir]
       raise "Feature #{rel_dir} not registered after loading" unless feature
 
-      client = connect_client
+      client = connect_client(feature)
       execute_feature(client, feature, rel_dir, task_queue)
     end
 
@@ -143,16 +144,28 @@ module Harness
     end
 
     def execute_feature(client, feature, rel_dir, task_queue)
+      if @role == 'client'
+        handle = start_workflow(client, feature, rel_dir, task_queue)
+        check_result(client, handle, feature)
+        return
+      end
       worker = Temporalio::Worker.new(
         client: client,
         task_queue: task_queue,
         activities: feature.activities,
-        workflows: feature.workflows
+        workflows: feature.workflows,
+        **feature.worker_options
       )
 
       worker.run do
-        handle = start_workflow(client, feature, rel_dir, task_queue)
-        check_result(client, handle, feature)
+        if @role == 'worker'
+          puts 'FEATURE_WORKER_READY'
+          $stdout.flush
+          Queue.new.pop
+        else
+          handle = start_workflow(client, feature, rel_dir, task_queue)
+          check_result(client, handle, feature)
+        end
       end
     end
 

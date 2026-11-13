@@ -10,6 +10,7 @@ import {
   WorkflowStartOptions,
   TLSConfig,
   ConnectionOptions,
+  ClientOptions,
 } from '@temporalio/client';
 import * as proto from '@temporalio/proto';
 import { DataConverter, UntypedActivities, Workflow, WorkflowResultType } from '@temporalio/common';
@@ -27,6 +28,9 @@ export { getConnection, getClient, Context } from './activity-interceptors';
 export type { ReplaceNested };
 
 export interface FeatureOptions<W extends Workflow, A extends UntypedActivities> {
+  /** Additional client configuration, including client-side tracing plugins. */
+  clientOptions?: Partial<ClientOptions>;
+
   /**
    * Workflow to execute. This defaults to `import(workflowsPath).workflow` if
    * unset.
@@ -119,6 +123,7 @@ export class FeatureSource {
 }
 
 export interface RunnerOptions {
+  role?: 'all' | 'client' | 'worker';
   address: string;
   namespace: string;
   proxyUrl?: string;
@@ -141,6 +146,7 @@ export class Runner<W extends Workflow, A extends UntypedActivities> {
       connection,
       namespace: options.namespace,
       dataConverter: feature.options.dataConverter,
+      ...feature.options.clientOptions,
     });
 
     // Create a connection for the Worker
@@ -179,9 +185,9 @@ export class Runner<W extends Workflow, A extends UntypedActivities> {
       },
       ...feature.options.workerOptions,
     };
-    const worker = await Worker.create(workerOpts);
+    const worker = options.role === 'client' ? undefined : await Worker.create(workerOpts);
     const workerRunPromise = (async () => {
-      await worker.run();
+      if (worker) await worker.run();
     })();
     return new Runner(
       source,
@@ -205,12 +211,19 @@ export class Runner<W extends Workflow, A extends UntypedActivities> {
     readonly connectionOpts: ConnectionOptions,
     readonly nativeConnection: NativeConnection,
     readonly nativeConnectionOpts: NativeConnectionOptions,
-    private _worker: Worker,
+    private _worker: Worker | undefined,
     readonly workerOpts: WorkerOptions,
     private _workerRunPromise: Promise<void>,
   ) {}
 
   async run(): Promise<void> {
+    if (this.options.role === 'worker') {
+      console.log('FEATURE_WORKER_READY');
+      return await this._workerRunPromise;
+    }
+    if (this.options.role === 'client') {
+      return await this.runWorkflow();
+    }
     if (this.feature.options.alternateRun) {
       return await this.feature.options.alternateRun(this);
     } else {
@@ -253,6 +266,7 @@ export class Runner<W extends Workflow, A extends UntypedActivities> {
   }
 
   get worker(): Worker {
+    if (!this._worker) throw new IllegalStateError('Worker not started in client-only mode');
     return this._worker;
   }
 
@@ -263,7 +277,7 @@ export class Runner<W extends Workflow, A extends UntypedActivities> {
   async restartWorker(): Promise<void> {
     this._worker = await Worker.create(this.workerOpts);
     this._workerRunPromise = (async () => {
-      await this._worker.run();
+      await this.worker.run();
     })();
   }
 
@@ -289,7 +303,7 @@ export class Runner<W extends Workflow, A extends UntypedActivities> {
 
   async close(): Promise<void> {
     try {
-      this._worker.shutdown();
+      this._worker?.shutdown();
     } catch (err) {
       if (!(err instanceof IllegalStateError && err.message.includes('Not running'))) {
         throw err;

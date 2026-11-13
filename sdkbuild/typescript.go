@@ -33,6 +33,8 @@ type BuildTypeScriptProgramOptions struct {
 	Includes []string
 	// If present, overrides the default "exclude" array in tsconfig.json.
 	Excludes []string
+	// Additional exclusions appended to the default or overridden exclude array.
+	AdditionalExcludes []string
 	// If present, add additional dependencies -> version string to package.json.
 	MoreDependencies map[string]string
 	// If present, custom writers that will capture stdout/stderr.
@@ -194,6 +196,7 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 	if len(options.Excludes) > 0 {
 		excludes = options.Excludes
 	}
+	excludes = append(excludes, options.AdditionalExcludes...)
 	quotedIncludes := make([]string, len(includes))
 	for i, include := range includes {
 		quotedIncludes[i] = strconv.Quote(include)

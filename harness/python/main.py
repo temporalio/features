@@ -25,6 +25,7 @@ async def run():
         "--ca-cert-path", help="Path to a CA certificate for server verification"
     )
     parser.add_argument("--log-level", help="Log level", default="WARNING")
+    parser.add_argument("--role", choices=["client", "worker"])
     parser.add_argument("--http-proxy-url", help="HTTP proxy URL")
     parser.add_argument(
         "--tls-server-name", help="TLS server name to use for verification (optional)"
@@ -94,6 +95,7 @@ async def run():
                 feature=features[rel_dir],
                 tls_config=tls_config,
                 http_proxy_url=args.http_proxy_url if args.http_proxy_url else None,
+                role=args.role,
             ).run()
         except Exception:
             logger.exception("Feature %s failed", rel_dir)

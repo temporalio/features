@@ -16,6 +16,7 @@ async function run() {
     .option('--ca-cert-path <caCertPath>', 'Path to a CA certificate for server verification')
     .option('--http-proxy-url <httpProxyUrl>', 'HTTP proxy URL')
     .option('--tls-server-name <tlsServerName>', 'TLS server name to use for verification')
+    .option('--role <role>', 'Run all, client, or worker portions of a feature', 'all')
     .argument('<features...>', 'Features as dir + ":" + task queue');
 
   const opts = program.parse(process.argv).opts<{
@@ -26,9 +27,13 @@ async function run() {
     caCertPath: string;
     httpProxyUrl: string;
     tlsServerName: string;
+    role: 'all' | 'client' | 'worker';
     featureAndTaskQueues: string[];
   }>();
   opts.featureAndTaskQueues = program.args;
+  if (!['all', 'client', 'worker'].includes(opts.role)) {
+    throw new Error('--role must be all, client, or worker');
+  }
 
   console.log('Running TypeScript SDK version ' + pkg.version, 'against', opts.server);
 
@@ -87,6 +92,7 @@ async function run() {
         proxyUrl: opts.httpProxyUrl,
         taskQueue,
         tlsConfig,
+        role: opts.role,
       });
       await runner.run();
     } catch (err) {

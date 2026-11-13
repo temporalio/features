@@ -31,7 +31,7 @@ func runCrossLanguageCmd() *cli.Command {
 		Flags: append([]cli.Flag{
 			&cli.StringSliceFlag{
 				Name: "sdk-version", Destination: &config.SDKVersions,
-				Usage: "SDK selection, e.g. cs=1.21.1 or ts=/path/to/sdk",
+				Usage: "SDK selection, e.g. cs=1.22.0 or ts=/path/to/sdk",
 			},
 			&cli.StringSliceFlag{
 				Name: "sdk-language", Destination: &config.SDKLanguages,

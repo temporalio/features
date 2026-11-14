@@ -27,6 +27,7 @@ caller's namespace only.
 |---|---|---|---|
 | Python | `workflow.signal_with_start_workflow` | >= 1.29.0 | Both calls return the same target run ID; the target returns `started: start-value`, `signal: signal-one`, `signal: signal-two` in order, proving the second start input was ignored. |
 | .NET | `Workflow.SignalWithStartWorkflowAsync` | >= 1.17.0 | Both calls return the same target run ID; the target returns `started: start-value`, `signal: signal-one`, `signal: signal-two` in order, proving the second start input was ignored. |
+| Go | `workflow.SignalWithStartWorkflow` | >= 1.51.0 | Both calls return the same nonempty target run ID; the target returns `started: start-value`, `signal: signal-one`, `signal: signal-two` in order, proving the second start input was ignored. |
 
 ## Scope boundary
 

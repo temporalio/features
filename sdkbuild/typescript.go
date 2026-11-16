@@ -2,6 +2,7 @@ package sdkbuild
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -163,21 +164,24 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 	}
 
 	// Create tsconfig
-	var tsConfigPathStr string
+	// Compile sources inside the prepared project so package resolution can find
+	// its node_modules and honor package exports/typesVersions. A wildcard paths
+	// mapping to node_modules only resolves physical files, not package subpaths.
+	for _, sourceDir := range []string{"features", "harness/ts"} {
+		if err := os.CopyFS(filepath.Join(dir, sourceDir), os.DirFS(filepath.Join(options.BaseDir, sourceDir))); err != nil {
+			return nil, fmt.Errorf("failed copying TypeScript sources from %s: %w", sourceDir, err)
+		}
+	}
 	for name, paths := range options.TSConfigPaths {
 		if len(paths) == 0 {
-			return nil, fmt.Errorf("harness path slice is empty")
+			return nil, fmt.Errorf("tsconfig path slice for %s is empty", name)
 		}
-		tsConfigPathStr += fmt.Sprintf("%q: [", name)
-		for i, path := range paths {
-			if i > 0 {
-				tsConfigPathStr += ", "
-			}
-			tsConfigPathStr += strconv.Quote(path)
-		}
-		tsConfigPathStr += "],\n      "
 	}
-	includes := []string{"../features/**/*.ts", "../harness/ts/**/*.ts"}
+	tsConfigPaths, err := json.Marshal(options.TSConfigPaths)
+	if err != nil {
+		return nil, fmt.Errorf("failed encoding tsconfig paths: %w", err)
+	}
+	includes := []string{"features/**/*.ts", "harness/ts/**/*.ts"}
 	if len(options.Includes) > 0 {
 		includes = options.Includes
 	}
@@ -186,10 +190,8 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 	// are versioned independently of the SDK under test. They are type-checked by
 	// the root tsconfig.json in the `build-typescript` CI job instead.
 	excludes := []string{
-		"../node_modules",
-		"../harness/go",
-		"../harness/java",
-		"../features/snippets/external_storage",
+		"node_modules",
+		"features/snippets/external_storage",
 	}
 	if len(options.Excludes) > 0 {
 		excludes = options.Excludes
@@ -208,11 +210,8 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
   "compilerOptions": {
     "baseUrl": ".",
     "outDir": "./tslib",
-    "rootDirs": ["../", "."],
-    "paths": {
-      ` + tsConfigPathStr + `
-      "*": ["node_modules/*", "node_modules/@types/*"]
-    },
+    "rootDir": ".",
+    "paths": ` + string(tsConfigPaths) + `,
     "typeRoots": ["node_modules/@types"],
     "module": "commonjs",
     "moduleResolution": "node",

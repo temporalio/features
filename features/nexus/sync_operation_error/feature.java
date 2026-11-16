@@ -1,8 +1,8 @@
 package nexus.sync_operation_error;
 
+import static io.temporal.sdkfeatures.NexusAssertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 import io.nexusrpc.Operation;
 import io.nexusrpc.OperationException;
@@ -10,6 +10,7 @@ import io.nexusrpc.Service;
 import io.nexusrpc.handler.OperationHandler;
 import io.nexusrpc.handler.OperationImpl;
 import io.nexusrpc.handler.ServiceImpl;
+import io.temporal.api.enums.v1.EventType;
 import io.temporal.client.WorkflowOptions;
 import io.temporal.failure.ApplicationFailure;
 import io.temporal.failure.NexusOperationFailure;
@@ -27,13 +28,14 @@ import java.time.Duration;
 public interface feature extends Feature {
   String ERROR_TYPE = "TestFailure";
   String ERROR_MESSAGE = "deliberate failure";
+  String ERROR_DETAIL = "application detail";
 
   @WorkflowMethod
   String workflow(String endpoint);
 
-  @Service
+  @Service(name = "test-service")
   interface TestService {
-    @Operation
+    @Operation(name = "fail")
     String failingOperation(String name);
   }
 
@@ -53,27 +55,14 @@ public interface feature extends Feature {
         stub.failingOperation("world");
         return "no error";
       } catch (NexusOperationFailure e) {
-        var applicationFailure = findApplicationFailure(e, ERROR_TYPE);
-        if (applicationFailure == null) {
-          throw ApplicationFailure.newNonRetryableFailure(
-              "expected an application failure of type "
-                  + ERROR_TYPE
-                  + " in the cause chain, got "
-                  + e,
-              "AssertionFailure");
-        }
-        return applicationFailure.getType() + ": " + applicationFailure.getOriginalMessage();
+        assertOperationFailure(e, endpoint, "test-service", "fail", "");
+        assertInstanceOf(ApplicationFailure.class, e.getCause());
+        var wrapper = (ApplicationFailure) e.getCause();
+        assertEquals("OperationError", wrapper.getType());
+        assertEquals("operation failed", wrapper.getOriginalMessage());
+        assertApplicationCause(wrapper.getCause(), ERROR_TYPE, ERROR_MESSAGE, ERROR_DETAIL);
+        return ERROR_TYPE + ": " + ERROR_MESSAGE;
       }
-    }
-
-    private static ApplicationFailure findApplicationFailure(Throwable failure, String type) {
-      for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
-        if (cause instanceof ApplicationFailure
-            && type.equals(((ApplicationFailure) cause).getType())) {
-          return (ApplicationFailure) cause;
-        }
-      }
-      return null;
     }
 
     @Override
@@ -99,14 +88,11 @@ public interface feature extends Feature {
 
     @Override
     public void checkHistory(Runner runner, Run run) throws Exception {
-      var events = runner.getWorkflowHistory(run).getEventsList();
-      assertTrue(
-          events.stream().anyMatch(e -> e.hasNexusOperationFailedEventAttributes()),
-          "expected NexusOperationFailed event in history");
-      assertFalse(
-          events.stream().anyMatch(e -> e.hasNexusOperationCompletedEventAttributes()),
-          "unexpected NexusOperationCompleted event in history");
-      runner.checkCurrentAndPastHistories(run);
+      assertHistory(
+          runner,
+          run,
+          EventType.EVENT_TYPE_NEXUS_OPERATION_SCHEDULED,
+          EventType.EVENT_TYPE_NEXUS_OPERATION_FAILED);
     }
   }
 
@@ -116,8 +102,9 @@ public interface feature extends Feature {
     public OperationHandler<String, String> failingOperation() {
       return OperationHandler.sync(
           (context, details, name) -> {
-            throw OperationException.failure(
-                ApplicationFailure.newFailure(ERROR_MESSAGE, ERROR_TYPE));
+            throw OperationException.failed(
+                "operation failed",
+                ApplicationFailure.newFailure(ERROR_MESSAGE, ERROR_TYPE, ERROR_DETAIL));
           });
     }
   }

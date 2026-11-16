@@ -2,7 +2,7 @@ import * as proto from '@temporalio/proto';
 import {
   DefaultPayloadConverterWithProtobufsOptions,
   ProtobufJsonPayloadConverter,
-} from '@temporalio/common/lib/protobufs';
+} from '@temporalio/common/protobufs';
 
 import { CompositePayloadConverter } from '@temporalio/common';
 

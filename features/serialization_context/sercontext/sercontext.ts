@@ -1,5 +1,5 @@
 import { Payload, PayloadCodec, SerializationContext } from '@temporalio/common';
-import { decode, encode } from '@temporalio/common/lib/encoding';
+import { decode, encode } from '@temporalio/common/encoding';
 
 export const METADATA_KEY = 'ctx-signature';
 export const NO_CONTEXT = 'none';

@@ -3,7 +3,7 @@ name = "features"
 version = "0.1.0"
 description = "Temporal SDK Features"
 authors = [{ name = "Temporal Technologies Inc", email = "sdk@temporal.io" }]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = "MIT"
 dependencies = ["temporalio"]
 
@@ -40,5 +40,5 @@ lint-types = "mypy --explicit-package-bases --namespace-packages ."
 
 [tool.uv]
 exclude-newer = "2 weeks"
-# First-party Temporal SDK: samples, features and edu track SDK releases without the cooldown.
-exclude-newer-package = { temporalio = false }
+# Track SDK releases and their Nexus dependency without the cooldown.
+exclude-newer-package = { temporalio = false, nexus-rpc = false }

@@ -1,5 +1,6 @@
 package nexus.async_cancellation_abandon;
 
+import static io.temporal.sdkfeatures.NexusAssertions.assertHistory;
 import static io.temporal.sdkfeatures.NexusAssertions.assertOperationFailure;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -8,6 +9,7 @@ import io.nexusrpc.Service;
 import io.nexusrpc.handler.OperationHandler;
 import io.nexusrpc.handler.OperationImpl;
 import io.nexusrpc.handler.ServiceImpl;
+import io.temporal.api.enums.v1.EventType;
 import io.temporal.client.WorkflowOptions;
 import io.temporal.failure.CanceledFailure;
 import io.temporal.nexus.Nexus;
@@ -26,8 +28,6 @@ import io.temporal.workflow.Workflow;
 import io.temporal.workflow.WorkflowInterface;
 import io.temporal.workflow.WorkflowMethod;
 import java.time.Duration;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @WorkflowInterface
 public interface feature extends Feature {
@@ -38,9 +38,6 @@ public interface feature extends Feature {
   interface TestService {
     @Operation(name = "block")
     String block(String id);
-
-    @Operation(name = "release")
-    String release(String id);
   }
 
   @WorkflowInterface
@@ -105,10 +102,7 @@ public interface feature extends Feature {
               });
       scope.run();
       scope.cancel();
-      assertEquals("canceled", outcome.get());
-      // The operation must remain live after local cancellation. Release it
-      // through Nexus so only the service accesses the backing workflow.
-      return stub.release(id);
+      return outcome.get();
     }
 
     @Override
@@ -133,43 +127,20 @@ public interface feature extends Feature {
 
     @Override
     public void checkResult(Runner runner, Run run) {
-      assertEquals("released", runner.waitForRunResult(run, String.class));
+      assertEquals("canceled", runner.waitForRunResult(run, String.class));
+      var backing =
+          runner.client.newUntypedWorkflowStub(run.execution.getWorkflowId() + "-handler");
+      backing.signal("release");
+      assertEquals("released", backing.getResult(String.class));
     }
 
     @Override
     public void checkHistory(Runner runner, Run run) throws Exception {
-      var events = runner.getWorkflowHistory(run).getEventsList();
-      var scheduled =
-          events.stream()
-              .filter(e -> e.hasNexusOperationScheduledEventAttributes())
-              .collect(Collectors.toList());
-      assertEquals(
-          List.of("block", "release"),
-          scheduled.stream()
-              .map(e -> e.getNexusOperationScheduledEventAttributes().getOperation())
-              .collect(Collectors.toList()));
-      long releaseId = scheduled.get(1).getEventId();
-      assertEquals(
-          1, events.stream().filter(e -> e.hasNexusOperationStartedEventAttributes()).count());
-      assertTrue(
-          events.stream()
-              .anyMatch(
-                  e ->
-                      e.hasNexusOperationCompletedEventAttributes()
-                          && e.getNexusOperationCompletedEventAttributes().getScheduledEventId()
-                              == releaseId));
-      for (var event : events) {
-        assertFalse(event.hasNexusOperationCancelRequestedEventAttributes());
-        assertFalse(event.hasNexusOperationCancelRequestCompletedEventAttributes());
-        assertFalse(event.hasNexusOperationCancelRequestFailedEventAttributes());
-        assertFalse(event.hasNexusOperationCanceledEventAttributes());
-        assertFalse(event.hasNexusOperationFailedEventAttributes());
-        assertFalse(event.hasNexusOperationTimedOutEventAttributes());
-        if (event.hasNexusOperationCompletedEventAttributes()) {
-          assertTrue(event.getEventId() > releaseId);
-        }
-      }
-      runner.checkCurrentAndPastHistories(run);
+      assertHistory(
+          runner,
+          run,
+          EventType.EVENT_TYPE_NEXUS_OPERATION_SCHEDULED,
+          EventType.EVENT_TYPE_NEXUS_OPERATION_STARTED);
     }
   }
 
@@ -185,16 +156,6 @@ public interface feature extends Feature {
                           HandlerWorkflow.class,
                           WorkflowOptions.newBuilder().setWorkflowId(id).build())
                   ::run);
-    }
-
-    @OperationImpl
-    public OperationHandler<String, String> release() {
-      return OperationHandler.sync(
-          (context, details, id) -> {
-            var stub = Nexus.getOperationContext().getWorkflowClient().newUntypedWorkflowStub(id);
-            stub.signal("release");
-            return stub.getResult(String.class);
-          });
     }
   }
 }

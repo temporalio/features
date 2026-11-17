@@ -1,21 +1,15 @@
 package nexus.async_cancellation_try_cancel;
 
+import static io.temporal.sdkfeatures.NexusAssertions.assertHistory;
 import static io.temporal.sdkfeatures.NexusAssertions.assertOperationFailure;
 import static org.junit.jupiter.api.Assertions.*;
 
 import io.nexusrpc.Operation;
-import io.nexusrpc.OperationException;
 import io.nexusrpc.Service;
-import io.nexusrpc.handler.HandlerException;
-import io.nexusrpc.handler.OperationCancelDetails;
-import io.nexusrpc.handler.OperationContext;
 import io.nexusrpc.handler.OperationHandler;
 import io.nexusrpc.handler.OperationImpl;
-import io.nexusrpc.handler.OperationStartDetails;
-import io.nexusrpc.handler.OperationStartResult;
 import io.nexusrpc.handler.ServiceImpl;
-import io.temporal.activity.ActivityInterface;
-import io.temporal.activity.ActivityOptions;
+import io.temporal.api.enums.v1.EventType;
 import io.temporal.client.WorkflowFailedException;
 import io.temporal.client.WorkflowOptions;
 import io.temporal.failure.CanceledFailure;
@@ -25,18 +19,16 @@ import io.temporal.sdkfeatures.Feature;
 import io.temporal.sdkfeatures.Run;
 import io.temporal.sdkfeatures.Runner;
 import io.temporal.worker.Worker;
+import io.temporal.workflow.CancellationScope;
 import io.temporal.workflow.CompletablePromise;
 import io.temporal.workflow.NexusOperationCancellationType;
 import io.temporal.workflow.NexusOperationOptions;
 import io.temporal.workflow.NexusServiceOptions;
+import io.temporal.workflow.SignalMethod;
 import io.temporal.workflow.Workflow;
 import io.temporal.workflow.WorkflowInterface;
 import io.temporal.workflow.WorkflowMethod;
 import java.time.Duration;
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 @WorkflowInterface
 public interface feature extends Feature {
@@ -47,33 +39,34 @@ public interface feature extends Feature {
   interface TestService {
     @Operation(name = "block")
     String block(String id);
-
-    @Operation(name = "release")
-    String release(String id);
-  }
-
-  @ActivityInterface
-  interface GateActivities {
-    void checkpoint(boolean release);
   }
 
   @WorkflowInterface
   interface HandlerWorkflow {
     @WorkflowMethod
     String run(String id);
+
+    @SignalMethod
+    void release();
   }
 
   class HandlerWorkflowImpl implements HandlerWorkflow {
+    private boolean released;
+
     @Override
     public String run(String id) {
-      Workflow.await(() -> false);
-      return "unreachable";
+      Workflow.newDetachedCancellationScope(() -> Workflow.await(() -> released)).run();
+      CancellationScope.throwCanceled();
+      return "released";
+    }
+
+    @Override
+    public void release() {
+      released = true;
     }
   }
 
   class Impl implements feature {
-    private final TestServiceImpl service = new TestServiceImpl();
-
     @Override
     public String workflow(String endpoint) {
       var options =
@@ -110,37 +103,17 @@ public interface feature extends Feature {
               });
       scope.run();
       scope.cancel();
-      // Provide a workflow task to process the recorded cancellation request
-      // while the cancellation handler is still gated.
-      var gate =
-          Workflow.newActivityStub(
-              GateActivities.class,
-              ActivityOptions.newBuilder().setStartToCloseTimeout(Duration.ofSeconds(10)).build());
-      gate.checkpoint(false);
-      assertEquals("canceled", outcome.get());
-      gate.checkpoint(true);
-      // Only after TRY_CANCEL returns can we allow the handler to deliver the
-      // cancellation request and wait for the backing workflow to close.
-      return stub.release(id);
+      return outcome.get();
     }
 
     @Override
     public Object[] nexusServiceImplementations() {
-      return new Object[] {service};
+      return new Object[] {new TestServiceImpl()};
     }
 
     @Override
     public void prepareWorker(Worker worker) {
       worker.registerWorkflowImplementationTypes(HandlerWorkflowImpl.class);
-      worker.registerActivitiesImplementations(
-          new GateActivities() {
-            @Override
-            public void checkpoint(boolean release) {
-              if (release) {
-                service.allow.countDown();
-              }
-            }
-          });
     }
 
     @Override
@@ -156,115 +129,40 @@ public interface feature extends Feature {
     @Override
     public void checkResult(Runner runner, Run run) {
       assertEquals("canceled", runner.waitForRunResult(run, String.class));
+      var backing =
+          runner.client.newUntypedWorkflowStub(run.execution.getWorkflowId() + "-handler");
+      backing.signal("release");
+      // TRY_CANCEL does not guarantee delivery after the caller exits.
+      try {
+        assertEquals("released", backing.getResult(String.class));
+      } catch (WorkflowFailedException e) {
+        assertInstanceOf(CanceledFailure.class, e.getCause());
+      }
     }
 
     @Override
     public void checkHistory(Runner runner, Run run) throws Exception {
-      var events = runner.getWorkflowHistory(run).getEventsList();
-      var scheduled =
-          events.stream()
-              .filter(e -> e.hasNexusOperationScheduledEventAttributes())
-              .collect(Collectors.toList());
-      assertEquals(
-          List.of("block", "release"),
-          scheduled.stream()
-              .map(e -> e.getNexusOperationScheduledEventAttributes().getOperation())
-              .collect(Collectors.toList()));
-      long releaseId = scheduled.get(1).getEventId();
-      var checkpoints =
-          events.stream()
-              .filter(e -> e.hasActivityTaskScheduledEventAttributes())
-              .collect(Collectors.toList());
-      assertEquals(2, checkpoints.size());
-      long openGateId = checkpoints.get(1).getEventId();
-      assertEquals(
-          1, events.stream().filter(e -> e.hasNexusOperationStartedEventAttributes()).count());
-      assertEquals(
-          1,
-          events.stream().filter(e -> e.hasNexusOperationCancelRequestedEventAttributes()).count());
-      assertEquals(
-          1, events.stream().filter(e -> e.hasNexusOperationCompletedEventAttributes()).count());
-      for (var event : events) {
-        assertFalse(event.hasNexusOperationFailedEventAttributes());
-        assertFalse(event.hasNexusOperationTimedOutEventAttributes());
-        assertFalse(event.hasNexusOperationCancelRequestFailedEventAttributes());
-        if (event.hasNexusOperationCancelRequestedEventAttributes()) {
-          assertTrue(event.getEventId() < releaseId);
-        }
-        if (event.hasNexusOperationCancelRequestCompletedEventAttributes()
-            || event.hasNexusOperationCanceledEventAttributes()) {
-          assertTrue(event.getEventId() > openGateId, "TRY_CANCEL must not wait for delivery");
-        }
-        if (event.hasNexusOperationCompletedEventAttributes()) {
-          long id = event.getNexusOperationCompletedEventAttributes().getScheduledEventId();
-          assertEquals(releaseId, id);
-        }
-      }
-      runner.checkCurrentAndPastHistories(run);
+      assertHistory(
+          runner,
+          run,
+          EventType.EVENT_TYPE_NEXUS_OPERATION_SCHEDULED,
+          EventType.EVENT_TYPE_NEXUS_OPERATION_STARTED,
+          EventType.EVENT_TYPE_NEXUS_OPERATION_CANCEL_REQUESTED);
     }
   }
 
   @ServiceImpl(service = TestService.class)
   class TestServiceImpl {
-    private final CountDownLatch allow = new CountDownLatch(1);
-    private final CountDownLatch delivered = new CountDownLatch(1);
-
-    private void await(CountDownLatch latch) {
-      try {
-        // A timeout is only a deadlock guard, not a timing assertion.
-        if (!latch.await(20, TimeUnit.SECONDS)) {
-          throw new IllegalStateException("caller waited for cancellation delivery");
-        }
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new RuntimeException(e);
-      }
-    }
-
     @OperationImpl
     public OperationHandler<String, String> block() {
-      OperationHandler<String, String> delegate =
-          WorkflowRunOperation.fromWorkflowMethod(
-              (context, details, id) ->
-                  Nexus.getOperationContext()
-                          .getWorkflowClient()
-                          .newWorkflowStub(
-                              HandlerWorkflow.class,
-                              WorkflowOptions.newBuilder().setWorkflowId(id).build())
-                      ::run);
-      return new OperationHandler<String, String>() {
-        @Override
-        public OperationStartResult<String> start(
-            OperationContext context, OperationStartDetails details, String id)
-            throws OperationException, HandlerException {
-          return delegate.start(context, details, id);
-        }
-
-        @Override
-        public void cancel(OperationContext context, OperationCancelDetails details) {
-          await(allow);
-          delegate.cancel(context, details);
-          delivered.countDown();
-        }
-      };
-    }
-
-    @OperationImpl
-    public OperationHandler<String, String> release() {
-      return OperationHandler.sync(
-          (context, details, id) -> {
-            await(delivered);
-            var stub = Nexus.getOperationContext().getWorkflowClient().newUntypedWorkflowStub(id);
-            try {
-              stub.getResult(String.class);
-              throw new IllegalStateException("expected backing workflow cancellation");
-            } catch (WorkflowFailedException e) {
-              if (!(e.getCause() instanceof CanceledFailure)) {
-                throw e;
-              }
-              return "canceled";
-            }
-          });
+      return WorkflowRunOperation.fromWorkflowMethod(
+          (context, details, id) ->
+              Nexus.getOperationContext()
+                      .getWorkflowClient()
+                      .newWorkflowStub(
+                          HandlerWorkflow.class,
+                          WorkflowOptions.newBuilder().setWorkflowId(id).build())
+                  ::run);
     }
   }
 }

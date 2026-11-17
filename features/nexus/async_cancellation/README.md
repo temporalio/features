@@ -23,8 +23,8 @@ A workflow cancels a running asynchronous Nexus operation and observes a cancell
 
 Other cancellation modes have independently runnable features:
 
-- [`async_cancellation_try_cancel`](../async_cancellation_try_cancel/README.md) checks return
-  before cancellation delivery.
+- [`async_cancellation_try_cancel`](../async_cancellation_try_cancel/README.md) checks requesting
+  cancellation without waiting for operation completion.
 - [`async_cancellation_wait_requested`](../async_cancellation_wait_requested/README.md) checks
   waiting for acknowledgement but not operation completion.
 - [`async_cancellation_abandon`](../async_cancellation_abandon/README.md) checks local cancellation

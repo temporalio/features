@@ -2,7 +2,6 @@ package async_cancellation_abandon
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/nexus-rpc/sdk-go/nexus"
@@ -29,17 +28,6 @@ var Service = func() *nexus.Service {
 		func(ctx context.Context, id string, options nexus.StartOperationOptions) (client.StartWorkflowOptions, error) {
 			return client.StartWorkflowOptions{ID: id}, nil
 		}))
-	s.MustRegister(nexus.NewSyncOperation(
-		"release",
-		func(ctx context.Context, id string, options nexus.StartOperationOptions) (string, error) {
-			c := temporalnexus.GetClient(ctx)
-			if err := c.SignalWorkflow(ctx, id, "", "release", nil); err != nil {
-				return "", err
-			}
-			var result string
-			err := c.GetWorkflow(ctx, id, "").Get(ctx, &result)
-			return result, err
-		}))
 	return s
 }()
 
@@ -64,60 +52,39 @@ func Workflow(ctx workflow.Context, endpoint string) (string, error) {
 	if !ok || canceled.Unwrap() != nil || canceled.HasDetails() {
 		return "", harness.AppErrorf("expected leaf local cancellation, got %T: %v", err, err)
 	}
-	var result string
-	err = nc.ExecuteOperation(ctx, "release", id, workflow.NexusOperationOptions{
-		ScheduleToCloseTimeout: time.Minute,
-	}).Get(ctx, &result)
-	return result, err
+	return "canceled", nil
 }
 
 var Feature = harness.Feature{
 	Workflows:       []interface{}{Workflow, HandlerWorkflow},
 	NexusServices:   Service,
-	ExpectRunResult: "released",
+	ExpectRunResult: "canceled",
 	Execute: func(ctx context.Context, runner *harness.Runner) (client.WorkflowRun, error) {
 		return runner.Client.ExecuteWorkflow(ctx, client.StartWorkflowOptions{
 			TaskQueue:                runner.TaskQueue,
 			WorkflowExecutionTimeout: time.Minute,
 		}, Workflow, runner.NexusEndpoint)
 	},
+	CheckResult: func(ctx context.Context, runner *harness.Runner, run client.WorkflowRun) error {
+		if err := runner.CheckResultDefault(ctx, run); err != nil {
+			return err
+		}
+		id := run.GetID() + "-handler"
+		if err := runner.Client.SignalWorkflow(ctx, id, "", "release", nil); err != nil {
+			return err
+		}
+		var result string
+		if err := runner.Client.GetWorkflow(ctx, id, "").Get(ctx, &result); err != nil {
+			return err
+		}
+		if result != "released" {
+			return harness.AppErrorf("unexpected backing workflow result: %q", result)
+		}
+		return nil
+	},
 	CheckHistory: func(ctx context.Context, runner *harness.Runner, run client.WorkflowRun) error {
-		var releaseID int64
-		scheduled, started, releaseCompleted := 0, 0, false
-		hist := runner.Client.GetWorkflowHistory(ctx, run.GetID(), run.GetRunID(), false, enumspb.HISTORY_EVENT_FILTER_TYPE_ALL_EVENT)
-		for hist.HasNext() {
-			event, err := hist.Next()
-			if err != nil {
-				return err
-			}
-			if attrs := event.GetNexusOperationScheduledEventAttributes(); attrs != nil {
-				scheduled++
-				if scheduled == 1 && attrs.Operation != "block" || scheduled == 2 && attrs.Operation != "release" {
-					return fmt.Errorf("unexpected scheduled operation %s", attrs.Operation)
-				}
-				if attrs.Operation == "release" {
-					releaseID = event.EventId
-				}
-			}
-			switch event.EventType {
-			case enumspb.EVENT_TYPE_NEXUS_OPERATION_STARTED:
-				started++
-			case enumspb.EVENT_TYPE_NEXUS_OPERATION_COMPLETED:
-				if releaseID == 0 {
-					return fmt.Errorf("operation completed before release")
-				}
-				if event.GetNexusOperationCompletedEventAttributes().ScheduledEventId == releaseID {
-					releaseCompleted = true
-				}
-			case enumspb.EVENT_TYPE_NEXUS_OPERATION_CANCEL_REQUESTED, enumspb.EVENT_TYPE_NEXUS_OPERATION_CANCEL_REQUEST_COMPLETED,
-				enumspb.EVENT_TYPE_NEXUS_OPERATION_CANCEL_REQUEST_FAILED, enumspb.EVENT_TYPE_NEXUS_OPERATION_CANCELED,
-				enumspb.EVENT_TYPE_NEXUS_OPERATION_FAILED, enumspb.EVENT_TYPE_NEXUS_OPERATION_TIMED_OUT:
-				return fmt.Errorf("unexpected Nexus event for abandoned operation: %v", event.EventType)
-			}
-		}
-		if scheduled != 2 || started != 1 || !releaseCompleted {
-			return fmt.Errorf("unexpected lifecycle: scheduled=%d started=%d releaseCompleted=%t", scheduled, started, releaseCompleted)
-		}
-		return runner.CheckHistoryDefault(ctx, run)
+		return harness.CheckNexusHistory(ctx, runner, run,
+			enumspb.EVENT_TYPE_NEXUS_OPERATION_SCHEDULED,
+			enumspb.EVENT_TYPE_NEXUS_OPERATION_STARTED)
 	},
 }

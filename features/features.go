@@ -69,6 +69,7 @@ import (
 	serialization_context_local_activity_payloads "github.com/temporalio/features/features/serialization_context/local_activity_payloads"
 	serialization_context_workflow_payloads "github.com/temporalio/features/features/serialization_context/workflow_payloads"
 	signal_external "github.com/temporalio/features/features/signal/external"
+	system_nexus_signal_with_start "github.com/temporalio/features/features/system_nexus/signal_with_start"
 	telemetry_metrics "github.com/temporalio/features/features/telemetry/metrics"
 	update_activities "github.com/temporalio/features/features/update/activities"
 	update_async_accepted "github.com/temporalio/features/features/update/async_accepted"
@@ -155,6 +156,7 @@ func init() {
 		serialization_context_local_activity_payloads.Feature,
 		serialization_context_workflow_payloads.Feature,
 		signal_external.Feature,
+		system_nexus_signal_with_start.Feature,
 		telemetry_metrics.Feature,
 		update_activities.Feature,
 		update_async_accepted.Feature,

@@ -91,20 +91,35 @@ public class Runner
         Feature.ConfigureWorker(this, WorkerOptions);
         StartWorker();
 
-        var run = await Feature.ExecuteAsync(this);
-        if (run == null)
+        var featureFailed = false;
+        try
         {
-            Logger.LogInformation("Feature {Feature} returned null", PreparedFeature.Dir);
-            return;
+            var run = await Feature.ExecuteAsync(this);
+            if (run == null)
+            {
+                Logger.LogInformation("Feature {Feature} returned null", PreparedFeature.Dir);
+                return;
+            }
+
+            Logger.LogInformation("Checking result of feature {Feature}", PreparedFeature.Dir);
+            await Feature.CheckResultAsync(this, run);
+            await Feature.CheckHistoryAsync(this, run);
         }
-
-        Logger.LogInformation("Checking result of feature {Feature}", PreparedFeature.Dir);
-        await Feature.CheckResultAsync(this, run);
-        await Feature.CheckHistoryAsync(this, run);
-
-        if (workerState != null)
+        catch
         {
-            await workerState.StopAndWait();
+            featureFailed = true;
+            throw;
+        }
+        finally
+        {
+            try
+            {
+                await StopWorker();
+            }
+            catch (Exception e) when (featureFailed)
+            {
+                Logger.LogError(e, "Failed stopping worker for feature {Feature}", PreparedFeature.Dir);
+            }
         }
     }
 

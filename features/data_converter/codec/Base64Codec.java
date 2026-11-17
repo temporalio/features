@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 // Adapted from samples-java, encryptedpayloads/CryptCodec.java
-class Base64Codec implements PayloadCodec {
+public class Base64Codec implements PayloadCodec {
 
   public static final ByteString METADATA_ENCODING =
       ByteString.copyFrom("my-encoding", StandardCharsets.UTF_8);

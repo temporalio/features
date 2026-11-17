@@ -75,8 +75,13 @@ var Feature = harness.Feature{
 			return err
 		}
 		err := runner.Client.GetWorkflow(ctx, id, "").Get(ctx, nil)
-		if !temporal.IsCanceledError(err) {
-			return harness.AppErrorf("expected backing workflow cancellation, got %v", err)
+		workflowErr, ok := err.(*temporal.WorkflowExecutionError)
+		if !ok {
+			return harness.AppErrorf("expected backing workflow execution error, got %T: %v", err, err)
+		}
+		canceled, ok := workflowErr.Unwrap().(*temporal.CanceledError)
+		if !ok || canceled.Unwrap() != nil || canceled.HasDetails() {
+			return harness.AppErrorf("expected immediate leaf backing workflow cancellation without details, got %T: %v", workflowErr.Unwrap(), workflowErr.Unwrap())
 		}
 		return nil
 	},

@@ -72,20 +72,20 @@ public interface feature extends Feature {
                 var handle = Workflow.startNexusOperation(stub::blockingOperation, "world");
                 var token = handle.getExecution().get().getOperationToken().orElse("");
                 assertFalse(token.isEmpty());
-                handle
-                    .getResult()
-                    .handle(
-                        (value, failure) -> {
-                          var operationFailure =
-                              assertOperationFailure(
-                                  failure, endpoint, "test-service", "block-forever", token);
-                          assertInstanceOf(CanceledFailure.class, operationFailure.getCause());
-                          var canceledFailure = (CanceledFailure) operationFailure.getCause();
-                          assertNull(canceledFailure.getCause());
-                          assertEquals(0, canceledFailure.getDetails().getSize());
-                          outcome.complete("canceled");
-                          return null;
-                        });
+                outcome.completeFrom(
+                    handle
+                        .getResult()
+                        .handle(
+                            (value, failure) -> {
+                              var operationFailure =
+                                  assertOperationFailure(
+                                      failure, endpoint, "test-service", "block-forever", token);
+                              assertInstanceOf(CanceledFailure.class, operationFailure.getCause());
+                              var canceledFailure = (CanceledFailure) operationFailure.getCause();
+                              assertNull(canceledFailure.getCause());
+                              assertEquals(0, canceledFailure.getDetails().getSize());
+                              return "canceled";
+                            }));
               });
       scope.run();
       scope.cancel();

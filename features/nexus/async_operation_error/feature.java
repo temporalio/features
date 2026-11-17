@@ -11,6 +11,7 @@ import io.nexusrpc.handler.ServiceImpl;
 import io.temporal.api.enums.v1.EventType;
 import io.temporal.client.WorkflowOptions;
 import io.temporal.failure.ApplicationFailure;
+import io.temporal.failure.NexusOperationFailure;
 import io.temporal.nexus.Nexus;
 import io.temporal.nexus.WorkflowRunOperation;
 import io.temporal.sdkfeatures.Feature;
@@ -67,7 +68,7 @@ public interface feature extends Feature {
       var handle = Workflow.startNexusOperation(stub::failingOperation, "world");
       var token = handle.getExecution().get().getOperationToken().orElse("");
       assertFalse(token.isEmpty());
-      var failure = assertThrows(RuntimeException.class, () -> handle.getResult().get());
+      var failure = assertThrows(NexusOperationFailure.class, () -> handle.getResult().get());
       var operationFailure =
           assertOperationFailure(failure, endpoint, "test-service", "fail-async", token);
       // No workflow-client or sync OperationError wrapper should be inserted.

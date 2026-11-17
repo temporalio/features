@@ -1,14 +1,14 @@
 package nexus.sync_success;
 
+import static io.temporal.sdkfeatures.NexusAssertions.assertHistory;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.nexusrpc.Operation;
 import io.nexusrpc.Service;
 import io.nexusrpc.handler.OperationHandler;
 import io.nexusrpc.handler.OperationImpl;
 import io.nexusrpc.handler.ServiceImpl;
+import io.temporal.api.enums.v1.EventType;
 import io.temporal.client.WorkflowOptions;
 import io.temporal.sdkfeatures.Feature;
 import io.temporal.sdkfeatures.Run;
@@ -71,17 +71,11 @@ public interface feature extends Feature {
     public void checkHistory(Runner runner, Run run) throws Exception {
       // Assert that the sync operation transitioned straight from Scheduled to
       // Completed with no Started event.
-      var events = runner.getWorkflowHistory(run).getEventsList();
-      assertTrue(
-          events.stream().anyMatch(e -> e.hasNexusOperationScheduledEventAttributes()),
-          "expected NexusOperationScheduled event in history");
-      assertTrue(
-          events.stream().anyMatch(e -> e.hasNexusOperationCompletedEventAttributes()),
-          "expected NexusOperationCompleted event in history");
-      assertFalse(
-          events.stream().anyMatch(e -> e.hasNexusOperationStartedEventAttributes()),
-          "unexpected NexusOperationStarted event for sync operation");
-      runner.checkCurrentAndPastHistories(run);
+      assertHistory(
+          runner,
+          run,
+          EventType.EVENT_TYPE_NEXUS_OPERATION_SCHEDULED,
+          EventType.EVENT_TYPE_NEXUS_OPERATION_COMPLETED);
     }
   }
 

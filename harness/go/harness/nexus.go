@@ -41,6 +41,18 @@ func CheckNexusApplicationCause(err error, typ, message, detail string) error {
 	return nil
 }
 
+// CheckNexusTimeoutCause checks the immediate timeout cause, including its type.
+func CheckNexusTimeoutCause(err error, timeoutType enumspb.TimeoutType) error {
+	timeoutErr, ok := err.(*temporal.TimeoutError)
+	if !ok {
+		return AppErrorf("expected timeout cause, got %T: %v", err, err)
+	}
+	if timeoutErr.TimeoutType() != timeoutType || timeoutErr.Unwrap() != nil || timeoutErr.HasLastHeartbeatDetails() {
+		return AppErrorf("expected leaf %v timeout without heartbeat details, got %v", timeoutType, timeoutErr)
+	}
+	return nil
+}
+
 // CheckNexusHistory checks the complete Nexus lifecycle of a single operation,
 // including the absence of unexpected started or terminal events, then replays it.
 // Successful cancellation acknowledgements are omitted because they can race with

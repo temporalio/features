@@ -11,6 +11,7 @@ import io.nexusrpc.handler.OperationImpl;
 import io.nexusrpc.handler.ServiceImpl;
 import io.temporal.api.enums.v1.EventType;
 import io.temporal.client.WorkflowOptions;
+import io.temporal.failure.NexusOperationFailure;
 import io.temporal.sdkfeatures.Feature;
 import io.temporal.sdkfeatures.Run;
 import io.temporal.sdkfeatures.Runner;
@@ -52,7 +53,7 @@ public interface feature extends Feature {
                       .build())
               .build();
       var stub = Workflow.newNexusServiceStub(CallerService.class, options);
-      var failure = assertThrows(RuntimeException.class, () -> stub.missingOperation("world"));
+      var failure = assertThrows(NexusOperationFailure.class, () -> stub.missingOperation("world"));
       var operationFailure =
           assertOperationFailure(failure, endpoint, "test-service", "missing-operation", "");
       assertInstanceOf(HandlerException.class, operationFailure.getCause());

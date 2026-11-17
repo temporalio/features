@@ -41,16 +41,13 @@ func Workflow(ctx workflow.Context, endpoint string) (string, error) {
 	fut := nc.ExecuteOperation(ctx, FailingOperation, "world", workflow.NexusOperationOptions{
 		ScheduleToCloseTimeout: time.Minute,
 	})
-	err := fut.Get(ctx, nil)
-	if err == nil {
-		return "", harness.AppErrorf("expected the operation to fail")
-	}
-	opErr, err := harness.CheckNexusOperationError(err, endpoint, ServiceName, "fail", "")
+	opErr, err := harness.CheckNexusOperationError(fut.Get(ctx, nil), endpoint, ServiceName, "fail", "")
 	if err != nil {
 		return "", err
 	}
 	wrapper, ok := opErr.Unwrap().(*temporal.ApplicationError)
-	if !ok || wrapper.Type() != "OperationError" || wrapper.Message() != "operation failed" {
+	if !ok || wrapper.Type() != "OperationError" || wrapper.Message() != "operation failed" ||
+		wrapper.HasDetails() {
 		return "", harness.AppErrorf("expected OperationError wrapper, got %v", opErr.Unwrap())
 	}
 	if err := harness.CheckNexusApplicationCause(wrapper.Unwrap(), ErrorType, ErrorMessage, ErrorDetail); err != nil {

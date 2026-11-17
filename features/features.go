@@ -38,9 +38,13 @@ import (
 	nexus_async_cancellation_try_cancel "github.com/temporalio/features/features/nexus/async_cancellation_try_cancel"
 	nexus_async_cancellation_wait_requested "github.com/temporalio/features/features/nexus/async_cancellation_wait_requested"
 	nexus_async_operation_error "github.com/temporalio/features/features/nexus/async_operation_error"
+	nexus_async_schedule_to_close_timeout "github.com/temporalio/features/features/nexus/async_schedule_to_close_timeout"
+	nexus_async_start_to_close_timeout "github.com/temporalio/features/features/nexus/async_start_to_close_timeout"
 	nexus_async_success "github.com/temporalio/features/features/nexus/async_success"
 	nexus_operation_not_found "github.com/temporalio/features/features/nexus/operation_not_found"
 	nexus_parallel_sync_operations "github.com/temporalio/features/features/nexus/parallel_sync_operations"
+	nexus_schedule_to_close_timeout "github.com/temporalio/features/features/nexus/schedule_to_close_timeout"
+	nexus_schedule_to_start_timeout "github.com/temporalio/features/features/nexus/schedule_to_start_timeout"
 	nexus_service_not_found "github.com/temporalio/features/features/nexus/service_not_found"
 	nexus_sync_handler_error_non_retryable "github.com/temporalio/features/features/nexus/sync_handler_error_non_retryable"
 	nexus_sync_operation_canceled "github.com/temporalio/features/features/nexus/sync_operation_canceled"
@@ -125,9 +129,13 @@ func init() {
 		nexus_async_cancellation_try_cancel.Feature,
 		nexus_async_cancellation_wait_requested.Feature,
 		nexus_async_operation_error.Feature,
+		nexus_async_schedule_to_close_timeout.Feature,
+		nexus_async_start_to_close_timeout.Feature,
 		nexus_async_success.Feature,
 		nexus_operation_not_found.Feature,
 		nexus_parallel_sync_operations.Feature,
+		nexus_schedule_to_close_timeout.Feature,
+		nexus_schedule_to_start_timeout.Feature,
 		nexus_service_not_found.Feature,
 		nexus_sync_handler_error_non_retryable.Feature,
 		nexus_sync_operation_canceled.Feature,

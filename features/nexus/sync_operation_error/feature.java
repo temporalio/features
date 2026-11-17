@@ -60,6 +60,7 @@ public interface feature extends Feature {
         var wrapper = (ApplicationFailure) e.getCause();
         assertEquals("OperationError", wrapper.getType());
         assertEquals("operation failed", wrapper.getOriginalMessage());
+        assertEquals(0, wrapper.getDetails().getSize());
         assertApplicationCause(wrapper.getCause(), ERROR_TYPE, ERROR_MESSAGE, ERROR_DETAIL);
         return ERROR_TYPE + ": " + ERROR_MESSAGE;
       }

@@ -12,6 +12,7 @@ import io.nexusrpc.handler.ServiceImpl;
 import io.temporal.api.enums.v1.EventType;
 import io.temporal.client.WorkflowOptions;
 import io.temporal.failure.ApplicationFailure;
+import io.temporal.failure.NexusOperationFailure;
 import io.temporal.sdkfeatures.Feature;
 import io.temporal.sdkfeatures.Run;
 import io.temporal.sdkfeatures.Runner;
@@ -21,6 +22,7 @@ import io.temporal.workflow.Workflow;
 import io.temporal.workflow.WorkflowInterface;
 import io.temporal.workflow.WorkflowMethod;
 import java.time.Duration;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @WorkflowInterface
 public interface feature extends Feature {
@@ -34,6 +36,8 @@ public interface feature extends Feature {
   }
 
   class Impl implements feature {
+    private final TestServiceImpl service = new TestServiceImpl();
+
     @Override
     public String workflow(String endpoint) {
       var options =
@@ -45,7 +49,7 @@ public interface feature extends Feature {
                       .build())
               .build();
       var stub = Workflow.newNexusServiceStub(TestService.class, options);
-      var failure = assertThrows(RuntimeException.class, () -> stub.failingOperation("world"));
+      var failure = assertThrows(NexusOperationFailure.class, () -> stub.failingOperation("world"));
       var operationFailure = assertOperationFailure(failure, endpoint, "test-service", "fail", "");
       assertInstanceOf(HandlerException.class, operationFailure.getCause());
       var handlerFailure = (HandlerException) operationFailure.getCause();
@@ -60,11 +64,12 @@ public interface feature extends Feature {
 
     @Override
     public Object[] nexusServiceImplementations() {
-      return new Object[] {new TestServiceImpl()};
+      return new Object[] {service};
     }
 
     @Override
     public Run execute(Runner runner) throws Exception {
+      service.attempts.set(0);
       return runner.executeSingleWorkflow(
           WorkflowOptions.newBuilder()
               .setTaskQueue(runner.config.taskQueue)
@@ -76,6 +81,8 @@ public interface feature extends Feature {
     @Override
     public void checkResult(Runner runner, Run run) {
       assertEquals("handler failed as expected", runner.waitForRunResult(run, String.class));
+      assertEquals(
+          1, service.attempts.get(), "expected no retries of the non-retryable handler error");
     }
 
     @Override
@@ -90,10 +97,14 @@ public interface feature extends Feature {
 
   @ServiceImpl(service = TestService.class)
   class TestServiceImpl {
+    // Count handler calls only; workflow execution and replay never read this state.
+    final AtomicInteger attempts = new AtomicInteger();
+
     @OperationImpl
     public OperationHandler<String, String> failingOperation() {
       return OperationHandler.sync(
           (context, details, name) -> {
+            attempts.incrementAndGet();
             // UNAVAILABLE normally retries: the explicit override must win.
             throw new HandlerException(
                 HandlerException.ErrorType.UNAVAILABLE,

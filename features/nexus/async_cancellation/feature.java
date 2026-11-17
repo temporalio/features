@@ -1,13 +1,14 @@
 package nexus.async_cancellation;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static io.temporal.sdkfeatures.NexusAssertions.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.nexusrpc.Operation;
 import io.nexusrpc.Service;
 import io.nexusrpc.handler.OperationHandler;
 import io.nexusrpc.handler.OperationImpl;
 import io.nexusrpc.handler.ServiceImpl;
+import io.temporal.api.enums.v1.EventType;
 import io.temporal.client.WorkflowOptions;
 import io.temporal.failure.CanceledFailure;
 import io.temporal.nexus.Nexus;
@@ -17,6 +18,7 @@ import io.temporal.sdkfeatures.Run;
 import io.temporal.sdkfeatures.Runner;
 import io.temporal.worker.Worker;
 import io.temporal.workflow.CompletablePromise;
+import io.temporal.workflow.NexusOperationCancellationType;
 import io.temporal.workflow.NexusOperationOptions;
 import io.temporal.workflow.NexusServiceOptions;
 import io.temporal.workflow.Workflow;
@@ -29,9 +31,9 @@ public interface feature extends Feature {
   @WorkflowMethod
   String workflow(String endpoint);
 
-  @Service
+  @Service(name = "test-service")
   interface TestService {
-    @Operation
+    @Operation(name = "block-forever")
     String blockingOperation(String name);
   }
 
@@ -58,6 +60,7 @@ public interface feature extends Feature {
               .setOperationOptions(
                   NexusOperationOptions.newBuilder()
                       .setScheduleToCloseTimeout(Duration.ofMinutes(1))
+                      .setCancellationType(NexusOperationCancellationType.WAIT_COMPLETED)
                       .build())
               .build();
       TestService stub = Workflow.newNexusServiceStub(TestService.class, serviceOptions);
@@ -67,30 +70,26 @@ public interface feature extends Feature {
           Workflow.newCancellationScope(
               () -> {
                 var handle = Workflow.startNexusOperation(stub::blockingOperation, "world");
-                handle.getExecution().get();
+                var token = handle.getExecution().get().getOperationToken().orElse("");
+                assertFalse(token.isEmpty());
                 handle
                     .getResult()
                     .handle(
                         (value, failure) -> {
-                          outcome.complete(describeOutcome(failure));
+                          var operationFailure =
+                              assertOperationFailure(
+                                  failure, endpoint, "test-service", "block-forever", token);
+                          assertInstanceOf(CanceledFailure.class, operationFailure.getCause());
+                          var canceledFailure = (CanceledFailure) operationFailure.getCause();
+                          assertNull(canceledFailure.getCause());
+                          assertEquals(0, canceledFailure.getDetails().getSize());
+                          outcome.complete("canceled");
                           return null;
                         });
               });
       scope.run();
       scope.cancel();
       return outcome.get();
-    }
-
-    private static String describeOutcome(RuntimeException failure) {
-      if (failure == null) {
-        return "completed";
-      }
-      for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
-        if (cause instanceof CanceledFailure) {
-          return "canceled";
-        }
-      }
-      return "failed with " + failure;
     }
 
     @Override
@@ -121,14 +120,13 @@ public interface feature extends Feature {
 
     @Override
     public void checkHistory(Runner runner, Run run) throws Exception {
-      var events = runner.getWorkflowHistory(run).getEventsList();
-      assertTrue(
-          events.stream().anyMatch(e -> e.hasNexusOperationCancelRequestedEventAttributes()),
-          "expected NexusOperationCancelRequested event in history");
-      assertTrue(
-          events.stream().anyMatch(e -> e.hasNexusOperationCanceledEventAttributes()),
-          "expected NexusOperationCanceled event in history");
-      runner.checkCurrentAndPastHistories(run);
+      assertHistory(
+          runner,
+          run,
+          EventType.EVENT_TYPE_NEXUS_OPERATION_SCHEDULED,
+          EventType.EVENT_TYPE_NEXUS_OPERATION_STARTED,
+          EventType.EVENT_TYPE_NEXUS_OPERATION_CANCEL_REQUESTED,
+          EventType.EVENT_TYPE_NEXUS_OPERATION_CANCELED);
     }
   }
 

@@ -34,6 +34,9 @@ import (
 	eager_activity_non_remote_activities_worker "github.com/temporalio/features/features/eager_activity/non_remote_activities_worker"
 	eager_workflow_successful_start "github.com/temporalio/features/features/eager_workflow/successful_start"
 	nexus_async_cancellation "github.com/temporalio/features/features/nexus/async_cancellation"
+	nexus_async_cancellation_abandon "github.com/temporalio/features/features/nexus/async_cancellation_abandon"
+	nexus_async_cancellation_try_cancel "github.com/temporalio/features/features/nexus/async_cancellation_try_cancel"
+	nexus_async_cancellation_wait_requested "github.com/temporalio/features/features/nexus/async_cancellation_wait_requested"
 	nexus_async_operation_error "github.com/temporalio/features/features/nexus/async_operation_error"
 	nexus_async_success "github.com/temporalio/features/features/nexus/async_success"
 	nexus_operation_not_found "github.com/temporalio/features/features/nexus/operation_not_found"
@@ -117,6 +120,9 @@ func init() {
 		eager_activity_non_remote_activities_worker.Feature,
 		eager_workflow_successful_start.Feature,
 		nexus_async_cancellation.Feature,
+		nexus_async_cancellation_abandon.Feature,
+		nexus_async_cancellation_try_cancel.Feature,
+		nexus_async_cancellation_wait_requested.Feature,
 		nexus_async_operation_error.Feature,
 		nexus_async_success.Feature,
 		nexus_operation_not_found.Feature,

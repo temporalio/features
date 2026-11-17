@@ -34,10 +34,19 @@ import (
 	eager_activity_non_remote_activities_worker "github.com/temporalio/features/features/eager_activity/non_remote_activities_worker"
 	eager_workflow_successful_start "github.com/temporalio/features/features/eager_workflow/successful_start"
 	nexus_async_cancellation "github.com/temporalio/features/features/nexus/async_cancellation"
+	nexus_async_cancellation_abandon "github.com/temporalio/features/features/nexus/async_cancellation_abandon"
+	nexus_async_cancellation_try_cancel "github.com/temporalio/features/features/nexus/async_cancellation_try_cancel"
+	nexus_async_cancellation_wait_requested "github.com/temporalio/features/features/nexus/async_cancellation_wait_requested"
+	nexus_async_operation_error "github.com/temporalio/features/features/nexus/async_operation_error"
 	nexus_async_success "github.com/temporalio/features/features/nexus/async_success"
+	nexus_operation_not_found "github.com/temporalio/features/features/nexus/operation_not_found"
 	nexus_parallel_sync_operations "github.com/temporalio/features/features/nexus/parallel_sync_operations"
+	nexus_service_not_found "github.com/temporalio/features/features/nexus/service_not_found"
+	nexus_sync_handler_error_non_retryable "github.com/temporalio/features/features/nexus/sync_handler_error_non_retryable"
+	nexus_sync_operation_canceled "github.com/temporalio/features/features/nexus/sync_operation_canceled"
 	nexus_sync_operation_error "github.com/temporalio/features/features/nexus/sync_operation_error"
 	nexus_sync_success "github.com/temporalio/features/features/nexus/sync_success"
+	nexus_sync_unexpected_handler_error "github.com/temporalio/features/features/nexus/sync_unexpected_handler_error"
 	query_successful_query "github.com/temporalio/features/features/query/successful_query"
 	query_timeout_due_to_no_active_workers "github.com/temporalio/features/features/query/timeout_due_to_no_active_workers"
 	query_unexpected_arguments "github.com/temporalio/features/features/query/unexpected_arguments"
@@ -112,10 +121,19 @@ func init() {
 		eager_activity_non_remote_activities_worker.Feature,
 		eager_workflow_successful_start.Feature,
 		nexus_async_cancellation.Feature,
+		nexus_async_cancellation_abandon.Feature,
+		nexus_async_cancellation_try_cancel.Feature,
+		nexus_async_cancellation_wait_requested.Feature,
+		nexus_async_operation_error.Feature,
 		nexus_async_success.Feature,
+		nexus_operation_not_found.Feature,
 		nexus_parallel_sync_operations.Feature,
+		nexus_service_not_found.Feature,
+		nexus_sync_handler_error_non_retryable.Feature,
+		nexus_sync_operation_canceled.Feature,
 		nexus_sync_operation_error.Feature,
 		nexus_sync_success.Feature,
+		nexus_sync_unexpected_handler_error.Feature,
 		query_successful_query.Feature,
 		query_timeout_due_to_no_active_workers.Feature,
 		query_unexpected_arguments.Feature,

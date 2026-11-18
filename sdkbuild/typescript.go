@@ -4,13 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
-
-	"io"
 )
 
 // BuildTypeScriptProgramOptions are options for BuildTypeScriptProgram.
@@ -143,8 +142,7 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 	` + moreDeps + `
     "@grpc/grpc-js": "^1.12.4",
     "commander": "^8.3.0",
-    "ms": "^3.0.0-canary.1",
-    "protobufjs": "^8.7.1"
+    "ms": "^3.0.0-canary.1"
   },
   "devDependencies": {
     "@tsconfig/node24": "^24.0.4",
@@ -153,7 +151,7 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
     "typescript": "^5.9.3"
   }
 }`
-	if err := os.WriteFile(filepath.Join(dir, "package.json"), []byte(packageJSON), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "package.json"), []byte(packageJSON), 0o644); err != nil {
 		return nil, fmt.Errorf("failed writing package.json: %w", err)
 	}
 
@@ -161,7 +159,7 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
   '@swc/core': false
   protobufjs: false
 `
-	if err := os.WriteFile(filepath.Join(dir, "pnpm-workspace.yaml"), []byte(pnpmWorkspaceYAML), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "pnpm-workspace.yaml"), []byte(pnpmWorkspaceYAML), 0o644); err != nil {
 		return nil, fmt.Errorf("failed writing pnpm-workspace.yaml: %w", err)
 	}
 
@@ -226,7 +224,7 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
   "include": [` + strings.Join(quotedIncludes, ", ") + `],
   "exclude": [` + strings.Join(quotedExcludes, ", ") + `]
 }`
-	if err := os.WriteFile(filepath.Join(dir, "tsconfig.json"), []byte(tsConfig), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "tsconfig.json"), []byte(tsConfig), 0o644); err != nil {
 		return nil, fmt.Errorf("failed writing tsconfig.json: %w", err)
 	}
 
@@ -256,7 +254,31 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 	if version, ok := options.MoreDependencies["nexus-rpc"]; ok && version != nexusVersion {
 		return nil, fmt.Errorf("nexus-rpc dependency %q does not match SDK dependency %q", version, nexusVersion)
 	}
-	cmd = exec.CommandContext(ctx, "corepack", "pnpm", "add", "--ignore-scripts", "nexus-rpc@"+nexusVersion)
+	// The JSON protobuf feature passes reflection types from @temporalio/proto
+	// to protobufjs/ext/protojson, which checks `type instanceof Type`.
+	// We must use the same protobufjs installation as @temporalio/proto.
+	// When linking a local SDK checkout, dependencies resolve from its own tree.
+	// We resolve and link the SDK's existing copy so the feature uses the same module
+	// instance.
+	cmd = exec.CommandContext(ctx, "node", "-e", `
+const { createRequire } = require('node:module');
+const { dirname } = require('node:path');
+const protoRequire = createRequire(require.resolve('@temporalio/proto/package.json'));
+process.stdout.write(dirname(protoRequire.resolve('protobufjs/package.json')));
+`)
+	cmd.Dir = dir
+	cmd.Stderr = os.Stderr
+	if options.ApplyToCommand != nil {
+		if err := options.ApplyToCommand(ctx, cmd); err != nil {
+			return nil, err
+		}
+	}
+	protobufJSPath, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("failed resolving SDK protobufjs dependency: %w", err)
+	}
+	cmd = exec.CommandContext(ctx, "corepack", "pnpm", "add", "--ignore-scripts",
+		"nexus-rpc@"+nexusVersion, "protobufjs@link:"+strings.TrimSpace(string(protobufJSPath)))
 	cmd.Dir = dir
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	if options.ApplyToCommand != nil {
@@ -265,7 +287,7 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 		}
 	}
 	if err := cmd.Run(); err != nil {
-		return nil, fmt.Errorf("failed installing matching nexus-rpc dependency: %w", err)
+		return nil, fmt.Errorf("failed installing matching SDK dependencies: %w", err)
 	}
 
 	// Compile

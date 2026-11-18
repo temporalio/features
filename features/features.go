@@ -49,7 +49,10 @@ import (
 	nexus_sync_handler_error_non_retryable "github.com/temporalio/features/features/nexus/sync_handler_error_non_retryable"
 	nexus_sync_operation_canceled "github.com/temporalio/features/features/nexus/sync_operation_canceled"
 	nexus_sync_operation_error "github.com/temporalio/features/features/nexus/sync_operation_error"
+	nexus_sync_operation_error_codec "github.com/temporalio/features/features/nexus/sync_operation_error_codec"
 	nexus_sync_success "github.com/temporalio/features/features/nexus/sync_success"
+	nexus_sync_success_codec "github.com/temporalio/features/features/nexus/sync_success_codec"
+	nexus_sync_success_codec_retry "github.com/temporalio/features/features/nexus/sync_success_codec_retry"
 	nexus_sync_unexpected_handler_error "github.com/temporalio/features/features/nexus/sync_unexpected_handler_error"
 	query_successful_query "github.com/temporalio/features/features/query/successful_query"
 	query_timeout_due_to_no_active_workers "github.com/temporalio/features/features/query/timeout_due_to_no_active_workers"
@@ -140,7 +143,10 @@ func init() {
 		nexus_sync_handler_error_non_retryable.Feature,
 		nexus_sync_operation_canceled.Feature,
 		nexus_sync_operation_error.Feature,
+		nexus_sync_operation_error_codec.Feature,
 		nexus_sync_success.Feature,
+		nexus_sync_success_codec.Feature,
+		nexus_sync_success_codec_retry.Feature,
 		nexus_sync_unexpected_handler_error.Feature,
 		query_successful_query.Feature,
 		query_timeout_due_to_no_active_workers.Feature,

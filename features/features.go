@@ -46,6 +46,11 @@ import (
 	nexus_schedule_to_close_timeout "github.com/temporalio/features/features/nexus/schedule_to_close_timeout"
 	nexus_schedule_to_start_timeout "github.com/temporalio/features/features/nexus/schedule_to_start_timeout"
 	nexus_service_not_found "github.com/temporalio/features/features/nexus/service_not_found"
+	nexus_standalone_async_failure "github.com/temporalio/features/features/nexus/standalone/async_failure"
+	nexus_standalone_async_success "github.com/temporalio/features/features/nexus/standalone/async_success"
+	nexus_standalone_sync_failure "github.com/temporalio/features/features/nexus/standalone/sync_failure"
+	nexus_standalone_sync_handler_error_non_retryable "github.com/temporalio/features/features/nexus/standalone/sync_handler_error_non_retryable"
+	nexus_standalone_sync_success "github.com/temporalio/features/features/nexus/standalone/sync_success"
 	nexus_sync_handler_error_non_retryable "github.com/temporalio/features/features/nexus/sync_handler_error_non_retryable"
 	nexus_sync_operation_canceled "github.com/temporalio/features/features/nexus/sync_operation_canceled"
 	nexus_sync_operation_error "github.com/temporalio/features/features/nexus/sync_operation_error"
@@ -140,6 +145,11 @@ func init() {
 		nexus_schedule_to_close_timeout.Feature,
 		nexus_schedule_to_start_timeout.Feature,
 		nexus_service_not_found.Feature,
+		nexus_standalone_async_failure.Feature,
+		nexus_standalone_async_success.Feature,
+		nexus_standalone_sync_failure.Feature,
+		nexus_standalone_sync_handler_error_non_retryable.Feature,
+		nexus_standalone_sync_success.Feature,
 		nexus_sync_handler_error_non_retryable.Feature,
 		nexus_sync_operation_canceled.Feature,
 		nexus_sync_operation_error.Feature,

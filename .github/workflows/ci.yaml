@@ -161,6 +161,7 @@ jobs:
           @temporalio/external-storage-gcs @temporalio/external-storage-gcs-google-sdk
           @temporalio/external-storage-s3 @temporalio/external-storage-s3-aws-sdk
           @temporalio/plugin @temporalio/proto @temporalio/worker @temporalio/workflow
+          nexus-rpc
       - run: npm run build
       - run: npm run lint
 

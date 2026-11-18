@@ -126,6 +126,9 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 	}
 	moreDeps := ""
 	for dep, version := range options.MoreDependencies {
+		if dep == "nexus-rpc" {
+			continue
+		}
 		moreDeps += fmt.Sprintf(`    "%v": "%v",`, dep, version) + "\n"
 	}
 
@@ -141,7 +144,6 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
     "@grpc/grpc-js": "^1.12.4",
     "commander": "^8.3.0",
     "ms": "^3.0.0-canary.1",
-    "nexus-rpc": "^0.0.1",
     "protobufjs": "^8.7.1"
   },
   "devDependencies": {
@@ -240,6 +242,31 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 	if err := cmd.Run(); err != nil {
 		return nil, fmt.Errorf("failed installing: %w", err)
 	}
+	// Read the selected SDK's dependency after installation. This works for
+	// both published packages and links to a local checkout, and avoids
+	// resolving a version range or tag separately from the SDK installation.
+	workerPackage, err := os.ReadFile(filepath.Join(dir, "node_modules", "@temporalio", "worker", "package.json"))
+	if err != nil {
+		return nil, fmt.Errorf("failed reading installed SDK package.json: %w", err)
+	}
+	nexusVersion, err := typeScriptNexusDependency(workerPackage)
+	if err != nil {
+		return nil, err
+	}
+	if version, ok := options.MoreDependencies["nexus-rpc"]; ok && version != nexusVersion {
+		return nil, fmt.Errorf("nexus-rpc dependency %q does not match SDK dependency %q", version, nexusVersion)
+	}
+	cmd = exec.CommandContext(ctx, "corepack", "pnpm", "add", "--ignore-scripts", "nexus-rpc@"+nexusVersion)
+	cmd.Dir = dir
+	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+	if options.ApplyToCommand != nil {
+		if err := options.ApplyToCommand(ctx, cmd); err != nil {
+			return nil, err
+		}
+	}
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("failed installing matching nexus-rpc dependency: %w", err)
+	}
 
 	// Compile
 	cmd = exec.CommandContext(ctx, "corepack", "pnpm", "run", "build")
@@ -256,6 +283,20 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 
 	success = true
 	return &TypeScriptProgram{dir}, nil
+}
+
+func typeScriptNexusDependency(data []byte) (string, error) {
+	var pkg struct {
+		Dependencies map[string]string `json:"dependencies"`
+	}
+	if err := json.Unmarshal(data, &pkg); err != nil {
+		return "", fmt.Errorf("failed decoding SDK package metadata: %w", err)
+	}
+	version := pkg.Dependencies["nexus-rpc"]
+	if version == "" {
+		return "", fmt.Errorf("nexus-rpc dependency not found in SDK package metadata")
+	}
+	return version, nil
 }
 
 // TypeScriptProgramFromDir recreates the TypeScript program from a Dir() result

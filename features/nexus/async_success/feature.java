@@ -119,7 +119,8 @@ public interface feature extends Feature {
       // The handler uses the operation request ID as its workflow ID. Resolve the
       // backing run independently of the link under test.
       var handlerId = scheduled.getNexusOperationScheduledEventAttributes().getRequestId();
-      assertFalse(handlerId.isEmpty(), "expected a request ID on the NexusOperationScheduled event");
+      assertFalse(
+          handlerId.isEmpty(), "expected a request ID on the NexusOperationScheduled event");
       var description = runner.client.newUntypedWorkflowStub(handlerId).describe();
       var handler = description.getExecution();
       var handlerHistory = runner.client.fetchHistory(handlerId, handler.getRunId()).getHistory();

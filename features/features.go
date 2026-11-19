@@ -33,6 +33,7 @@ import (
 	deployment_versioning_routing_with_ramp "github.com/temporalio/features/features/deployment_versioning/routing_with_ramp"
 	eager_activity_non_remote_activities_worker "github.com/temporalio/features/features/eager_activity/non_remote_activities_worker"
 	eager_workflow_successful_start "github.com/temporalio/features/features/eager_workflow/successful_start"
+	external_storage_s3_interop "github.com/temporalio/features/features/external_storage/s3_interop"
 	nexus_async_cancellation "github.com/temporalio/features/features/nexus/async_cancellation"
 	nexus_async_cancellation_abandon "github.com/temporalio/features/features/nexus/async_cancellation_abandon"
 	nexus_async_cancellation_try_cancel "github.com/temporalio/features/features/nexus/async_cancellation_try_cancel"
@@ -132,6 +133,7 @@ func init() {
 		deployment_versioning_routing_with_ramp.Feature,
 		eager_activity_non_remote_activities_worker.Feature,
 		eager_workflow_successful_start.Feature,
+		external_storage_s3_interop.Feature,
 		nexus_async_cancellation.Feature,
 		nexus_async_cancellation_abandon.Feature,
 		nexus_async_cancellation_try_cancel.Feature,

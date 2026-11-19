@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"net/http"
@@ -67,22 +68,18 @@ var registryQueries = map[string]registryQuery{
 		},
 	},
 	"java": {
-		url: "https://search.maven.org/solrsearch/select?q=g:io.temporal+AND+a:temporal-sdk&rows=1&wt=json",
+		url: "https://repo.maven.apache.org/maven2/io/temporal/temporal-sdk/maven-metadata.xml",
 		extract: func(body []byte) (string, error) {
 			var resp struct {
-				Response struct {
-					Docs []struct {
-						LatestVersion string `json:"latestVersion"`
-					} `json:"docs"`
-				} `json:"response"`
+				Release string `xml:"versioning>release"`
 			}
-			if err := json.Unmarshal(body, &resp); err != nil {
+			if err := xml.Unmarshal(body, &resp); err != nil {
 				return "", err
 			}
-			if len(resp.Response.Docs) == 0 {
-				return "", fmt.Errorf("no results found on Maven Central")
+			if resp.Release == "" {
+				return "", fmt.Errorf("no release found in Maven Central metadata")
 			}
-			return resp.Response.Docs[0].LatestVersion, nil
+			return resp.Release, nil
 		},
 	},
 	"php": {

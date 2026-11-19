@@ -60,6 +60,20 @@ final class State
     }
 
     /**
+     * Iterate over all the Nexus service implementations.
+     *
+     * @return \Traversable<Feature, class-string>
+     */
+    public function nexusServices(): \Traversable
+    {
+        foreach ($this->features as $feature) {
+            foreach ($feature->nexusServices as $service) {
+                yield $feature => $service;
+            }
+        }
+    }
+
+    /**
      * Iterate over all the Payload Converters.
      *
      * @return \Traversable<Feature, class-string<PayloadConverterInterface>>
@@ -120,8 +134,19 @@ final class State
         $this->getFeature($inputFeature)->activities[] = $class;
     }
 
+    /**
+     * @param class-string $class
+     */
+    public function addNexusService(\Harness\Input\Feature $inputFeature, string $class): void
+    {
+        $this->getFeature($inputFeature)->nexusServices[] = $class;
+    }
+
     private function getFeature(\Harness\Input\Feature $feature): Feature
     {
-        return $this->features[$feature->namespace] ??= new Feature($feature->taskQueue);
+        return $this->features[$feature->namespace] ??= new Feature(
+            $feature->taskQueue,
+            $feature->nexusEndpoint,
+        );
     }
 }

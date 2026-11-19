@@ -36,26 +36,24 @@ producer opt-ins are independent of worker processing: Rust workers already deco
 activation headers, while TypeScript workers use `codecHeaders`.
 PHP would first need a real tracing integration and a codec/header policy.
 
-## Release availability
+## Published SDK versions
 
-The following versions were checked on November 13, 2026. Merged changes are not
-necessarily published SDK releases.
+All seven participants have published releases with the required tracing codec
+support. The command below selects these versions explicitly:
 
-| SDK | Published version | Availability for this feature |
-| --- | --- | --- |
-| .NET | 1.22.0 | Available |
-| Python | 1.36.0 | Available |
-| Ruby | 1.11.0 | Available |
-| Rust | 1.2.0 | Available; the harness pins this release |
-| Go | SDK 1.51.0; OpenTelemetry module 0.8.1 | Blocked: the SDK contains the change, but the separately versioned OpenTelemetry module does not expose `EncodeHeaders` yet |
-| Java | 1.40.0 | Blocked: the merged `setEncodeHeaders` option is not published yet |
-| TypeScript | 1.25.0 | Blocked: the merged `codecHeaders` and `encodeClientHeaders` options are not published yet |
+| SDK | Version |
+| --- | --- |
+| .NET | 1.22.0 |
+| Go | SDK 1.51.0; OpenTelemetry module 0.9.0 |
+| Java | 1.41.1 |
+| Python | 1.36.1 |
+| Ruby | 1.11.0 |
+| Rust | 1.2.0 |
+| TypeScript | 1.26.0 |
 
-Keep this feature PR in draft until the last three releases are available. Update
-the Go OpenTelemetry dependency in `features/go.mod` and the TypeScript packages
-in `package.json` when they are published; Java selects `latest.release`.
-The default seven-language matrix remains enabled and must pass before landing.
-Unreleased participants are not silently skipped or counted as successful.
+The Go OpenTelemetry module is versioned independently of the Go SDK and is
+selected in `features/go.mod`. Rust's harness pins its SDK release; Java defaults
+to `latest.release` when no version is specified.
 
 ## Running
 
@@ -66,32 +64,29 @@ deadline; failures are labeled and aggregated while later pairs continue. Worker
 are stopped and reaped on success, failure and cancellation. No tracing backend
 is required.
 
-Run the currently available releases without any local SDK checkouts:
+Run the full 49-pair matrix without any local SDK checkouts:
 
 ```sh
 go run . run-cross-language \
-  --sdk-language cs --sdk-language py --sdk-language rb --sdk-language rs \
-  --sdk-version cs=1.22.0 --sdk-version py=1.36.0 \
-  --sdk-version rb=1.11.0 --sdk-version rs=1.2.0 tracing/encoded_headers
+  --sdk-version cs=1.22.0 --sdk-version go=1.51.0 \
+  --sdk-version java=1.41.1 --sdk-version py=1.36.1 \
+  --sdk-version rb=1.11.0 --sdk-version rs=1.2.0 \
+  --sdk-version ts=1.26.0 tracing/encoded_headers
 ```
 
-This runs all 16 client/worker combinations among those four SDKs.
-
-The original .NET → TypeScript case remains independently runnable against a
-checkout containing the merged TypeScript fix:
+The original .NET → TypeScript case remains independently runnable:
 
 ```sh
 ENCODED_HEADERS_PAIRS=cs:ts go run . run-cross-language \
   --sdk-language cs --sdk-language ts --sdk-version cs=1.22.0 \
-  --sdk-version ts=/path/to/sdk-typescript tracing/encoded_headers
+  --sdk-version ts=1.26.0 tracing/encoded_headers
 ```
 
 With `ts=1.25.0` this is a **failing regression test**, not an expected-failure
 success: tracing extraction raises `Unknown encoding: binary/encrypted`.
 
-Use `--sdk-version go=/path/to/sdk-go` and
-`--sdk-version java=/path/to/sdk-java` to validate their merged but unreleased
-tracing integrations.
+Use a path such as `--sdk-version go=/path/to/sdk-go` or
+`--sdk-version java=/path/to/sdk-java` to test SDK changes during development.
 Local Go selection also substitutes its independently versioned OpenTelemetry
 module; local Java selection substitutes its OpenTracing module. Older releases
 without the opt-ins cannot run these producer participants and fail rather than
@@ -100,7 +95,7 @@ silently testing unencoded headers.
 Use `ENCODED_HEADERS_PAIRS` only when focusing on particular scenarios:
 
 ```sh
-ENCODED_HEADERS_PAIRS=py:rs go run . run-cross-language --sdk-language py --sdk-language rs --sdk-version py=1.36.0 --sdk-version rs=1.2.0 tracing/encoded_headers
+ENCODED_HEADERS_PAIRS=py:rs go run . run-cross-language --sdk-language py --sdk-language rs --sdk-version py=1.36.1 --sdk-version rs=1.2.0 tracing/encoded_headers
 ```
 
 The filter is a comma-separated list of `client:worker` language codes. Requested

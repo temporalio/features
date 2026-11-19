@@ -163,6 +163,7 @@ class Runner:
             self.start_worker()
         try:
             if self.role == "worker":
+                assert self._worker_task is not None
                 print("FEATURE_WORKER_READY", flush=True)
                 await self._worker_task
                 return

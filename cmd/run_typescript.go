@@ -61,7 +61,7 @@ func (p *Preparer) BuildTypeScriptProgram(ctx context.Context) (sdkbuild.Program
 			return nil, err
 		}
 		for _, feature := range features {
-			excludes = append(excludes, "../features/"+feature.Dir)
+			excludes = append(excludes, "features/"+feature.Dir)
 		}
 	}
 	prog, err := sdkbuild.BuildTypeScriptProgram(ctx, sdkbuild.BuildTypeScriptProgramOptions{

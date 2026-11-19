@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 require 'json'
-require 'securerandom'
 require 'opentelemetry/sdk'
+require 'securerandom'
 require 'temporalio/contrib/open_telemetry'
 require 'temporalio/converters/data_converter'
 require 'temporalio/converters/payload_codec'
@@ -55,13 +55,17 @@ module EncodedHeaders
       ensure
         history = handle.fetch_history
         history.events.each do |event|
-          raise "Workflow task failed: #{event.workflow_task_failed_event_attributes}" if event.workflow_task_failed_event_attributes
+          if event.workflow_task_failed_event_attributes
+            raise "Workflow task failed: #{event.workflow_task_failed_event_attributes}"
+          end
         end
       end
       header = history.events.first.workflow_execution_started_event_attributes.header.fields['_tracer-data']
       carrier = JSON.parse(WrappingCodec.new.decode([header]).first.data)
       raise "History trace identity mismatch: #{carrier}" unless carrier['traceparent'].split('-')[1] == trace_id
-      raise "Input/trace round-trip mismatch: #{result}" unless result == { 'message' => 'hello', 'traceId' => trace_id }
+      unless result == { 'message' => 'hello', 'traceId' => trace_id }
+        raise "Input/trace round-trip mismatch: #{result}"
+      end
 
       handle
     end

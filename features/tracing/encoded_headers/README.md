@@ -1,70 +1,40 @@
 # Encoded tracing headers across languages
 
-Exercises real SDK tracing integrations across workflow starts, including the
-original [.NET → TypeScript regression](https://github.com/temporalio/sdk-typescript/issues/514#issuecomment-6259375934).
-No interceptor decodes headers on an SDK's behalf. Every client checks that:
+Verifies that a client from one SDK can start a workflow on another SDK using
+codec-encoded tracing headers while preserving trace context. Every client checks that:
 
 - History contains a codec-encoded `_tracer-data` header with W3C `traceparent`
   retaining the caller's trace identity.
 - The workflow completes and round-trips its input and result through the codec.
-- The real workflow tracing span retains that identity (silently dropping an
-  unreadable header is not a pass).
+- The workflow tracing span retains the caller's trace identity.
 - No Workflow Task failed, even if a subsequent attempt succeeded.
 
-All participants wrap the entire serialized protobuf `Payload` with XOR `0x5a`
-and set `metadata.encoding=binary/encrypted`. This deterministic test codec is
-**not encryption**. Every codec rejects double encoding. User-provided Payload
-headers must already include any required codec encoding; this feature does not
-install a converter-wide wrapper or manually rewrite tracing headers.
+Each participant uses its SDK's tracing integration and a test codec that wraps
+the serialized protobuf `Payload` with XOR `0x5a` and sets
+`metadata.encoding=binary/encrypted`. This deterministic codec is **not encryption**.
+Its decoder requires encoded payloads, and its encoder rejects double encoding.
 
 ## Participants
 
-| SDK | Encoded tracing client | Worker | Real integration/configuration |
-| --- | --- | --- | --- |
-| .NET (`cs`) | Yes | Yes | `TracingInterceptor`, configured client codec |
-| Go (`go`) | Yes | Yes | OpenTelemetry interceptor with producer-specific `TracerOptions.EncodeHeaders: true`; client codec |
-| Java (`java`) | Yes | Yes | OpenTracing interceptors with the OpenTelemetry shim/W3C propagator and producer-specific `setEncodeHeaders(true)`; client codec |
-| Python (`py`) | Yes | Yes | `TracingInterceptor`, client `HeaderCodecBehavior.CODEC` and codec |
-| Ruby (`rb`) | Yes | Yes | OpenTelemetry tracing interceptor and client codec; worker codec thread pool |
-| Rust (`rs`) | Yes | Yes | OpenTelemetry plugin with `encode_client_headers(true)` and existing worker activation codec traversal |
-| TypeScript (`ts`) | Yes | Yes | OpenTelemetry plugin with `encodeClientHeaders: true`, worker `codecHeaders: true`, and payload codecs |
-| PHP (`php`) | No | No | No SDK tracing integration in the inspected checkout; no participant is fabricated |
+All participants support both client and worker roles.
 
-Rust and TypeScript encode only the tracing carrier produced by their plugins;
-user-provided client Payload headers are unchanged. These
-producer opt-ins are independent of worker processing: Rust workers already decode
-activation headers, while TypeScript workers use `codecHeaders`.
-PHP would first need a real tracing integration and a codec/header policy.
-
-## Published SDK versions
-
-All seven participants have published releases with the required tracing codec
-support. The command below selects these versions explicitly:
-
-| SDK | Version |
+| SDK (language code) | Tracing configuration |
 | --- | --- |
-| .NET | 1.22.0 |
-| Go | SDK 1.51.0; OpenTelemetry module 0.9.0 |
-| Java | 1.41.1 |
-| Python | 1.36.1 |
-| Ruby | 1.11.0 |
-| Rust | 1.2.0 |
-| TypeScript | 1.26.0 |
-
-The Go OpenTelemetry module is versioned independently of the Go SDK and is
-selected in `features/go.mod`. Rust's harness pins its SDK release; Java defaults
-to `latest.release` when no version is specified.
+| .NET (`cs`) | `TracingInterceptor` and client codec |
+| Go (`go`) | OpenTelemetry interceptor with `TracerOptions.EncodeHeaders: true` and client codec |
+| Java (`java`) | OpenTracing interceptors with the OpenTelemetry shim, W3C propagator, `setEncodeHeaders(true)`, and client codec |
+| Python (`py`) | `TracingInterceptor`, `HeaderCodecBehavior.CODEC`, and client codec |
+| Ruby (`rb`) | OpenTelemetry tracing interceptor, client codec, and worker codec thread pool |
+| Rust (`rs`) | OpenTelemetry plugin with `encode_client_headers(true)` and worker activation codecs |
+| TypeScript (`ts`) | OpenTelemetry plugin with `encodeClientHeaders: true`, worker `codecHeaders: true`, and payload codecs |
 
 ## Running
 
-By default, the runner discovers and prepares all participant files once. The
-feature driver runs every supported client/worker pair among the prepared SDKs,
-including same-language controls. Each pair gets its own queue and a 45-second
-deadline; failures are labeled and aggregated while later pairs continue. Workers
-are stopped and reaped on success, failure and cancellation. No tracing backend
-is required.
+The driver runs every client/worker pair among the prepared SDKs, including
+same-language pairs. Each pair uses its own task queue and a 45-second timeout.
+Failures identify the client and worker SDKs. No tracing backend is required.
 
-Run the full 49-pair matrix without any local SDK checkouts:
+Run all 49 pairs with these tested SDK versions:
 
 ```sh
 go run . run-cross-language \
@@ -74,36 +44,12 @@ go run . run-cross-language \
   --sdk-version ts=1.26.0 tracing/encoded_headers
 ```
 
-The original .NET → TypeScript case remains independently runnable:
+To run selected pairs, set `ENCODED_HEADERS_PAIRS` to a comma-separated list of
+`client:worker` language codes. For example, to run a .NET client with a TypeScript
+worker:
 
 ```sh
 ENCODED_HEADERS_PAIRS=cs:ts go run . run-cross-language \
   --sdk-language cs --sdk-language ts --sdk-version cs=1.22.0 \
   --sdk-version ts=1.26.0 tracing/encoded_headers
 ```
-
-With `ts=1.25.0` this is a **failing regression test**, not an expected-failure
-success: tracing extraction raises `Unknown encoding: binary/encrypted`.
-
-Use a path such as `--sdk-version go=/path/to/sdk-go` or
-`--sdk-version java=/path/to/sdk-java` to test SDK changes during development.
-Local Go selection also substitutes its independently versioned OpenTelemetry
-module; local Java selection substitutes its OpenTracing module. Older releases
-without the opt-ins cannot run these producer participants and fail rather than
-silently testing unencoded headers.
-
-Use `ENCODED_HEADERS_PAIRS` only when focusing on particular scenarios:
-
-```sh
-ENCODED_HEADERS_PAIRS=py:rs go run . run-cross-language --sdk-language py --sdk-language rs --sdk-version py=1.36.1 --sdk-version rs=1.2.0 tracing/encoded_headers
-```
-
-The filter is a comma-separated list of `client:worker` language codes. Requested
-unsupported roles or unprepared participants are errors; they never disappear
-from the run or count as passes. `--sdk-language` only limits preparation; all
-pair/scenario policy stays in this feature's driver. Ruby preparation requires
-the Ruby version specified by the harness gemspec; Rust requires the package's
-pinned compiler/protoc and builds its `cross-language` Cargo feature.
-
-Single-language history comparison/replay is intentionally not used: the client
-participant checks the actual other-language workflow history.

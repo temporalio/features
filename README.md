@@ -166,8 +166,8 @@ once, and supplies the driver with prepared harness commands, a server, namespac
 and unique task-queue prefix through `FEATURE_CROSS_LANGUAGE`. The
 `harness/go/crosslanguage` package reads this manifest and invokes harnesses in
 `client` or `worker` roles. Workers announce readiness before clients are run.
-The driver chooses scenarios, pairs, and assertions; the runner does not generate
-a language matrix. A nonzero driver exit fails the feature in the normal summary.
+The driver chooses scenarios, pairs, and assertions. A nonzero driver exit fails
+the feature in the normal summary.
 
 Use repeated `--sdk-version language=version-or-local-checkout` options to select
 SDKs independently. For example:
@@ -177,7 +177,7 @@ go run . run-cross-language --sdk-version cs=1.22.0 --sdk-version ts=1.26.0 trac
 ```
 
 Use repeated `--sdk-language` options to prepare only selected participants, without
-imposing pair policy on the runner. For the focused original regression:
+changing the driver's pair selection. For example:
 
 ```sh
 ENCODED_HEADERS_PAIRS=cs:ts go run . run-cross-language --sdk-language cs --sdk-language ts --sdk-version cs=1.22.0 --sdk-version ts=1.26.0 tracing/encoded_headers
@@ -189,8 +189,7 @@ feature-specific scenario filters. Cross-language features own their
 history assertions and do not use the single-language history comparison/generation
 mechanism. This subcommand exposes SDK selection, server/namespace/TLS options,
 and temporary-build retention, but not history-generation or prepared-directory flags.
-The existing `run` and `prepare` subcommands continue to require `--lang` and select
-only single-language features.
+Use `run` or `prepare` with `--lang` for single-language features.
 
 ## Writing Features
 

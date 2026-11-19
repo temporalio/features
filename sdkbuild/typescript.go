@@ -2,14 +2,14 @@ package sdkbuild
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
-
-	"io"
 )
 
 // BuildTypeScriptProgramOptions are options for BuildTypeScriptProgram.
@@ -127,6 +127,9 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 	}
 	moreDeps := ""
 	for dep, version := range options.MoreDependencies {
+		if dep == "nexus-rpc" {
+			continue
+		}
 		moreDeps += fmt.Sprintf(`    "%v": "%v",`, dep, version) + "\n"
 	}
 
@@ -141,9 +144,7 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 	` + moreDeps + `
     "@grpc/grpc-js": "^1.12.4",
     "commander": "^8.3.0",
-    "ms": "^3.0.0-canary.1",
-    "nexus-rpc": "^0.0.1",
-    "protobufjs": "^8.7.1"
+    "ms": "^3.0.0-canary.1"
   },
   "devDependencies": {
     "@tsconfig/node24": "^24.0.4",
@@ -152,7 +153,7 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
     "typescript": "^5.9.3"
   }
 }`
-	if err := os.WriteFile(filepath.Join(dir, "package.json"), []byte(packageJSON), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "package.json"), []byte(packageJSON), 0o644); err != nil {
 		return nil, fmt.Errorf("failed writing package.json: %w", err)
 	}
 
@@ -160,26 +161,29 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
   '@swc/core': false
   protobufjs: false
 `
-	if err := os.WriteFile(filepath.Join(dir, "pnpm-workspace.yaml"), []byte(pnpmWorkspaceYAML), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "pnpm-workspace.yaml"), []byte(pnpmWorkspaceYAML), 0o644); err != nil {
 		return nil, fmt.Errorf("failed writing pnpm-workspace.yaml: %w", err)
 	}
 
 	// Create tsconfig
-	var tsConfigPathStr string
+	// Compile sources inside the prepared project so package resolution can find
+	// its node_modules and honor package exports/typesVersions. A wildcard paths
+	// mapping to node_modules only resolves physical files, not package subpaths.
+	for _, sourceDir := range []string{"features", "harness/ts"} {
+		if err := os.CopyFS(filepath.Join(dir, sourceDir), os.DirFS(filepath.Join(options.BaseDir, sourceDir))); err != nil {
+			return nil, fmt.Errorf("failed copying TypeScript sources from %s: %w", sourceDir, err)
+		}
+	}
 	for name, paths := range options.TSConfigPaths {
 		if len(paths) == 0 {
-			return nil, fmt.Errorf("harness path slice is empty")
+			return nil, fmt.Errorf("tsconfig path slice for %s is empty", name)
 		}
-		tsConfigPathStr += fmt.Sprintf("%q: [", name)
-		for i, path := range paths {
-			if i > 0 {
-				tsConfigPathStr += ", "
-			}
-			tsConfigPathStr += strconv.Quote(path)
-		}
-		tsConfigPathStr += "],\n      "
 	}
-	includes := []string{"../features/**/*.ts", "../harness/ts/**/*.ts"}
+	tsConfigPaths, err := json.Marshal(options.TSConfigPaths)
+	if err != nil {
+		return nil, fmt.Errorf("failed encoding tsconfig paths: %w", err)
+	}
+	includes := []string{"features/**/*.ts", "harness/ts/**/*.ts"}
 	if len(options.Includes) > 0 {
 		includes = options.Includes
 	}
@@ -188,10 +192,8 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 	// are versioned independently of the SDK under test. They are type-checked by
 	// the root tsconfig.json in the `build-typescript` CI job instead.
 	excludes := []string{
-		"../node_modules",
-		"../harness/go",
-		"../harness/java",
-		"../features/snippets/external_storage",
+		"node_modules",
+		"features/snippets/external_storage",
 	}
 	if len(options.Excludes) > 0 {
 		excludes = options.Excludes
@@ -211,11 +213,8 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
   "compilerOptions": {
     "baseUrl": ".",
     "outDir": "./tslib",
-    "rootDirs": ["../", "."],
-    "paths": {
-      ` + tsConfigPathStr + `
-      "*": ["node_modules/*", "node_modules/@types/*"]
-    },
+    "rootDir": ".",
+    "paths": ` + string(tsConfigPaths) + `,
     "typeRoots": ["node_modules/@types"],
     "module": "commonjs",
     "moduleResolution": "node",
@@ -228,7 +227,7 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
   "include": [` + strings.Join(quotedIncludes, ", ") + `],
   "exclude": [` + strings.Join(quotedExcludes, ", ") + `]
 }`
-	if err := os.WriteFile(filepath.Join(dir, "tsconfig.json"), []byte(tsConfig), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "tsconfig.json"), []byte(tsConfig), 0o644); err != nil {
 		return nil, fmt.Errorf("failed writing tsconfig.json: %w", err)
 	}
 
@@ -243,6 +242,55 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 	}
 	if err := cmd.Run(); err != nil {
 		return nil, fmt.Errorf("failed installing: %w", err)
+	}
+	// Read the selected SDK's dependency after installation. This works for
+	// both published packages and links to a local checkout, and avoids
+	// resolving a version range or tag separately from the SDK installation.
+	workerPackage, err := os.ReadFile(filepath.Join(dir, "node_modules", "@temporalio", "worker", "package.json"))
+	if err != nil {
+		return nil, fmt.Errorf("failed reading installed SDK package.json: %w", err)
+	}
+	nexusVersion, err := typeScriptNexusDependency(workerPackage)
+	if err != nil {
+		return nil, err
+	}
+	if version, ok := options.MoreDependencies["nexus-rpc"]; ok && version != nexusVersion {
+		return nil, fmt.Errorf("nexus-rpc dependency %q does not match SDK dependency %q", version, nexusVersion)
+	}
+	// The JSON protobuf feature passes reflection types from @temporalio/proto
+	// to protobufjs/ext/protojson, which checks `type instanceof Type`.
+	// We must use the same protobufjs installation as @temporalio/proto.
+	// When linking a local SDK checkout, dependencies resolve from its own tree.
+	// We resolve and link the SDK's existing copy so the feature uses the same module
+	// instance.
+	cmd = exec.CommandContext(ctx, "node", "-e", `
+const { createRequire } = require('node:module');
+const { dirname } = require('node:path');
+const protoRequire = createRequire(require.resolve('@temporalio/proto/package.json'));
+process.stdout.write(dirname(protoRequire.resolve('protobufjs/package.json')));
+`)
+	cmd.Dir = dir
+	cmd.Stderr = os.Stderr
+	if options.ApplyToCommand != nil {
+		if err := options.ApplyToCommand(ctx, cmd); err != nil {
+			return nil, err
+		}
+	}
+	protobufJSPath, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("failed resolving SDK protobufjs dependency: %w", err)
+	}
+	cmd = exec.CommandContext(ctx, "corepack", "pnpm", "add", "--ignore-scripts",
+		"nexus-rpc@"+nexusVersion, "protobufjs@link:"+strings.TrimSpace(string(protobufJSPath)))
+	cmd.Dir = dir
+	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+	if options.ApplyToCommand != nil {
+		if err := options.ApplyToCommand(ctx, cmd); err != nil {
+			return nil, err
+		}
+	}
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("failed installing matching SDK dependencies: %w", err)
 	}
 
 	// Compile
@@ -260,6 +308,20 @@ func BuildTypeScriptProgram(ctx context.Context, options BuildTypeScriptProgramO
 
 	success = true
 	return &TypeScriptProgram{dir}, nil
+}
+
+func typeScriptNexusDependency(data []byte) (string, error) {
+	var pkg struct {
+		Dependencies map[string]string `json:"dependencies"`
+	}
+	if err := json.Unmarshal(data, &pkg); err != nil {
+		return "", fmt.Errorf("failed decoding SDK package metadata: %w", err)
+	}
+	version := pkg.Dependencies["nexus-rpc"]
+	if version == "" {
+		return "", fmt.Errorf("nexus-rpc dependency not found in SDK package metadata")
+	}
+	return version, nil
 }
 
 // TypeScriptProgramFromDir recreates the TypeScript program from a Dir() result

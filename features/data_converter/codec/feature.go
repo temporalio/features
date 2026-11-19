@@ -18,7 +18,7 @@ import (
 func getCustomConverter() converter.DataConverter {
 	return converter.NewCodecDataConverter(
 		converter.GetDefaultDataConverter(),
-		newBase64Codec(),
+		NewBase64Codec(),
 	)
 }
 
@@ -97,9 +97,9 @@ func CheckResult(ctx context.Context, runner *harness.Runner, run client.Workflo
 
 type base64Codec struct{}
 
-// A simple codec that encodes binary arrays into Base64.
+// NewBase64Codec returns a simple codec that encodes binary arrays into Base64.
 // The encoding type is "my-encoding", representing an arbitrary custom codec.
-func newBase64Codec() converter.PayloadCodec { return &base64Codec{} }
+func NewBase64Codec() converter.PayloadCodec { return &base64Codec{} }
 
 func (b *base64Codec) Encode(payloads []*commonpb.Payload) ([]*commonpb.Payload, error) {
 	result := make([]*commonpb.Payload, len(payloads))

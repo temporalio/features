@@ -2,7 +2,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { Command } from 'commander';
 import { Runtime, DefaultLogger } from '@temporalio/worker';
-import pkg from '@temporalio/worker/lib/pkg';
+import pkg from '@temporalio/worker/internal/pkg';
 import { TLSConfig } from '@temporalio/client';
 import { FeatureSource, Runner } from './harness';
 

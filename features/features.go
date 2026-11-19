@@ -34,10 +34,26 @@ import (
 	eager_activity_non_remote_activities_worker "github.com/temporalio/features/features/eager_activity/non_remote_activities_worker"
 	eager_workflow_successful_start "github.com/temporalio/features/features/eager_workflow/successful_start"
 	nexus_async_cancellation "github.com/temporalio/features/features/nexus/async_cancellation"
+	nexus_async_cancellation_abandon "github.com/temporalio/features/features/nexus/async_cancellation_abandon"
+	nexus_async_cancellation_try_cancel "github.com/temporalio/features/features/nexus/async_cancellation_try_cancel"
+	nexus_async_cancellation_wait_requested "github.com/temporalio/features/features/nexus/async_cancellation_wait_requested"
+	nexus_async_operation_error "github.com/temporalio/features/features/nexus/async_operation_error"
+	nexus_async_schedule_to_close_timeout "github.com/temporalio/features/features/nexus/async_schedule_to_close_timeout"
+	nexus_async_start_to_close_timeout "github.com/temporalio/features/features/nexus/async_start_to_close_timeout"
 	nexus_async_success "github.com/temporalio/features/features/nexus/async_success"
+	nexus_operation_not_found "github.com/temporalio/features/features/nexus/operation_not_found"
 	nexus_parallel_sync_operations "github.com/temporalio/features/features/nexus/parallel_sync_operations"
+	nexus_schedule_to_close_timeout "github.com/temporalio/features/features/nexus/schedule_to_close_timeout"
+	nexus_schedule_to_start_timeout "github.com/temporalio/features/features/nexus/schedule_to_start_timeout"
+	nexus_service_not_found "github.com/temporalio/features/features/nexus/service_not_found"
+	nexus_sync_handler_error_non_retryable "github.com/temporalio/features/features/nexus/sync_handler_error_non_retryable"
+	nexus_sync_operation_canceled "github.com/temporalio/features/features/nexus/sync_operation_canceled"
 	nexus_sync_operation_error "github.com/temporalio/features/features/nexus/sync_operation_error"
+	nexus_sync_operation_error_codec "github.com/temporalio/features/features/nexus/sync_operation_error_codec"
 	nexus_sync_success "github.com/temporalio/features/features/nexus/sync_success"
+	nexus_sync_success_codec "github.com/temporalio/features/features/nexus/sync_success_codec"
+	nexus_sync_success_codec_retry "github.com/temporalio/features/features/nexus/sync_success_codec_retry"
+	nexus_sync_unexpected_handler_error "github.com/temporalio/features/features/nexus/sync_unexpected_handler_error"
 	query_successful_query "github.com/temporalio/features/features/query/successful_query"
 	query_timeout_due_to_no_active_workers "github.com/temporalio/features/features/query/timeout_due_to_no_active_workers"
 	query_unexpected_arguments "github.com/temporalio/features/features/query/unexpected_arguments"
@@ -60,6 +76,7 @@ import (
 	serialization_context_local_activity_payloads "github.com/temporalio/features/features/serialization_context/local_activity_payloads"
 	serialization_context_workflow_payloads "github.com/temporalio/features/features/serialization_context/workflow_payloads"
 	signal_external "github.com/temporalio/features/features/signal/external"
+	system_nexus_signal_with_start "github.com/temporalio/features/features/system_nexus/signal_with_start"
 	telemetry_metrics "github.com/temporalio/features/features/telemetry/metrics"
 	update_activities "github.com/temporalio/features/features/update/activities"
 	update_async_accepted "github.com/temporalio/features/features/update/async_accepted"
@@ -111,10 +128,26 @@ func init() {
 		eager_activity_non_remote_activities_worker.Feature,
 		eager_workflow_successful_start.Feature,
 		nexus_async_cancellation.Feature,
+		nexus_async_cancellation_abandon.Feature,
+		nexus_async_cancellation_try_cancel.Feature,
+		nexus_async_cancellation_wait_requested.Feature,
+		nexus_async_operation_error.Feature,
+		nexus_async_schedule_to_close_timeout.Feature,
+		nexus_async_start_to_close_timeout.Feature,
 		nexus_async_success.Feature,
+		nexus_operation_not_found.Feature,
 		nexus_parallel_sync_operations.Feature,
+		nexus_schedule_to_close_timeout.Feature,
+		nexus_schedule_to_start_timeout.Feature,
+		nexus_service_not_found.Feature,
+		nexus_sync_handler_error_non_retryable.Feature,
+		nexus_sync_operation_canceled.Feature,
 		nexus_sync_operation_error.Feature,
+		nexus_sync_operation_error_codec.Feature,
 		nexus_sync_success.Feature,
+		nexus_sync_success_codec.Feature,
+		nexus_sync_success_codec_retry.Feature,
+		nexus_sync_unexpected_handler_error.Feature,
 		query_successful_query.Feature,
 		query_timeout_due_to_no_active_workers.Feature,
 		query_unexpected_arguments.Feature,
@@ -137,6 +170,7 @@ func init() {
 		serialization_context_local_activity_payloads.Feature,
 		serialization_context_workflow_payloads.Feature,
 		signal_external.Feature,
+		system_nexus_signal_with_start.Feature,
 		telemetry_metrics.Feature,
 		update_activities.Feature,
 		update_async_accepted.Feature,

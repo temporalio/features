@@ -1,4 +1,7 @@
 {
+  "go": {
+    "minVersion": "v1.51.0"
+  },
   "runVariants": [
     {
       "name": "feature-enabled",

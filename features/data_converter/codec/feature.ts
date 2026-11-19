@@ -2,7 +2,7 @@ import * as assert from 'assert';
 import { Feature } from '@temporalio/harness';
 import { METADATA_ENCODING_KEY, Payload, PayloadCodec, ValueError } from '@temporalio/common';
 import * as proto from '@temporalio/proto';
-import { decode, encode } from '@temporalio/common/lib/encoding';
+import { decode, encode } from '@temporalio/common/encoding';
 
 const toBase64 = (inArray: Uint8Array): Uint8Array => {
   const buf = Buffer.from(inArray);

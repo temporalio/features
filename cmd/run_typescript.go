@@ -71,7 +71,7 @@ func (p *Preparer) BuildTypeScriptProgram(ctx context.Context) (sdkbuild.Program
 		MoreDependencies:   dependencies,
 		AdditionalExcludes: excludes,
 		TSConfigPaths: map[string][]string{
-			"@temporalio/harness": {"./tslib/harness/ts/harness.js", "../harness/ts/harness.ts"},
+			"@temporalio/harness": {"./tslib/harness/ts/harness.js", "./harness/ts/harness.ts"},
 		},
 	})
 	if err != nil {

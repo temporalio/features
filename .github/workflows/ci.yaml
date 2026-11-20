@@ -252,6 +252,64 @@ jobs:
       - run: gem install rubocop
       - run: rubocop
 
+  feature-tests-cross-language:
+    needs: build-go
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: '4'
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10 --activate
+      - uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5
+        with:
+          distribution: 'temurin'
+          java-version: '23'
+      - uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5
+        with:
+          dotnet-version: '8.0.x'
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: '3.11'
+      - uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57 # v8
+      - uses: ruby/setup-ruby@ba696adf55506673e48342a66e30f1f53cadeae0 # v1
+        with:
+          ruby-version: '4.0'
+      - uses: ./.github/actions/setup-rust
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          cache-bin: false
+          workspaces: harness/rust
+      - name: Run cross-language features
+        env:
+          CS_SDK_VERSION: ${{ needs.build-go.outputs.csharp_latest }}
+          GO_SDK_VERSION: ${{ needs.build-go.outputs.go_latest }}
+          JAVA_SDK_VERSION: ${{ needs.build-go.outputs.java_latest }}
+          PY_SDK_VERSION: ${{ needs.build-go.outputs.python_latest }}
+          RB_SDK_VERSION: ${{ needs.build-go.outputs.ruby_latest }}
+          RS_SDK_VERSION: ${{ needs.build-go.outputs.rust_latest }}
+          TS_SDK_VERSION: ${{ needs.build-go.outputs.typescript_latest }}
+        run: |
+          go run . run-cross-language \
+            --sdk-version "cs=$CS_SDK_VERSION" \
+            --sdk-version "go=$GO_SDK_VERSION" \
+            --sdk-version "java=$JAVA_SDK_VERSION" \
+            --sdk-version "py=$PY_SDK_VERSION" \
+            --sdk-version "rb=$RB_SDK_VERSION" \
+            --sdk-version "rs=$RS_SDK_VERSION" \
+            --sdk-version "ts=$TS_SDK_VERSION"
+
   feature-tests-ts:
     permissions:
       contents: read

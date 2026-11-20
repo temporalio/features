@@ -12,12 +12,15 @@ require (
 	github.com/temporalio/features/harness/go v0.0.0-00010101000000-000000000000
 	github.com/uber-go/tally/v4 v4.1.1
 	github.com/urfave/cli/v2 v2.3.0
+	go.opentelemetry.io/otel v1.45.0
+	go.opentelemetry.io/otel/sdk v1.45.0
 	go.temporal.io/api v1.64.3
 	go.temporal.io/sdk v1.51.0
 	go.temporal.io/sdk/contrib/aws/s3driver v0.1.1
 	go.temporal.io/sdk/contrib/aws/s3driver/awssdkv2 v0.1.1
 	go.temporal.io/sdk/contrib/gcp/gcsdriver v0.1.0
 	go.temporal.io/sdk/contrib/gcp/gcsdriver/gcssdk v0.1.0
+	go.temporal.io/sdk/contrib/opentelemetry v0.9.0
 	go.temporal.io/sdk/contrib/sysinfo v0.1.0
 	go.temporal.io/sdk/contrib/tally v0.2.0
 	golang.org/x/mod v0.38.0
@@ -65,7 +68,7 @@ require (
 	github.com/facebookgo/clock v0.0.0-20150410010913-600d898af40a // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.6 // indirect
-	github.com/go-logr/logr v1.4.3 // indirect
+	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/godbus/dbus/v5 v5.0.4 // indirect
@@ -97,11 +100,9 @@ require (
 	go.opentelemetry.io/contrib/detectors/gcp v1.44.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.62.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.61.0 // indirect
-	go.opentelemetry.io/otel v1.44.0 // indirect
-	go.opentelemetry.io/otel/metric v1.44.0 // indirect
-	go.opentelemetry.io/otel/sdk v1.44.0 // indirect
-	go.opentelemetry.io/otel/sdk/metric v1.44.0 // indirect
-	go.opentelemetry.io/otel/trace v1.44.0 // indirect
+	go.opentelemetry.io/otel/metric v1.45.0 // indirect
+	go.opentelemetry.io/otel/sdk/metric v1.45.0 // indirect
+	go.opentelemetry.io/otel/trace v1.45.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
 	go.uber.org/zap v1.19.1 // indirect

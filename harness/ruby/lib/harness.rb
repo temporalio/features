@@ -7,7 +7,9 @@ module Harness
     :expect_run_result,
     :expect_activity_error,
     :start_callback,
-    :check_result_callback
+    :check_result_callback,
+    :client_options,
+    :worker_options
   )
 
   @features = {}
@@ -22,7 +24,9 @@ module Harness
     expect_run_result: nil,
     expect_activity_error: nil,
     start: nil,
-    check_result: nil
+    check_result: nil,
+    client_options: {},
+    worker_options: {}
   )
     rel_dir = caller_feature_dir(caller_locations(1, 1).first.path)
     @features[rel_dir] = Feature.new(
@@ -31,7 +35,9 @@ module Harness
       expect_run_result: expect_run_result,
       expect_activity_error: expect_activity_error,
       start_callback: start,
-      check_result_callback: check_result
+      check_result_callback: check_result,
+      client_options: client_options,
+      worker_options: worker_options
     )
   end
 

@@ -3,6 +3,8 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+	"strings"
 
 	"github.com/temporalio/features/harness/go/cmd"
 	"github.com/temporalio/features/sdkbuild"
@@ -13,7 +15,7 @@ import (
 // root directory.
 func (p *Preparer) BuildGoProgram(ctx context.Context) (sdkbuild.Program, error) {
 	p.log.Info("Building Go project", "DirName", p.config.DirName)
-	prog, err := sdkbuild.BuildGoProgram(ctx, sdkbuild.BuildGoProgramOptions{
+	options := sdkbuild.BuildGoProgramOptions{
 		BaseDir: p.rootDir,
 		DirName: p.config.DirName,
 		Version: p.config.Version,
@@ -39,7 +41,36 @@ func main() {
 	cmd.Execute()
 }`,
 		GoBuildTags: cmd.GoBuildTags(p.config.Version),
-	})
+	}
+	if p.config.crossLanguage {
+		runner := NewRunner(RunConfig{})
+		runner.rootDir = p.rootDir
+		features, err := runner.GlobCrossLanguageFeatures(nil)
+		if err != nil {
+			return nil, err
+		}
+		options.GoMainContents = `package main
+import (
+"github.com/temporalio/features/harness/go/cmd"
+"github.com/temporalio/features/harness/go/harness"
+`
+		var registrations []string
+		for i, feature := range features {
+			if matches, _ := filepath.Glob(filepath.Join(p.rootDir, "features", feature.Dir, "feature.go")); len(matches) != 0 {
+				options.GoMainContents += fmt.Sprintf("f%d \"github.com/temporalio/features/features/%s\"\n", i, feature.Dir)
+				registrations = append(registrations, fmt.Sprintf("f%d.Feature", i))
+			}
+		}
+		options.GoMainContents += ")\nfunc main() { harness.MustRegisterFeatures(" + strings.Join(registrations, ",") + "); cmd.Execute() }\n"
+		if strings.ContainsAny(p.config.Version, `/\`) {
+			sdkPath, err := filepath.Abs(p.config.Version)
+			if err != nil {
+				return nil, err
+			}
+			options.GoModContents += "\nreplace go.temporal.io/sdk/contrib/opentelemetry => " + filepath.ToSlash(filepath.Join(sdkPath, "contrib", "opentelemetry")) + "\n"
+		}
+	}
+	prog, err := sdkbuild.BuildGoProgram(ctx, options)
 	if err != nil {
 		return nil, fmt.Errorf("failed preparing: %w", err)
 	}

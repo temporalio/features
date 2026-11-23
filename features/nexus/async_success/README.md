@@ -12,3 +12,7 @@ operation token, and then receives the backing workflow's result.
 - The caller then awaits the operation result, which is the output of the backing workflow.
 - An async operation is scheduled, then started once the backing workflow is running, and
   completed when the backing workflow completes.
+- The caller's `NexusOperationStarted` event links to the backing run's
+  `WorkflowExecutionStarted` event. The backing run links back to the caller's
+  `NexusOperationScheduled` event, either on `WorkflowExecutionStarted` in history or on the
+  Nexus completion callback returned by `DescribeWorkflowExecution`.

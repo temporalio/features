@@ -1,0 +1,6 @@
+{
+  "noWorkflow": true,
+  "go": {
+    "minVersion": "v1.46.0"
+  }
+}

@@ -33,6 +33,14 @@ fn main() {
     let mut registry = String::new();
     let mut entries = String::new();
     for (index, source) in sources.into_iter().enumerate() {
+        let config = source.parent().unwrap().join("config.json");
+        let cross_language = fs::read_to_string(config)
+            .ok()
+            .and_then(|text| serde_json::from_str::<serde_json::Value>(&text).ok())
+            .is_some_and(|config| config["crossLanguage"] == true);
+        if cross_language != env::var_os("CARGO_FEATURE_CROSS_LANGUAGE").is_some() {
+            continue;
+        }
         let key = source
             .parent()
             .unwrap()

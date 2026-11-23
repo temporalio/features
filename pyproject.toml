@@ -5,7 +5,10 @@ description = "Temporal SDK Features"
 authors = [{ name = "Temporal Technologies Inc", email = "sdk@temporal.io" }]
 requires-python = ">=3.11"
 license = "MIT"
-dependencies = ["temporalio"]
+dependencies = [
+    "temporalio",
+    "opentelemetry-sdk",
+]
 
 [dependency-groups]
 dev = [

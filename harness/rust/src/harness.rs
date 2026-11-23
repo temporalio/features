@@ -204,14 +204,23 @@ async fn run_feature(
     cancelled: &CancellationToken,
 ) -> Result<FeatureOutcome> {
     let worker_options = feature.worker_options(ctx)?;
+    let has_worker = worker_options.is_some();
     let driver = async {
+        if options.role.as_deref() == Some("worker") {
+            ensure!(has_worker, "feature has no worker");
+            println!("FEATURE_WORKER_READY");
+            cancelled.cancelled().await;
+            return Ok(FeatureOutcome::Passed);
+        }
         tokio::select! {
             result = tokio::time::timeout(FEATURE_TIMEOUT, catch(feature.execute(ctx))) =>
                 result.context("feature execution timed out")?,
             _ = cancelled.cancelled() => bail!("execution cancelled"),
         }
     };
-    let outcome = if let Some(mut worker_options) = worker_options {
+    let outcome = if let Some(mut worker_options) =
+        worker_options.filter(|_| options.role.as_deref() != Some("client"))
+    {
         // Give outstanding activities a finite grace period before SDK cancellation.
         if worker_options.graceful_shutdown_period.is_none() {
             worker_options.graceful_shutdown_period = Some(Duration::from_secs(5));
@@ -222,7 +231,10 @@ async fn run_feature(
     } else {
         driver.await?
     };
-    if matches!(outcome, FeatureOutcome::Skipped(_)) || options.no_history_check {
+    if matches!(outcome, FeatureOutcome::Skipped(_))
+        || options.no_history_check
+        || options.role.is_some()
+    {
         return Ok(outcome);
     }
     if let Some(replay_options) = feature.replay_options(ctx)? {

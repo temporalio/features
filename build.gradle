@@ -35,6 +35,9 @@ dependencies {
     implementation 'io.temporal:temporal-sdk:latest.release'
     implementation 'io.temporal:temporal-payload-storage-s3driver:latest.release'
     implementation 'io.temporal:temporal-payload-storage-s3driver-awssdkv2:latest.release'
+    implementation 'io.temporal:temporal-opentracing:latest.release'
+    implementation 'io.opentelemetry:opentelemetry-sdk:1.49.0'
+    implementation 'io.opentelemetry:opentelemetry-opentracing-shim:1.49.0'
     implementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
     implementation 'org.reflections:reflections:0.10.2'
 }

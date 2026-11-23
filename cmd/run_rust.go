@@ -13,10 +13,11 @@ import (
 func (p *Preparer) BuildRustProgram(ctx context.Context) (sdkbuild.Program, error) {
 	p.log.Info("Building Rust project", "DirName", p.config.DirName)
 	program, err := sdkbuild.BuildRustProgram(ctx, sdkbuild.BuildRustProgramOptions{
-		BaseDir:    p.rootDir,
-		DirName:    p.config.DirName,
-		Version:    p.config.Version,
-		PackageDir: filepath.Join(p.rootDir, "harness", "rust"),
+		BaseDir:       p.rootDir,
+		DirName:       p.config.DirName,
+		Version:       p.config.Version,
+		PackageDir:    filepath.Join(p.rootDir, "harness", "rust"),
+		CrossLanguage: p.config.crossLanguage,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed preparing Rust: %w", err)

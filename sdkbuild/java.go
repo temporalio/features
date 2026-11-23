@@ -31,6 +31,8 @@ type BuildJavaProgramOptions struct {
 	// NewCommand then runs directly. Otherwise NewCommand compiles and runs it
 	// with gradle run.
 	Build bool
+	// Additional SDK artifacts that must come from the selected SDK checkout/version.
+	SDKModules []string
 	// If present, this directory is expected to exist beneath base dir. Otherwise
 	// a temporary dir is created.
 	DirName string
@@ -115,6 +117,11 @@ dependencies {
 application {
     mainClass = '` + options.MainClass + `'
 }`
+	if options.Version != "" && !isPathDep {
+		for _, module := range append([]string{"temporal-sdk"}, options.SDKModules...) {
+			buildGradle += "\nconfigurations.configureEach { resolutionStrategy.force 'io.temporal:" + module + ":" + strings.TrimPrefix(options.Version, "v") + "' }\n"
+		}
+	}
 	if err := os.WriteFile(filepath.Join(dir, "build.gradle"), []byte(buildGradle), 0644); err != nil {
 		return nil, fmt.Errorf("failed writing build.gradle: %w", err)
 	}
@@ -130,6 +137,11 @@ application {
 includeBuild('` + asAbsPath + `') {
     dependencySubstitution {
         substitute module('io.temporal:temporal-sdk') using project(':temporal-sdk')
+`
+		for _, module := range options.SDKModules {
+			settingsGradle += "        substitute module('io.temporal:" + module + "') using project(':" + module + "')\n"
+		}
+		settingsGradle += `
     }
 }
 `

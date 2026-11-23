@@ -49,6 +49,7 @@ type Runner struct {
 
 // RunnerConfig is configuration for NewRunner.
 type RunnerConfig struct {
+	Role           string
 	ServerHostPort string
 	Namespace      string
 	TaskQueue      string
@@ -110,9 +111,10 @@ func NewRunner(config RunnerConfig, feature *PreparedFeature) (*Runner, error) {
 	if !r.Feature.DisableWorkflowPanicPolicyOverride {
 		r.Feature.WorkerOptions.WorkflowPanicPolicy = worker.FailWorkflow
 	}
-	err = r.StartWorker()
-	if err != nil {
-		return nil, err
+	if config.Role != "client" {
+		if err = r.StartWorker(); err != nil {
+			return nil, err
+		}
 	}
 
 	success = true
@@ -122,6 +124,12 @@ func NewRunner(config RunnerConfig, feature *PreparedFeature) (*Runner, error) {
 // Run executes a single feature and then closes the worker/client.
 func (r *Runner) Run(ctx context.Context) error {
 	defer r.Close()
+
+	if r.Role == "worker" {
+		fmt.Println("FEATURE_WORKER_READY")
+		<-ctx.Done()
+		return ctx.Err()
+	}
 
 	// Do normal run
 	r.Log.Debug("Executing feature", "Feature", r.Feature.Dir)
@@ -262,7 +270,10 @@ func (r *Runner) CheckHistoryDefault(ctx context.Context, _ client.WorkflowRun) 
 func (r *Runner) ReplayHistories(ctx context.Context, histories history.Histories) error {
 	// Create replayer with all the workflow funcs
 	replayer, err := worker.NewWorkflowReplayerWithOptions(
-		worker.WorkflowReplayerOptions{DataConverter: r.Feature.ClientOptions.DataConverter},
+		worker.WorkflowReplayerOptions{
+			DataConverter:    r.Feature.ClientOptions.DataConverter,
+			FailureConverter: r.Feature.ClientOptions.FailureConverter,
+		},
 	)
 	if err != nil {
 		return err

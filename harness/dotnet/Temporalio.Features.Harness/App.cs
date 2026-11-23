@@ -39,6 +39,11 @@ public static class App
         name: "--tls-server-name",
         description: "TLS server name to use for verification");
 
+    private static readonly Option<string> roleOption = new(
+        name: "--role",
+        getDefaultValue: () => "all",
+        description: "Run all, client, or worker portions of a feature");
+
     private static readonly Argument<
         List<(string Dir, string TaskQueue, string? NexusEndpoint)>> featuresArgument = new(
         name: "features",
@@ -72,6 +77,7 @@ public static class App
         cmd.AddOption(caCertPathOption);
         cmd.AddOption(httpProxyUrlOption);
         cmd.AddOption(tlsServerNameOption);
+        cmd.AddOption(roleOption);
         cmd.AddArgument(featuresArgument);
         cmd.SetHandler(RunCommandAsync);
         return cmd;
@@ -79,6 +85,11 @@ public static class App
 
     private static async Task RunCommandAsync(InvocationContext ctx)
     {
+        var role = ctx.ParseResult.GetValueForOption(roleOption)!;
+        if (role is not ("all" or "client" or "worker"))
+        {
+            throw new ArgumentException("--role must be all, client, or worker");
+        }
         // Create logger factory
         using var loggerFactory = LoggerFactory.Create(builder => builder.AddSimpleConsole(
             options =>
@@ -135,7 +146,7 @@ public static class App
                     feature,
                     loggerFactory,
                     ctx.ParseResult.GetValueForOption(httpProxyUrlOption)
-                ).RunAsync(ctx.GetCancellationToken());
+                ).RunAsync(ctx.GetCancellationToken(), role);
             }
             catch (TestSkippedException e)
             {

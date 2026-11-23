@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { JSONToPayload } from '@temporalio/common/lib/proto-utils';
+import { JSONToPayload } from '@temporalio/common/proto-utils';
 import { Feature } from '@temporalio/harness';
 import { ApplicationFailure } from '@temporalio/common';
 import * as wf from '@temporalio/workflow';

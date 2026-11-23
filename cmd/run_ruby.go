@@ -41,11 +41,16 @@ func (p *Preparer) BuildRubyProgram(ctx context.Context) (sdkbuild.Program, erro
 		}
 	}
 
+	var dependencies []sdkbuild.RubyDependency
+	if p.config.crossLanguage {
+		dependencies = []sdkbuild.RubyDependency{{Name: "opentelemetry-sdk"}}
+	}
 	prog, err := sdkbuild.BuildRubyProgram(ctx, sdkbuild.BuildRubyProgramOptions{
-		BaseDir:   p.rootDir,
-		SourceDir: rubyDir,
-		DirName:   p.config.DirName,
-		Version:   version,
+		BaseDir:          p.rootDir,
+		SourceDir:        rubyDir,
+		DirName:          p.config.DirName,
+		Version:          version,
+		MoreDependencies: dependencies,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed preparing: %w", err)

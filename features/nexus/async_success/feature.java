@@ -1,6 +1,8 @@
 package nexus.async_success;
 
+import static io.temporal.sdkfeatures.NexusAssertions.assertHistory;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.nexusrpc.Operation;
@@ -8,6 +10,11 @@ import io.nexusrpc.Service;
 import io.nexusrpc.handler.OperationHandler;
 import io.nexusrpc.handler.OperationImpl;
 import io.nexusrpc.handler.ServiceImpl;
+import io.temporal.api.common.v1.Link;
+import io.temporal.api.common.v1.WorkflowExecution;
+import io.temporal.api.enums.v1.EventType;
+import io.temporal.api.history.v1.History;
+import io.temporal.api.history.v1.HistoryEvent;
 import io.temporal.client.WorkflowOptions;
 import io.temporal.failure.ApplicationFailure;
 import io.temporal.nexus.Nexus;
@@ -22,6 +29,8 @@ import io.temporal.workflow.Workflow;
 import io.temporal.workflow.WorkflowInterface;
 import io.temporal.workflow.WorkflowMethod;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 
 @WorkflowInterface
 public interface feature extends Feature {
@@ -96,17 +105,92 @@ public interface feature extends Feature {
 
     @Override
     public void checkHistory(Runner runner, Run run) throws Exception {
-      var events = runner.getWorkflowHistory(run).getEventsList();
+      assertHistory(
+          runner,
+          run,
+          EventType.EVENT_TYPE_NEXUS_OPERATION_SCHEDULED,
+          EventType.EVENT_TYPE_NEXUS_OPERATION_STARTED,
+          EventType.EVENT_TYPE_NEXUS_OPERATION_COMPLETED);
+
+      var callerHistory = runner.getWorkflowHistory(run);
+      var scheduled = historyEvent(callerHistory, EventType.EVENT_TYPE_NEXUS_OPERATION_SCHEDULED);
+      var started = historyEvent(callerHistory, EventType.EVENT_TYPE_NEXUS_OPERATION_STARTED);
+
+      // The handler uses the operation request ID as its workflow ID. Resolve the
+      // backing run independently of the link under test.
+      var handlerId = scheduled.getNexusOperationScheduledEventAttributes().getRequestId();
+      assertFalse(
+          handlerId.isEmpty(), "expected a request ID on the NexusOperationScheduled event");
+      var description = runner.client.newUntypedWorkflowStub(handlerId).describe();
+      var handler = description.getExecution();
+      var handlerHistory = runner.client.fetchHistory(handlerId, handler.getRunId()).getHistory();
+      var handlerStarted =
+          historyEvent(handlerHistory, EventType.EVENT_TYPE_WORKFLOW_EXECUTION_STARTED);
+
+      assertWorkflowLink(
+          "NexusOperationStarted",
+          started.getLinksList(),
+          runner.config.namespace,
+          handler,
+          handlerStarted);
+
+      // Servers that deduplicate Nexus callback links expose the backlink on
+      // the completion callback instead of on WorkflowExecutionStarted.
+      var handlerLinks = new ArrayList<>(handlerStarted.getLinksList());
+      for (var info : description.getRawDescription().getCallbacksList()) {
+        var callback = info.getCallback();
+        if (callback.hasNexus()) {
+          handlerLinks.addAll(callback.getLinksList());
+        }
+      }
+      assertWorkflowLink(
+          "backing workflow start or Nexus completion callback",
+          handlerLinks,
+          runner.config.namespace,
+          run.execution,
+          scheduled);
+    }
+
+    private static HistoryEvent historyEvent(History history, EventType type) {
+      return history.getEventsList().stream()
+          .filter(event -> event.getEventType() == type)
+          .findFirst()
+          .orElseThrow(() -> new AssertionError("expected history event " + type));
+    }
+
+    private static void assertWorkflowLink(
+        String source,
+        List<Link> links,
+        String namespace,
+        WorkflowExecution target,
+        HistoryEvent targetEvent) {
       assertTrue(
-          events.stream().anyMatch(e -> e.hasNexusOperationScheduledEventAttributes()),
-          "expected NexusOperationScheduled event in history");
-      assertTrue(
-          events.stream().anyMatch(e -> e.hasNexusOperationStartedEventAttributes()),
-          "expected NexusOperationStarted event in history");
-      assertTrue(
-          events.stream().anyMatch(e -> e.hasNexusOperationCompletedEventAttributes()),
-          "expected NexusOperationCompleted event in history");
-      runner.checkCurrentAndPastHistories(run);
+          links.stream()
+              .filter(Link::hasWorkflowEvent)
+              .map(Link::getWorkflowEvent)
+              .anyMatch(
+                  link -> {
+                    var ref = link.getEventRef();
+                    return link.getNamespace().equals(namespace)
+                        && link.getWorkflowId().equals(target.getWorkflowId())
+                        && link.getRunId().equals(target.getRunId())
+                        && ref.getEventType() == targetEvent.getEventType()
+                        // A link to the workflow's unique start event may omit its event ID.
+                        && (ref.getEventId() == targetEvent.getEventId()
+                            || (ref.getEventId() == 0
+                                && targetEvent.getEventType()
+                                    == EventType.EVENT_TYPE_WORKFLOW_EXECUTION_STARTED));
+                  }),
+          () ->
+              String.format(
+                  "expected %s to link to %s event %d in %s/%s/%s, got %s",
+                  source,
+                  targetEvent.getEventType(),
+                  targetEvent.getEventId(),
+                  namespace,
+                  target.getWorkflowId(),
+                  target.getRunId(),
+                  links));
     }
   }
 

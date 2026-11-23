@@ -31,6 +31,9 @@ func runCmd() *cli.Command {
 		Usage: "run a test or set of tests for Go",
 		Flags: config.flags(),
 		Action: func(ctx *cli.Context) error {
+			if config.Role != "" && config.Role != "client" && config.Role != "worker" {
+				return fmt.Errorf("role must be client or worker")
+			}
 			var run Run
 			if err := run.FromArgs(ctx.Args().Slice()); err != nil {
 				return err
@@ -101,6 +104,7 @@ func (r RunFeature) SummaryName() string {
 
 // RunFeatureConfig is config from config.json.
 type RunFeatureConfig struct {
+	CrossLanguage            bool               `json:"crossLanguage"`
 	NoWorkflow               bool               `json:"noWorkflow"`
 	NeedsNexusEndpoint       bool               `json:"needsNexusEndpoint"`
 	Go                       RunFeatureConfigGo `json:"go"`
@@ -130,6 +134,7 @@ type RunFeatureConfigGo struct {
 
 // RunConfig is configuration for NewRunner.
 type RunConfig struct {
+	Role           string
 	Server         string
 	Namespace      string
 	ClientCertPath string
@@ -142,6 +147,9 @@ type RunConfig struct {
 
 func (r *RunConfig) flags() []cli.Flag {
 	return []cli.Flag{
+		&cli.StringFlag{
+			Name: "role", Destination: &r.Role,
+		},
 		&cli.StringFlag{
 			Name:        "server",
 			Usage:       "The host:port of the server (default is to create ephemeral in-memory server)",
@@ -227,11 +235,15 @@ func (r *Runner) Run(ctx context.Context, run *Run) error {
 	if len(run.Features) == 0 {
 		return fmt.Errorf("no features to run")
 	}
-	summary, err := openSummary(r.config.SummaryURI)
-	if err != nil {
-		return err
+	var summary io.WriteCloser
+	if r.config.Role == "" {
+		var err error
+		summary, err = openSummary(r.config.SummaryURI)
+		if err != nil {
+			return err
+		}
+		defer summary.Close()
 	}
-	defer summary.Close()
 	var failureCount int
 	failureSummary := ""
 	allFeatures := harness.RegisteredFeatures()
@@ -257,8 +269,10 @@ func (r *Runner) Run(ctx context.Context, run *Run) error {
 				Outcome: FeaturePassed,
 			}
 			defer func() {
-				bytes, _ := json.Marshal(sumEntry)
-				fmt.Fprintln(summary, string(bytes))
+				if summary != nil {
+					bytes, _ := json.Marshal(sumEntry)
+					fmt.Fprintln(summary, string(bytes))
+				}
 			}()
 
 			if feature.SkipReason != "" {
@@ -273,6 +287,7 @@ func (r *Runner) Run(ctx context.Context, run *Run) error {
 			}
 
 			runnerConfig := harness.RunnerConfig{
+				Role:           r.config.Role,
 				ServerHostPort: r.config.Server,
 				Namespace:      r.config.Namespace,
 				ClientCertPath: r.config.ClientCertPath,

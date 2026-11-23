@@ -35,6 +35,8 @@ impl FromStr for Selection {
 #[derive(Parser)]
 #[command(disable_help_flag = true)]
 pub(crate) struct Options {
+    #[arg(long, value_parser = ["worker", "client"])]
+    pub role: Option<String>,
     #[arg(long, value_parser = clap::builder::NonEmptyStringValueParser::new())]
     server: String,
     #[arg(long, value_parser = clap::builder::NonEmptyStringValueParser::new())]

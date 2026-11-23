@@ -36,7 +36,10 @@ $runtime = RuntimeBuilder::createState($argv, \getcwd());
 $runner = new Runner($runtime);
 
 // Run RoadRunner server if workflows or activities are defined
-if (\iterator_to_array($runtime->workflows(), false) !== [] || \iterator_to_array($runtime->activities(), false) !== []) {
+if (\iterator_to_array($runtime->workflows(), false) !== []
+    || \iterator_to_array($runtime->activities(), false) !== []
+    || \iterator_to_array($runtime->nexusServices(), false) !== []
+) {
     $runner->start();
 }
 

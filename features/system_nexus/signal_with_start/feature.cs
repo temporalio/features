@@ -40,16 +40,18 @@ class Feature : IFeature
             var firstHandle = await Workflow.SignalWithStartWorkflowAsync(
                 (TargetWorkflow workflow) => workflow.RunAsync("start-value"),
                 workflow => workflow.AddAsync("signal-one"),
-                new(targetId, taskQueue)
+                new(targetId)
                 {
+                    TaskQueue = taskQueue,
                     ExecutionTimeout = TimeSpan.FromMinutes(1),
                     IdConflictPolicy = WorkflowIdConflictPolicy.UseExisting,
                 });
             var secondHandle = await Workflow.SignalWithStartWorkflowAsync(
                 (TargetWorkflow workflow) => workflow.RunAsync("unused-start-value"),
                 workflow => workflow.AddAsync("signal-two"),
-                new(targetId, taskQueue)
+                new(targetId)
                 {
+                    TaskQueue = taskQueue,
                     IdConflictPolicy = WorkflowIdConflictPolicy.UseExisting,
                 });
 

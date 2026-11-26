@@ -191,9 +191,11 @@ jobs:
           IMAGE_OUTPUTS: ${{ toJSON(needs.build-image.outputs) }}
           SDK_REPO_REF: ${{ inputs.sdk-repo-ref }}
         run: |
+          # GitHub wraps each architecture's JSON metadata in a string.
           metadata=$(jq -ce --argjson platforms "$PLATFORMS" --arg repo_ref "$SDK_REPO_REF" '
             [$platforms[] as $arch | .[$arch] | fromjson]
             | .[0] as $first
+            # Matching tags and resolved commits prevent a moving SDK ref from mixing builds.
             | select(($first.tags | type == "array" and length > 0)
               and all(.[]; .tags == $first.tags and .sdk_revision == $first.sdk_revision)
               and ($repo_ref == "" or ($first.sdk_revision | type == "string" and length > 0))
@@ -206,4 +208,5 @@ jobs:
           done
           digest_lines=$(jq -er '.[].digest' <<< "$metadata")
           mapfile -t digests <<< "$digest_lines"
+          # Buildx resolves bare digests against the common repository of the destination tags.
           docker buildx imagetools create "${tag_args[@]}" "${digests[@]}"

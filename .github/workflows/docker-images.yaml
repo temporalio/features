@@ -7,7 +7,7 @@ on:
         required: true
         type: string
       platforms:
-        description: Architectures to build and publish, as a JSON list
+        description: Architectures to build and publish (amd64 or arm64), as a JSON list
         type: string
         default: '["amd64","arm64"]'
       sdk-repo-ref:
@@ -38,6 +38,9 @@ on:
 permissions:
   contents: read
 
+env:
+  REPO_PREFIX: temporaliotest
+
 jobs:
   build-image:
     name: Build ${{ inputs.lang }} docker image (${{ matrix.arch }})
@@ -45,6 +48,9 @@ jobs:
     strategy:
       matrix:
         arch: ${{ fromJSON(inputs.platforms) }}
+    outputs:
+      amd64: ${{ steps.image.outputs.amd64 }}
+      arm64: ${{ steps.image.outputs.arm64 }}
     runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     env:
       TEMPORAL_CLOUD_ADDRESS: sdk-ci.a2dd6.tmprl.cloud:7233
@@ -112,23 +118,25 @@ jobs:
             args+=(--semver-latest "$INPUT_SEMVER_LATEST")
           fi
           if [ "$DO_PUSH" = true ]; then
-            args+=(--push-to temporaliotest --metadata-file "$RUNNER_TEMP/image.json")
+            args+=(--push-to "$REPO_PREFIX" --metadata-file "$RUNNER_TEMP/image.json")
           fi
           go run . build-image "${args[@]}"
 
       - name: Resolve image to test
+        id: image
         env:
           DO_PUSH: ${{ inputs.do-push }}
           ARCH: ${{ matrix.arch }}
         run: |
           image="$FEATURES_BUILT_IMAGE_TAG"
           if [ "$DO_PUSH" = true ]; then
-            jq -e --arg tags "$FEATURES_BUILT_IMAGE_TAGS" \
-              '{digest: ."containerimage.digest", tags: ($tags | split(";") | map("temporaliotest/" + .))}
-               | select(.digest | test("^sha256:[0-9a-f]{64}$"))' \
-              "$RUNNER_TEMP/image.json" > "$RUNNER_TEMP/image-$ARCH.json"
-            digest=$(jq -er '.digest' "$RUNNER_TEMP/image-$ARCH.json")
-            image="temporaliotest/${FEATURES_BUILT_IMAGE_TAG%%:*}@$digest"
+            metadata=$(jq -ce --arg tags "$FEATURES_BUILT_IMAGE_TAGS" \
+              --arg sdk_revision "${FEATURES_BUILT_SDK_REVISION:-}" \
+              '{digest: ."containerimage.digest", tags: ($tags | split(";")), sdk_revision: $sdk_revision}
+               | select(.digest | test("^sha256:[0-9a-f]{64}$"))' "$RUNNER_TEMP/image.json")
+            echo "$ARCH=$metadata" >> "$GITHUB_OUTPUT"
+            digest=$(jq -er '.digest' <<< "$metadata")
+            image="$REPO_PREFIX/${FEATURES_BUILT_IMAGE_TAG%%:*}@$digest"
           fi
           echo "FEATURES_TEST_IMAGE=$image" >> "$GITHUB_ENV"
 
@@ -162,28 +170,12 @@ jobs:
             exit 1
           fi
 
-      - name: Upload image metadata
-        if: inputs.do-push
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: features-image-${{ inputs.lang }}-${{ matrix.arch }}
-          path: ${{ runner.temp }}/image-${{ matrix.arch }}.json
-          if-no-files-found: error
-          retention-days: 7
-
   publish-image:
     name: Publish ${{ inputs.lang }} docker image
     needs: build-image
     if: inputs.do-push
     runs-on: ubuntu-latest
     steps:
-      - name: Download image metadata
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          pattern: features-image-${{ inputs.lang }}-*
-          merge-multiple: true
-          path: ${{ runner.temp }}/image
-
       - name: Login to DockerHub
         uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4
         with:
@@ -196,35 +188,22 @@ jobs:
       - name: Tag the multi-platform image
         env:
           PLATFORMS: ${{ inputs.platforms }}
+          IMAGE_OUTPUTS: ${{ toJSON(needs.build-image.outputs) }}
+          SDK_REPO_REF: ${{ inputs.sdk-repo-ref }}
         run: |
-          cd "$RUNNER_TEMP/image"
-          expected_files=$(jq -ce '
-            select(type == "array" and length > 0
-              and all(.[]; . == "amd64" or . == "arm64")
-              and (unique | length) == length)
-            | map("image-" + . + ".json") | sort' <<< "$PLATFORMS")
-          shopt -s nullglob
-          files=(*)
-          actual_files=$(printf '%s\n' "${files[@]}" | jq -Rsc 'split("\n")[:-1] | sort')
-          if [ "$actual_files" != "$expected_files" ]; then
-            echo "Expected image metadata files $expected_files, found $actual_files" >&2
-            exit 1
-          fi
-          jq -es '
-            all(.[]; (.digest | type == "string" and test("^sha256:[0-9a-f]{64}$"))
-              and (.tags | type == "array" and length > 0
-                and all(.[]; type == "string" and test("^temporaliotest/features:[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}$"))))
-            and ([.[].digest] | unique | length) == length
-            and (.[0].tags as $tags | all(.[]; .tags == $tags))' "${files[@]}"
-          tag_lines=$(jq -er '.tags[]' "${files[0]}")
+          metadata=$(jq -ce --argjson platforms "$PLATFORMS" --arg repo_ref "$SDK_REPO_REF" '
+            [$platforms[] as $arch | .[$arch] | fromjson]
+            | .[0] as $first
+            | select(($first.tags | type == "array" and length > 0)
+              and all(.[]; .tags == $first.tags and .sdk_revision == $first.sdk_revision)
+              and ($repo_ref == "" or ($first.sdk_revision | type == "string" and length > 0))
+              and ([.[].digest] | unique | length) == length)' <<< "$IMAGE_OUTPUTS")
+          tag_lines=$(jq -er '.[0].tags[]' <<< "$metadata")
           mapfile -t tags <<< "$tag_lines"
           tag_args=()
           for tag in "${tags[@]}"; do
-            tag_args+=(--tag "$tag")
+            tag_args+=(--tag "$REPO_PREFIX/$tag")
           done
-          images=()
-          for file in "${files[@]}"; do
-            digest=$(jq -er '.digest' "$file")
-            images+=("temporaliotest/features@$digest")
-          done
-          docker buildx imagetools create "${tag_args[@]}" "${images[@]}"
+          digest_lines=$(jq -er '.[].digest' <<< "$metadata")
+          mapfile -t digests <<< "$digest_lines"
+          docker buildx imagetools create "${tag_args[@]}" "${digests[@]}"

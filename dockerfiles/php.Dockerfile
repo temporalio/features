@@ -9,9 +9,7 @@ RUN apt-get update \
  && docker-php-ext-install sockets
 
 # Get go compiler
-ARG TARGETARCH
-RUN wget -q https://go.dev/dl/go1.22.5.linux-${TARGETARCH}.tar.gz \
-    && tar -C /usr/local -xzf go1.22.5.linux-${TARGETARCH}.tar.gz
+COPY --from=golang:1.26.0-bookworm /usr/local/go /usr/local/go
 
 # Install composer
 COPY --from=composer:2.3 /usr/bin/composer /usr/bin/composer

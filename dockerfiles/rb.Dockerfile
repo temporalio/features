@@ -14,9 +14,7 @@ RUN wget -q -O - https://sh.rustup.rs | sh -s -- -y
 ENV PATH="$PATH:/root/.cargo/bin"
 
 # Get go compiler
-ARG TARGETARCH
-RUN wget -q https://go.dev/dl/go1.22.5.linux-${TARGETARCH}.tar.gz \
-    && tar -C /usr/local -xzf go1.22.5.linux-${TARGETARCH}.tar.gz
+COPY --from=golang:1.26.0-bookworm /usr/local/go /usr/local/go
 
 WORKDIR /app
 

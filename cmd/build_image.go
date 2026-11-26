@@ -175,9 +175,6 @@ func (i *ImageBuilder) buildFromRepo(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if err := writeGitHubEnv("FEATURES_BUILT_SDK_REVISION", repoRef); err != nil {
-		return err
-	}
 
 	// Git refs can contain slashes and other characters Docker tags reject.
 	tag := i.config.Lang + "-" + regexp.MustCompile(`[^a-zA-Z0-9_.-]`).ReplaceAllString(i.config.RepoRef, "-")

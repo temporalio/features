@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -41,6 +42,7 @@ type ImageBuildConfig struct {
 	ImageName    string
 	SemverLatest string
 	PushTo       string
+	DigestFile   string
 	DryRun       bool
 }
 
@@ -87,10 +89,16 @@ func (c *ImageBuildConfig) flags() []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name: "push-to",
-			Usage: "Repository prefix to push to, such as temporaliotest. If set, builds every --platform with" +
-				" docker buildx and pushes one multi-platform image per tag instead of loading it locally.",
+			Usage: "Repository prefix to push to, such as temporaliotest. If set, builds --platform with docker buildx" +
+				" and pushes the image by digest only, without tags, instead of loading it locally. Requires --digest-file.",
 			Required:    false,
 			Destination: &c.PushTo,
+		},
+		&cli.StringFlag{
+			Name:        "digest-file",
+			Usage:       "File to write the pushed image digest to; used with --push-to.",
+			Required:    false,
+			Destination: &c.DigestFile,
 		},
 		&cli.BoolFlag{
 			Name:        "dry-run",
@@ -254,33 +262,50 @@ func (i *ImageBuilder) dockerBuild(ctx context.Context, config buildConfig) erro
 		"--file",
 		fmt.Sprintf("dockerfiles/%s.Dockerfile", i.config.Lang),
 	}
-	if i.config.PushTo != "" {
-		// Only buildx can build several platforms into one image, and such an image cannot be loaded locally.
-		args = append([]string{"buildx"}, append(args, "--push")...)
-		imageName = fmt.Sprintf("%s/%s", i.config.PushTo, imageName)
-	}
 	if i.config.Platform != "" {
 		args = append(args, "--platform", i.config.Platform)
 	}
 
-	var imageTagsForPublish []string
-	for _, tag := range config.tags {
-		tagVal := fmt.Sprintf("%s:%s", imageName, tag)
-		if tag != "" {
-			args = append(args, "--tag", tagVal)
+	var metadataFile string
+	if i.config.PushTo != "" {
+		if i.config.DigestFile == "" {
+			return fmt.Errorf("--push-to requires --digest-file")
 		}
-		imageTagsForPublish = append(imageTagsForPublish, tagVal)
-	}
-	// Write the most specific tag, so that the tests can use it.
-	err = writeGitHubEnv("FEATURES_BUILT_IMAGE_TAG", imageTagsForPublish[0])
-	if err != nil {
-		return fmt.Errorf("writing test image tag to github env failed: %s", err)
-	}
-	// Write all the produced image tags to an env var so that the GH workflow can later use it
-	// to publish them, iff the tests passed.
-	err = writeGitHubEnv("FEATURES_BUILT_IMAGE_TAGS", strings.Join(imageTagsForPublish, ";"))
-	if err != nil {
-		return fmt.Errorf("writing image tags to github env failed: %s", err)
+		metadata, err := os.CreateTemp("", "features-build-metadata-*.json")
+		if err != nil {
+			return fmt.Errorf("creating build metadata file failed: %w", err)
+		}
+		metadataFile = metadata.Name()
+		if err := metadata.Close(); err != nil {
+			return fmt.Errorf("closing build metadata file failed: %w", err)
+		}
+		defer os.Remove(metadataFile)
+		// Each platform is pushed by digest; the publishing workflow joins the digests under the tags.
+		args = append([]string{"buildx"}, args...)
+		args = append(args,
+			"--output", fmt.Sprintf("type=image,name=%s/%s,push-by-digest=true,name-canonical=true,push=true",
+				i.config.PushTo, imageName),
+			"--metadata-file", metadataFile)
+	} else {
+		var imageTagsForPublish []string
+		for _, tag := range config.tags {
+			tagVal := fmt.Sprintf("%s:%s", imageName, tag)
+			if tag != "" {
+				args = append(args, "--tag", tagVal)
+			}
+			imageTagsForPublish = append(imageTagsForPublish, tagVal)
+		}
+		// Write the most specific tag, so that the tests can use it.
+		err = writeGitHubEnv("FEATURES_BUILT_IMAGE_TAG", imageTagsForPublish[0])
+		if err != nil {
+			return fmt.Errorf("writing test image tag to github env failed: %s", err)
+		}
+		// Write all the produced image tags to an env var so that the GH workflow can later use it
+		// to publish them, iff the tests passed.
+		err = writeGitHubEnv("FEATURES_BUILT_IMAGE_TAGS", strings.Join(imageTagsForPublish, ";"))
+		if err != nil {
+			return fmt.Errorf("writing image tags to github env failed: %s", err)
+		}
 	}
 
 	// TODO(bergundy): Would be nicer to print plain text instead of markdown but this good enough for now
@@ -327,7 +352,31 @@ func (i *ImageBuilder) dockerBuild(ctx context.Context, config buildConfig) erro
 	dockerBuild := exec.Command("docker", args...)
 	dockerBuild.Stdout = os.Stdout
 	dockerBuild.Stderr = os.Stderr
-	return dockerBuild.Run()
+	if err := dockerBuild.Run(); err != nil {
+		return err
+	}
+	if metadataFile == "" {
+		return nil
+	}
+	return writePushedDigest(metadataFile, i.config.DigestFile)
+}
+
+// writePushedDigest copies the pushed image digest from buildx's metadata file to digestFile.
+func writePushedDigest(metadataFile, digestFile string) error {
+	data, err := os.ReadFile(metadataFile)
+	if err != nil {
+		return fmt.Errorf("reading build metadata failed: %w", err)
+	}
+	var metadata struct {
+		Digest string `json:"containerimage.digest"`
+	}
+	if err := json.Unmarshal(data, &metadata); err != nil {
+		return fmt.Errorf("parsing build metadata failed: %w", err)
+	}
+	if metadata.Digest == "" {
+		return fmt.Errorf("build metadata has no image digest")
+	}
+	return os.WriteFile(digestFile, []byte(metadata.Digest+"\n"), 0o644)
 }
 
 // gitRef gets the current git HEAD's ref

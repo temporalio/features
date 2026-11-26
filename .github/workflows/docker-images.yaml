@@ -36,8 +36,16 @@ permissions:
 
 jobs:
   build-image:
-    name: Build ${{ inputs.lang }} docker image
-    runs-on: ubuntu-latest
+    name: Build ${{ inputs.lang }} docker image (${{ matrix.arch }})
+    # Each platform builds and tests natively; the publish job joins them under one tag.
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     env:
       TEMPORAL_CLOUD_ADDRESS: sdk-ci.a2dd6.tmprl.cloud:7233
       TEMPORAL_CLOUD_NAMESPACE: sdk-ci.a2dd6
@@ -90,7 +98,7 @@ jobs:
           if [ "$INPUT_SEMVER_LATEST" != "none" ]; then
             args+=(--semver-latest "$INPUT_SEMVER_LATEST")
           fi
-          # The push step rebuilds with the same arguments for every published platform.
+          # The push step rebuilds with the same arguments.
           printf '%s\n' "${args[@]}" > "$RUNNER_TEMP/build-image-args"
           go run . build-image "${args[@]}"
 
@@ -98,8 +106,8 @@ jobs:
         run: docker run --rm -i -v /tmp/temporal-certs:/certs "$FEATURES_BUILT_IMAGE_TAG"
 
       - name: Test with Cloud
-        # Only supported in non-fork runs
-        if: ${{ (github.event.pull_request.head.repo.full_name == '' || github.event.pull_request.head.repo.full_name == 'temporalio/features') && !inputs.skip-cloud }}
+        # Only supported in non-fork runs. One platform is enough to check the cloud connection.
+        if: ${{ matrix.arch == 'amd64' && (github.event.pull_request.head.repo.full_name == '' || github.event.pull_request.head.repo.full_name == 'temporalio/features') && !inputs.skip-cloud }}
         run: |
           max_attempts=3
           attempt=0
@@ -131,18 +139,65 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PAT }}
 
-      - name: Set up QEMU
-        if: inputs.do-push
-        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
-
       - name: Set up Docker Buildx
         if: inputs.do-push
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
-      - name: Push image to DockerHub
+      - name: Push image by digest
         if: inputs.do-push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ARCH: ${{ matrix.arch }}
         run: |
+          mkdir -p "$RUNNER_TEMP/image"
           mapfile -t args < "$RUNNER_TEMP/build-image-args"
-          go run . build-image "${args[@]}" --platform linux/amd64,linux/arm64 --push-to temporaliotest
+          go run . build-image "${args[@]}" --platform "linux/$ARCH" \
+            --push-to temporaliotest --digest-file "$RUNNER_TEMP/image/digest-$ARCH"
+          echo "$FEATURES_BUILT_IMAGE_TAGS" > "$RUNNER_TEMP/image/tags.txt"
+
+      - name: Upload image digest
+        if: inputs.do-push
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: features-image-${{ inputs.lang }}-${{ matrix.arch }}
+          path: ${{ runner.temp }}/image/
+          if-no-files-found: error
+          retention-days: 1
+
+  publish-image:
+    name: Publish ${{ inputs.lang }} docker image
+    needs: build-image
+    if: inputs.do-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download image digests
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: features-image-${{ inputs.lang }}-*
+          merge-multiple: true
+          path: ${{ runner.temp }}/image
+
+      - name: Login to DockerHub
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PAT }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Tag the multi-platform image
+        run: |
+          cd "$RUNNER_TEMP/image"
+          sources=()
+          for f in digest-*; do
+            sources+=("temporaliotest/features@$(cat "$f")")
+          done
+          if [ "${#sources[@]}" -ne 2 ]; then
+            echo "expected a digest for each of 2 platforms, got: ${sources[*]}"
+            exit 1
+          fi
+          IFS=';' read -ra tags < tags.txt
+          for tag in "${tags[@]}"; do
+            docker buildx imagetools create --tag "temporaliotest/$tag" "${sources[@]}"
+          done

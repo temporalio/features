@@ -76,6 +76,13 @@ jobs:
           TEMPORAL_CLIENT_CERT: ${{ secrets.TEMPORAL_CLIENT_CERT }}
           TEMPORAL_CLIENT_KEY: ${{ secrets.TEMPORAL_CLIENT_KEY }}
 
+      - name: Login to DockerHub
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4
+        if: inputs.do-push
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PAT }}
+
       - name: Set up Docker Buildx
         if: inputs.do-push
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
@@ -105,22 +112,26 @@ jobs:
             args+=(--semver-latest "$INPUT_SEMVER_LATEST")
           fi
           if [ "$DO_PUSH" = true ]; then
-            args+=(--image-archive "$RUNNER_TEMP/image.tar")
+            mkdir -p "$RUNNER_TEMP/image"
+            args+=(--push-to temporaliotest --digest-file "$RUNNER_TEMP/image/digest-$ARCH")
           fi
           go run . build-image "${args[@]}"
 
       - name: Resolve image to test
         env:
           DO_PUSH: ${{ inputs.do-push }}
+          ARCH: ${{ matrix.arch }}
         run: |
+          image="$FEATURES_BUILT_IMAGE_TAG"
           if [ "$DO_PUSH" = true ]; then
-            docker load --input "$RUNNER_TEMP/image.tar"
+            digest=$(cat "$RUNNER_TEMP/image/digest-$ARCH")
+            image="temporaliotest/${FEATURES_BUILT_IMAGE_TAG%%:*}@$digest"
+            echo "$FEATURES_BUILT_IMAGE_TAGS" > "$RUNNER_TEMP/image/tags.txt"
           fi
-          image_id=$(docker image inspect --format '{{.Id}}' "$FEATURES_BUILT_IMAGE_TAG")
-          echo "FEATURES_TEST_IMAGE_ID=$image_id" >> "$GITHUB_ENV"
+          echo "FEATURES_TEST_IMAGE=$image" >> "$GITHUB_ENV"
 
       - name: Test with Dev Server
-        run: docker run --rm -i -v /tmp/temporal-certs:/certs "$FEATURES_TEST_IMAGE_ID"
+        run: docker run --rm -i -v /tmp/temporal-certs:/certs "$FEATURES_TEST_IMAGE"
 
       - name: Test with Cloud
         # Only supported in non-fork runs. One platform is enough to check the cloud connection.
@@ -133,7 +144,7 @@ jobs:
             docker run --rm -i \
             -v /tmp/temporal-certs:/certs \
             --env TEMPORAL_FEATURES_DISABLE_WORKFLOW_COMPLETION_CHECK=true \
-            "$FEATURES_TEST_IMAGE_ID" \
+            "$FEATURES_TEST_IMAGE" \
             --server "$TEMPORAL_CLOUD_ADDRESS" \
             --namespace "$TEMPORAL_CLOUD_NAMESPACE" \
             --client-cert-path /certs/client.pem \
@@ -148,35 +159,6 @@ jobs:
             echo "Failed after $max_attempts attempts"
             exit 1
           fi
-
-      - name: Login to DockerHub
-        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4
-        if: inputs.do-push
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PAT }}
-
-      # Each platform is pushed by digest; the publishing job joins the digests under the tags.
-      - name: Push image by digest
-        if: inputs.do-push
-        env:
-          ARCH: ${{ matrix.arch }}
-        run: |
-          source="oci-archive:$RUNNER_TEMP/image.tar:${FEATURES_BUILT_IMAGE_TAG#*:}"
-          manifest="$RUNNER_TEMP/image-manifest.json"
-          skopeo inspect --raw "$source" > "$manifest"
-          digest=$(skopeo manifest-digest "$manifest")
-          config_digest=$(jq -er '.config.digest' "$manifest")
-          # The containerd image store reports the manifest digest; the classic store reports the config digest.
-          if [[ "$FEATURES_TEST_IMAGE_ID" != "$digest" && "$FEATURES_TEST_IMAGE_ID" != "$config_digest" ]]; then
-            echo "Tested image $FEATURES_TEST_IMAGE_ID does not match manifest $digest or config $config_digest" >&2
-            exit 1
-          fi
-          echo "Verified tested image $FEATURES_TEST_IMAGE_ID for manifest $digest"
-          mkdir -p "$RUNNER_TEMP/image"
-          skopeo copy --preserve-digests --digestfile "$RUNNER_TEMP/image/digest-$ARCH" \
-            "$source" "docker://docker.io/temporaliotest/${FEATURES_BUILT_IMAGE_TAG%%:*}@$digest"
-          echo "$FEATURES_BUILT_IMAGE_TAGS" > "$RUNNER_TEMP/image/tags.txt"
 
       - name: Upload image digest
         if: inputs.do-push

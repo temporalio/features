@@ -1,5 +1,4 @@
 # Build in a full featured container
-ARG TARGETARCH=${TARGETARCH:-amd64}
 FROM eclipse-temurin:23 as build
 
 # Install protobuf compiler & git (needed if building SDK, rather than pulling it as dep)

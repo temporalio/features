@@ -1,5 +1,4 @@
 # Build in a full featured container
-ARG TARGETARCH=${TARGETARCH:-amd64}
 FROM php:8.2-cli-bookworm as build
 
 # Install protobuf compiler

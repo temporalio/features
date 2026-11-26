@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -40,7 +41,8 @@ type ImageBuildConfig struct {
 	Platform     string
 	ImageName    string
 	SemverLatest string
-	ImageArchive string
+	PushTo       string
+	DigestFile   string
 	DryRun       bool
 }
 
@@ -86,9 +88,17 @@ func (c *ImageBuildConfig) flags() []cli.Flag {
 			Destination: &c.ImageName,
 		},
 		&cli.StringFlag{
-			Name:        "image-archive",
-			Usage:       "Export the image to a Docker-loadable OCI archive with Buildx",
-			Destination: &c.ImageArchive,
+			Name: "push-to",
+			Usage: "Repository prefix to push to, such as temporaliotest. If set, builds --platform with docker buildx" +
+				" and pushes the image by digest only, without tags, instead of loading it locally. Requires --digest-file.",
+			Required:    false,
+			Destination: &c.PushTo,
+		},
+		&cli.StringFlag{
+			Name:        "digest-file",
+			Usage:       "File to write the pushed image digest to; used with --push-to.",
+			Required:    false,
+			Destination: &c.DigestFile,
 		},
 		&cli.BoolFlag{
 			Name:        "dry-run",
@@ -256,17 +266,32 @@ func (i *ImageBuilder) dockerBuild(ctx context.Context, config buildConfig) erro
 		args = append(args, "--platform", i.config.Platform)
 	}
 
-	if i.config.ImageArchive != "" {
-		// The Docker exporter includes the OCI layout and the manifest needed by docker load.
+	var metadataFile string
+	if i.config.PushTo != "" {
+		if i.config.DigestFile == "" {
+			return fmt.Errorf("--push-to requires --digest-file")
+		}
+		metadata, err := os.CreateTemp("", "features-build-metadata-*.json")
+		if err != nil {
+			return fmt.Errorf("creating build metadata file failed: %w", err)
+		}
+		metadataFile = metadata.Name()
+		if err := metadata.Close(); err != nil {
+			return fmt.Errorf("closing build metadata file failed: %w", err)
+		}
+		defer os.Remove(metadataFile)
+		// Each platform is pushed by digest; the publishing workflow joins the digests under the tags.
 		args = append([]string{"buildx"}, args...)
-		args = append(args, "--provenance=false", "--output",
-			fmt.Sprintf("type=docker,oci-mediatypes=true,dest=%s", i.config.ImageArchive))
+		args = append(args,
+			"--output", fmt.Sprintf("type=image,name=%s/%s,push-by-digest=true,name-canonical=true,push=true",
+				i.config.PushTo, imageName),
+			"--metadata-file", metadataFile)
 	}
 
 	var imageTagsForPublish []string
 	for _, tag := range config.tags {
 		tagVal := fmt.Sprintf("%s:%s", imageName, tag)
-		if tag != "" {
+		if i.config.PushTo == "" && tag != "" {
 			args = append(args, "--tag", tagVal)
 		}
 		imageTagsForPublish = append(imageTagsForPublish, tagVal)
@@ -327,7 +352,31 @@ func (i *ImageBuilder) dockerBuild(ctx context.Context, config buildConfig) erro
 	dockerBuild := exec.Command("docker", args...)
 	dockerBuild.Stdout = os.Stdout
 	dockerBuild.Stderr = os.Stderr
-	return dockerBuild.Run()
+	if err := dockerBuild.Run(); err != nil {
+		return err
+	}
+	if metadataFile == "" {
+		return nil
+	}
+	return writePushedDigest(metadataFile, i.config.DigestFile)
+}
+
+// writePushedDigest copies the pushed image digest from buildx's metadata file to digestFile.
+func writePushedDigest(metadataFile, digestFile string) error {
+	data, err := os.ReadFile(metadataFile)
+	if err != nil {
+		return fmt.Errorf("reading build metadata failed: %w", err)
+	}
+	var metadata struct {
+		Digest string `json:"containerimage.digest"`
+	}
+	if err := json.Unmarshal(data, &metadata); err != nil {
+		return fmt.Errorf("parsing build metadata failed: %w", err)
+	}
+	if metadata.Digest == "" {
+		return fmt.Errorf("build metadata has no image digest")
+	}
+	return os.WriteFile(digestFile, []byte(metadata.Digest+"\n"), 0o644)
 }
 
 // gitRef gets the current git HEAD's ref

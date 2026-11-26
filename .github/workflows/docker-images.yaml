@@ -112,8 +112,7 @@ jobs:
             args+=(--semver-latest "$INPUT_SEMVER_LATEST")
           fi
           if [ "$DO_PUSH" = true ]; then
-            mkdir -p "$RUNNER_TEMP/image"
-            args+=(--push-to temporaliotest --digest-file "$RUNNER_TEMP/image/digest-$ARCH")
+            args+=(--push-to temporaliotest --metadata-file "$RUNNER_TEMP/image.json")
           fi
           go run . build-image "${args[@]}"
 
@@ -124,9 +123,12 @@ jobs:
         run: |
           image="$FEATURES_BUILT_IMAGE_TAG"
           if [ "$DO_PUSH" = true ]; then
-            digest=$(cat "$RUNNER_TEMP/image/digest-$ARCH")
+            jq -e --arg tags "$FEATURES_BUILT_IMAGE_TAGS" \
+              '{digest: ."containerimage.digest", tags: ($tags | split(";") | map("temporaliotest/" + .))}
+               | select(.digest | test("^sha256:[0-9a-f]{64}$"))' \
+              "$RUNNER_TEMP/image.json" > "$RUNNER_TEMP/image-$ARCH.json"
+            digest=$(jq -er '.digest' "$RUNNER_TEMP/image-$ARCH.json")
             image="temporaliotest/${FEATURES_BUILT_IMAGE_TAG%%:*}@$digest"
-            echo "$FEATURES_BUILT_IMAGE_TAGS" > "$RUNNER_TEMP/image/tags.txt"
           fi
           echo "FEATURES_TEST_IMAGE=$image" >> "$GITHUB_ENV"
 
@@ -160,12 +162,12 @@ jobs:
             exit 1
           fi
 
-      - name: Upload image digest
+      - name: Upload image metadata
         if: inputs.do-push
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: features-image-${{ inputs.lang }}-${{ matrix.arch }}
-          path: ${{ runner.temp }}/image/
+          path: ${{ runner.temp }}/image-${{ matrix.arch }}.json
           if-no-files-found: error
           retention-days: 7
 
@@ -175,12 +177,7 @@ jobs:
     if: inputs.do-push
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
-        with:
-          go-version-file: go.mod
-
-      - name: Download image digests
+      - name: Download image metadata
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: features-image-${{ inputs.lang }}-*
@@ -198,5 +195,36 @@ jobs:
 
       - name: Tag the multi-platform image
         env:
-          PLATFORMS: ${{ join(fromJSON(inputs.platforms), ',') }}
-        run: go run . push-images --digests-dir "$RUNNER_TEMP/image" --repo-prefix temporaliotest --platforms "$PLATFORMS"
+          PLATFORMS: ${{ inputs.platforms }}
+        run: |
+          cd "$RUNNER_TEMP/image"
+          expected_files=$(jq -ce '
+            select(type == "array" and length > 0
+              and all(.[]; . == "amd64" or . == "arm64")
+              and (unique | length) == length)
+            | map("image-" + . + ".json") | sort' <<< "$PLATFORMS")
+          shopt -s nullglob
+          files=(*)
+          actual_files=$(printf '%s\n' "${files[@]}" | jq -Rsc 'split("\n")[:-1] | sort')
+          if [ "$actual_files" != "$expected_files" ]; then
+            echo "Expected image metadata files $expected_files, found $actual_files" >&2
+            exit 1
+          fi
+          jq -es '
+            all(.[]; (.digest | type == "string" and test("^sha256:[0-9a-f]{64}$"))
+              and (.tags | type == "array" and length > 0
+                and all(.[]; type == "string" and test("^temporaliotest/features:[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}$"))))
+            and ([.[].digest] | unique | length) == length
+            and (.[0].tags as $tags | all(.[]; .tags == $tags))' "${files[@]}"
+          tag_lines=$(jq -er '.tags[]' "${files[0]}")
+          mapfile -t tags <<< "$tag_lines"
+          tag_args=()
+          for tag in "${tags[@]}"; do
+            tag_args+=(--tag "$tag")
+          done
+          images=()
+          for file in "${files[@]}"; do
+            digest=$(jq -er '.digest' "$file")
+            images+=("temporaliotest/features@$digest")
+          done
+          docker buildx imagetools create "${tag_args[@]}" "${images[@]}"

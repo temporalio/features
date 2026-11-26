@@ -170,6 +170,11 @@ jobs:
     if: inputs.do-push
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
+        with:
+          go-version-file: go.mod
+
       - name: Download image digests
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -187,17 +192,4 @@ jobs:
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: Tag the multi-platform image
-        run: |
-          cd "$RUNNER_TEMP/image"
-          sources=()
-          for f in digest-*; do
-            sources+=("temporaliotest/features@$(cat "$f")")
-          done
-          if [ "${#sources[@]}" -ne 2 ]; then
-            echo "expected a digest for each of 2 platforms, got: ${sources[*]}"
-            exit 1
-          fi
-          IFS=';' read -ra tags < tags.txt
-          for tag in "${tags[@]}"; do
-            docker buildx imagetools create --tag "temporaliotest/$tag" "${sources[@]}"
-          done
+        run: go run . push-images --digests-dir "$RUNNER_TEMP/image" --repo-prefix temporaliotest --platforms amd64,arm64

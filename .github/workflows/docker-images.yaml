@@ -93,7 +93,7 @@ jobs:
         if: inputs.do-push
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
-      # This step will set the FEATURES_BUILT_IMAGE_TAG env key
+      # This step will set the FEATURES_BUILT_IMAGE_TAGS env key
       - name: Build docker image
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -128,7 +128,7 @@ jobs:
           DO_PUSH: ${{ inputs.do-push }}
           ARCH: ${{ matrix.arch }}
         run: |
-          image="$FEATURES_BUILT_IMAGE_TAG"
+          image="${FEATURES_BUILT_IMAGE_TAGS%%;*}"
           if [ "$DO_PUSH" = true ]; then
             digest=$(
               jq -er '
@@ -147,7 +147,7 @@ jobs:
               '
             )
             echo "$ARCH=$metadata" >> "$GITHUB_OUTPUT"
-            image="$REPO_PREFIX/${FEATURES_BUILT_IMAGE_TAG%%:*}@$digest"
+            image="$REPO_PREFIX/${image%%:*}@$digest"
           fi
           echo "FEATURES_TEST_IMAGE=$image" >> "$GITHUB_ENV"
 
@@ -208,19 +208,16 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PAT }}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
-
       - name: Publish image tags
         env:
           IMAGE_METADATA: ${{ steps.metadata.outputs.images }}
         run: |
-          tag_lines=$(jq -er '.[0].tags[]' <<< "$IMAGE_METADATA")
-          mapfile -t tags <<< "$tag_lines"
-          tag_args=()
-          for tag in "${tags[@]}"; do
-            tag_args+=(--tag "$REPO_PREFIX/$tag")
-          done
+          tag_args_lines=$(
+            jq -er --arg prefix "$REPO_PREFIX" '
+              .[0].tags[] | ("--tag", "\($prefix)/\(.)")
+            ' <<< "$IMAGE_METADATA"
+          )
+          mapfile -t tag_args <<< "$tag_args_lines"
           digest_lines=$(jq -er '.[].digest' <<< "$IMAGE_METADATA")
           mapfile -t digests <<< "$digest_lines"
           # Buildx resolves bare digests against the common repository of the destination tags.

@@ -1,4 +1,5 @@
 # Build in a full featured container
+ARG TARGETARCH=${TARGETARCH:-amd64}
 FROM ruby:4.0-bookworm as build
 
 # Install protobuf compiler

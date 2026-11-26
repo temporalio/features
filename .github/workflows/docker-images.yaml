@@ -6,6 +6,10 @@ on:
         description: SDK language to build the container for
         required: true
         type: string
+      platforms:
+        description: Comma-separated architectures (amd64 and/or arm64, without spaces)
+        type: string
+        default: amd64,arm64
       sdk-repo-ref:
         description: Git ref of SDK repo to use to build (overrides "sdk-version")
         required: false
@@ -40,12 +44,10 @@ jobs:
     # Each platform builds and tests natively; the publish job joins them under one tag.
     strategy:
       matrix:
-        include:
-          - arch: amd64
-            runner: ubuntu-latest
-          - arch: arm64
-            runner: ubuntu-24.04-arm
-    runs-on: ${{ matrix.runner }}
+        arch: >-
+          ${{ fromJSON('{"amd64":["amd64"],"arm64":["arm64"],
+          "amd64,arm64":["amd64","arm64"],"arm64,amd64":["arm64","amd64"]}')[inputs.platforms] }}
+    runs-on: ${{ fromJSON('{"amd64":"ubuntu-latest","arm64":"ubuntu-24.04-arm"}')[matrix.arch] }}
     env:
       TEMPORAL_CLOUD_ADDRESS: sdk-ci.a2dd6.tmprl.cloud:7233
       TEMPORAL_CLOUD_NAMESPACE: sdk-ci.a2dd6
@@ -76,6 +78,10 @@ jobs:
           TEMPORAL_CLIENT_CERT: ${{ secrets.TEMPORAL_CLIENT_CERT }}
           TEMPORAL_CLIENT_KEY: ${{ secrets.TEMPORAL_CLIENT_KEY }}
 
+      - name: Set up Docker Buildx
+        if: inputs.do-push
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
       # This step will set the FEATURES_BUILT_IMAGE_TAG env key
       - name: Build docker image
         env:
@@ -85,8 +91,10 @@ jobs:
           INPUT_SDK_REPO_URL: ${{ inputs.sdk-repo-url }}
           INPUT_SDK_VERSION: ${{ inputs.sdk-version }}
           INPUT_SEMVER_LATEST: ${{ inputs.semver-latest }}
+          DO_PUSH: ${{ inputs.do-push }}
+          ARCH: ${{ matrix.arch }}
         run: |
-          args=(--lang "$INPUT_LANG")
+          args=(--lang "$INPUT_LANG" --platform "linux/$ARCH")
           if [ -n "$INPUT_SDK_REPO_REF" ]; then
             args+=(--repo-ref "$INPUT_SDK_REPO_REF")
             if [ -n "$INPUT_SDK_REPO_URL" ]; then
@@ -98,12 +106,23 @@ jobs:
           if [ "$INPUT_SEMVER_LATEST" != "none" ]; then
             args+=(--semver-latest "$INPUT_SEMVER_LATEST")
           fi
-          # The push step rebuilds with the same arguments.
-          printf '%s\n' "${args[@]}" > "$RUNNER_TEMP/build-image-args"
+          if [ "$DO_PUSH" = true ]; then
+            args+=(--image-archive "$RUNNER_TEMP/image.tar")
+          fi
           go run . build-image "${args[@]}"
 
+      - name: Resolve image to test
+        env:
+          DO_PUSH: ${{ inputs.do-push }}
+        run: |
+          if [ "$DO_PUSH" = true ]; then
+            docker load --input "$RUNNER_TEMP/image.tar"
+          fi
+          image_id=$(docker image inspect --format '{{.Id}}' "$FEATURES_BUILT_IMAGE_TAG")
+          echo "FEATURES_TEST_IMAGE_ID=$image_id" >> "$GITHUB_ENV"
+
       - name: Test with Dev Server
-        run: docker run --rm -i -v /tmp/temporal-certs:/certs "$FEATURES_BUILT_IMAGE_TAG"
+        run: docker run --rm -i -v /tmp/temporal-certs:/certs "$FEATURES_TEST_IMAGE_ID"
 
       - name: Test with Cloud
         # Only supported in non-fork runs. One platform is enough to check the cloud connection.
@@ -116,7 +135,7 @@ jobs:
             docker run --rm -i \
             -v /tmp/temporal-certs:/certs \
             --env TEMPORAL_FEATURES_DISABLE_WORKFLOW_COMPLETION_CHECK=true \
-            "$FEATURES_BUILT_IMAGE_TAG" \
+            "$FEATURES_TEST_IMAGE_ID" \
             --server "$TEMPORAL_CLOUD_ADDRESS" \
             --namespace "$TEMPORAL_CLOUD_NAMESPACE" \
             --client-cert-path /certs/client.pem \
@@ -139,20 +158,26 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PAT }}
 
-      - name: Set up Docker Buildx
-        if: inputs.do-push
-        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
-
+      # Each platform is pushed by digest; the publishing job joins the digests under the tags.
       - name: Push image by digest
         if: inputs.do-push
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ARCH: ${{ matrix.arch }}
         run: |
+          source="oci-archive:$RUNNER_TEMP/image.tar:${FEATURES_BUILT_IMAGE_TAG#*:}"
+          manifest="$RUNNER_TEMP/image-manifest.json"
+          skopeo inspect --raw "$source" > "$manifest"
+          digest=$(skopeo manifest-digest "$manifest")
+          config_digest=$(jq -er '.config.digest' "$manifest")
+          # The containerd image store reports the manifest digest; the classic store reports the config digest.
+          if [[ "$FEATURES_TEST_IMAGE_ID" != "$digest" && "$FEATURES_TEST_IMAGE_ID" != "$config_digest" ]]; then
+            echo "Tested image $FEATURES_TEST_IMAGE_ID does not match manifest $digest or config $config_digest" >&2
+            exit 1
+          fi
+          echo "Verified tested image $FEATURES_TEST_IMAGE_ID for manifest $digest"
           mkdir -p "$RUNNER_TEMP/image"
-          mapfile -t args < "$RUNNER_TEMP/build-image-args"
-          go run . build-image "${args[@]}" --platform "linux/$ARCH" \
-            --push-to temporaliotest --digest-file "$RUNNER_TEMP/image/digest-$ARCH"
+          skopeo copy --preserve-digests --digestfile "$RUNNER_TEMP/image/digest-$ARCH" \
+            "$source" "docker://docker.io/temporaliotest/${FEATURES_BUILT_IMAGE_TAG%%:*}@$digest"
           echo "$FEATURES_BUILT_IMAGE_TAGS" > "$RUNNER_TEMP/image/tags.txt"
 
       - name: Upload image digest
@@ -162,7 +187,7 @@ jobs:
           name: features-image-${{ inputs.lang }}-${{ matrix.arch }}
           path: ${{ runner.temp }}/image/
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 7
 
   publish-image:
     name: Publish ${{ inputs.lang }} docker image
@@ -192,4 +217,6 @@ jobs:
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: Tag the multi-platform image
-        run: go run . push-images --digests-dir "$RUNNER_TEMP/image" --repo-prefix temporaliotest --platforms amd64,arm64
+        env:
+          PLATFORMS: ${{ inputs.platforms }}
+        run: go run . push-images --digests-dir "$RUNNER_TEMP/image" --repo-prefix temporaliotest --platforms "$PLATFORMS"

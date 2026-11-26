@@ -1,4 +1,5 @@
 # Build in a full featured container
+ARG TARGETARCH=${TARGETARCH:-amd64}
 FROM node:22-bookworm AS build
 
 RUN apt-get update \

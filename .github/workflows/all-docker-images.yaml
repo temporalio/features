@@ -145,6 +145,8 @@ jobs:
     secrets: inherit
     with:
       lang: php
+      # The spiralscout/php-grpc:8.2 runtime image only supports amd64.
+      platforms: amd64
       sdk-version: ${{ inputs.php-ver }}
       semver-latest: major
       do-push: ${{ inputs.do-push }}

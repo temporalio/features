@@ -1,4 +1,5 @@
 # Build in a full featured container
+ARG TARGETARCH=${TARGETARCH:-amd64}
 FROM mcr.microsoft.com/dotnet/sdk:8.0-jammy as build
 
 # Install protobuf compiler and build tools

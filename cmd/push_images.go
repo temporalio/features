@@ -86,6 +86,7 @@ func publishImages(config PublishImageConfig, runDocker func(...string) error) e
 	}
 	var digestFiles, digests []string
 	digestPattern := regexp.MustCompile(`^sha256:[a-fA-F0-9]{64}$`)
+	digestSources := make(map[string]string)
 	for _, entry := range entries {
 		if !strings.HasPrefix(entry.Name(), "digest-") {
 			continue
@@ -98,6 +99,11 @@ func publishImages(config PublishImageConfig, runDocker func(...string) error) e
 		if !digestPattern.MatchString(digest) {
 			return fmt.Errorf("invalid digest in %s: expected sha256 followed by 64 hex digits", entry.Name())
 		}
+		digest = strings.ToLower(digest)
+		if previous, exists := digestSources[digest]; exists {
+			return fmt.Errorf("duplicate digest %s in %s and %s", digest, previous, entry.Name())
+		}
+		digestSources[digest] = entry.Name()
 		digestFiles = append(digestFiles, entry.Name())
 		digests = append(digests, digest)
 	}

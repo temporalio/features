@@ -1,4 +1,5 @@
 # Build in a full featured container
+ARG TARGETARCH=${TARGETARCH:-amd64}
 FROM python:3.11-bookworm as build
 
 # Install protobuf compiler

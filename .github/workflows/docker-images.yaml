@@ -130,12 +130,25 @@ jobs:
         run: |
           image="$FEATURES_BUILT_IMAGE_TAG"
           if [ "$DO_PUSH" = true ]; then
-            metadata=$(jq -ce --arg tags "$FEATURES_BUILT_IMAGE_TAGS" \
-              --arg sdk_revision "${FEATURES_BUILT_SDK_REVISION:-}" \
-              '{digest: ."containerimage.digest", tags: ($tags | split(";")), sdk_revision: $sdk_revision}
-               | select(.digest | test("^sha256:[0-9a-f]{64}$"))' "$RUNNER_TEMP/image.json")
+            digest=$(
+              jq -er '
+                ."containerimage.digest"
+                | select(test("^sha256:[0-9a-f]{64}$"))
+              ' "$RUNNER_TEMP/image.json"
+            )
+            metadata=$(
+              jq -cn \
+                --arg digest "$digest" \
+                --arg tags "$FEATURES_BUILT_IMAGE_TAGS" \
+                --arg sdk_revision "${FEATURES_BUILT_SDK_REVISION:-}" '
+                {
+                  digest: $digest,
+                  tags: ($tags | split(";")),
+                  sdk_revision: $sdk_revision
+                }
+              '
+            )
             echo "$ARCH=$metadata" >> "$GITHUB_OUTPUT"
-            digest=$(jq -er '.digest' <<< "$metadata")
             image="$REPO_PREFIX/${FEATURES_BUILT_IMAGE_TAG%%:*}@$digest"
           fi
           echo "FEATURES_TEST_IMAGE=$image" >> "$GITHUB_ENV"
@@ -184,14 +197,19 @@ jobs:
           SDK_REPO_REF: ${{ inputs.sdk-repo-ref }}
         run: |
           # GitHub wraps each architecture's JSON metadata in a string.
-          metadata=$(jq -ce --argjson platforms "$PLATFORMS" --arg repo_ref "$SDK_REPO_REF" '
-            [$platforms[] as $arch | .[$arch] | fromjson]
-            | .[0] as $first
-            # Matching tags and resolved commits prevent a moving SDK ref from mixing builds.
-            | select(($first.tags | type == "array" and length > 0)
+          metadata=$(
+            jq -ce --argjson platforms "$PLATFORMS" '
+              [$platforms[] as $arch | .[$arch] | fromjson]
+            ' <<< "$IMAGE_OUTPUTS"
+          )
+          # Matching tags and resolved commits prevent a moving SDK ref from mixing builds.
+          jq -e --arg repo_ref "$SDK_REPO_REF" '
+            .[0] as $first
+            | ($first.tags | type == "array" and length > 0)
               and all(.[]; .tags == $first.tags and .sdk_revision == $first.sdk_revision)
               and ($repo_ref == "" or ($first.sdk_revision | type == "string" and length > 0))
-              and ([.[].digest] | unique | length) == length)' <<< "$IMAGE_OUTPUTS")
+              and ([.[].digest] | unique | length) == length
+          ' <<< "$metadata" > /dev/null
           echo "images=$metadata" >> "$GITHUB_OUTPUT"
 
       - name: Login to DockerHub

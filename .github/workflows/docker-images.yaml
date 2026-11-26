@@ -176,16 +176,8 @@ jobs:
     if: inputs.do-push
     runs-on: ubuntu-latest
     steps:
-      - name: Login to DockerHub
-        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PAT }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
-
-      - name: Tag the multi-platform image
+      - name: Validate image metadata
+        id: metadata
         env:
           PLATFORMS: ${{ inputs.platforms }}
           IMAGE_OUTPUTS: ${{ toJSON(needs.build-image.outputs) }}
@@ -200,13 +192,28 @@ jobs:
               and all(.[]; .tags == $first.tags and .sdk_revision == $first.sdk_revision)
               and ($repo_ref == "" or ($first.sdk_revision | type == "string" and length > 0))
               and ([.[].digest] | unique | length) == length)' <<< "$IMAGE_OUTPUTS")
-          tag_lines=$(jq -er '.[0].tags[]' <<< "$metadata")
+          echo "images=$metadata" >> "$GITHUB_OUTPUT"
+
+      - name: Login to DockerHub
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PAT }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Publish image tags
+        env:
+          IMAGE_METADATA: ${{ steps.metadata.outputs.images }}
+        run: |
+          tag_lines=$(jq -er '.[0].tags[]' <<< "$IMAGE_METADATA")
           mapfile -t tags <<< "$tag_lines"
           tag_args=()
           for tag in "${tags[@]}"; do
             tag_args+=(--tag "$REPO_PREFIX/$tag")
           done
-          digest_lines=$(jq -er '.[].digest' <<< "$metadata")
+          digest_lines=$(jq -er '.[].digest' <<< "$IMAGE_METADATA")
           mapfile -t digests <<< "$digest_lines"
           # Buildx resolves bare digests against the common repository of the destination tags.
           docker buildx imagetools create "${tag_args[@]}" "${digests[@]}"

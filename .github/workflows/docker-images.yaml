@@ -7,9 +7,9 @@ on:
         required: true
         type: string
       platforms:
-        description: Comma-separated architectures (amd64 and/or arm64, without spaces)
+        description: Architectures to build and publish, as a JSON list
         type: string
-        default: amd64,arm64
+        default: '["amd64","arm64"]'
       sdk-repo-ref:
         description: Git ref of SDK repo to use to build (overrides "sdk-version")
         required: false
@@ -44,10 +44,8 @@ jobs:
     # Each platform builds and tests natively; the publish job joins them under one tag.
     strategy:
       matrix:
-        arch: >-
-          ${{ fromJSON('{"amd64":["amd64"],"arm64":["arm64"],
-          "amd64,arm64":["amd64","arm64"],"arm64,amd64":["arm64","amd64"]}')[inputs.platforms] }}
-    runs-on: ${{ fromJSON('{"amd64":"ubuntu-latest","arm64":"ubuntu-24.04-arm"}')[matrix.arch] }}
+        arch: ${{ fromJSON(inputs.platforms) }}
+    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     env:
       TEMPORAL_CLOUD_ADDRESS: sdk-ci.a2dd6.tmprl.cloud:7233
       TEMPORAL_CLOUD_NAMESPACE: sdk-ci.a2dd6
@@ -218,5 +216,5 @@ jobs:
 
       - name: Tag the multi-platform image
         env:
-          PLATFORMS: ${{ inputs.platforms }}
+          PLATFORMS: ${{ join(fromJSON(inputs.platforms), ',') }}
         run: go run . push-images --digests-dir "$RUNNER_TEMP/image" --repo-prefix temporaliotest --platforms "$PLATFORMS"

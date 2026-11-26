@@ -8,7 +8,6 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strings"
 	"time"
 
@@ -41,6 +40,7 @@ type ImageBuildConfig struct {
 	Platform     string
 	ImageName    string
 	SemverLatest string
+	PushTo       string
 	DryRun       bool
 }
 
@@ -84,6 +84,13 @@ func (c *ImageBuildConfig) flags() []cli.Flag {
 			Required:    false,
 			DefaultText: DEFAULT_IMAGE_NAME,
 			Destination: &c.ImageName,
+		},
+		&cli.StringFlag{
+			Name: "push-to",
+			Usage: "Repository prefix to push to, such as temporaliotest. If set, builds every --platform with" +
+				" docker buildx and pushes one multi-platform image per tag instead of loading it locally.",
+			Required:    false,
+			Destination: &c.PushTo,
 		},
 		&cli.BoolFlag{
 			Name:        "dry-run",
@@ -247,13 +254,15 @@ func (i *ImageBuilder) dockerBuild(ctx context.Context, config buildConfig) erro
 		"--file",
 		fmt.Sprintf("dockerfiles/%s.Dockerfile", i.config.Lang),
 	}
-	platform := runtime.GOARCH
+	if i.config.PushTo != "" {
+		// Only buildx can build several platforms into one image, and such an image cannot be loaded locally.
+		args = append([]string{"buildx"}, append(args, "--push")...)
+		imageName = fmt.Sprintf("%s/%s", i.config.PushTo, imageName)
+	}
 	if i.config.Platform != "" {
-		platform = i.config.Platform
-		args = append(args, "--platform", platform)
+		args = append(args, "--platform", i.config.Platform)
 	}
 
-	args = append(args, "--build-arg", fmt.Sprintf("PLATFORM=%s", platform))
 	var imageTagsForPublish []string
 	for _, tag := range config.tags {
 		tagVal := fmt.Sprintf("%s:%s", imageName, tag)

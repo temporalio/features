@@ -7,9 +7,9 @@ RUN apt-get update \
     apt-get install --no-install-recommends --assume-yes \
       protobuf-compiler=3.21.12* git=1:2.43.0*
 
-ARG PLATFORM=amd64
-RUN wget -q https://go.dev/dl/go1.21.11.linux-${PLATFORM}.tar.gz \
-    && tar -C /usr/local -xzf go1.21.11.linux-${PLATFORM}.tar.gz
+ARG TARGETARCH
+RUN wget -q https://go.dev/dl/go1.21.11.linux-${TARGETARCH}.tar.gz \
+    && tar -C /usr/local -xzf go1.21.11.linux-${TARGETARCH}.tar.gz
 
 WORKDIR /app
 

@@ -14,9 +14,9 @@ RUN wget -q -O - https://sh.rustup.rs | sh -s -- -y
 ENV PATH="$PATH:/root/.cargo/bin"
 
 # Get go compiler
-ARG PLATFORM=amd64
-RUN wget -q https://go.dev/dl/go1.22.5.linux-${PLATFORM}.tar.gz \
-    && tar -C /usr/local -xzf go1.22.5.linux-${PLATFORM}.tar.gz
+ARG TARGETARCH
+RUN wget -q https://go.dev/dl/go1.22.5.linux-${TARGETARCH}.tar.gz \
+    && tar -C /usr/local -xzf go1.22.5.linux-${TARGETARCH}.tar.gz
 
 WORKDIR /app
 

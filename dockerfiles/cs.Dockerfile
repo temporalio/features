@@ -8,9 +8,9 @@ RUN apt-get update \
       protobuf-compiler=3.12.4* libprotobuf-dev=3.12.4* build-essential=12.*
 
 # Get go compiler
-ARG PLATFORM=amd64
-RUN wget -q https://go.dev/dl/go1.21.11.linux-${PLATFORM}.tar.gz \
-    && tar -C /usr/local -xzf go1.21.11.linux-${PLATFORM}.tar.gz
+ARG TARGETARCH
+RUN wget -q https://go.dev/dl/go1.21.11.linux-${TARGETARCH}.tar.gz \
+    && tar -C /usr/local -xzf go1.21.11.linux-${TARGETARCH}.tar.gz
 
 # Install Rust for compiling the core bridge - only required for installation from a repo but is cheap enough to install
 # in the "build" container (-y is for non-interactive install)

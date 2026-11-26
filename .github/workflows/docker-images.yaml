@@ -90,6 +90,8 @@ jobs:
           if [ "$INPUT_SEMVER_LATEST" != "none" ]; then
             args+=(--semver-latest "$INPUT_SEMVER_LATEST")
           fi
+          # The push step rebuilds with the same arguments for every published platform.
+          printf '%s\n' "${args[@]}" > "$RUNNER_TEMP/build-image-args"
           go run . build-image "${args[@]}"
 
       - name: Test with Dev Server
@@ -129,6 +131,18 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PAT }}
 
+      - name: Set up QEMU
+        if: inputs.do-push
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+
+      - name: Set up Docker Buildx
+        if: inputs.do-push
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
       - name: Push image to DockerHub
         if: inputs.do-push
-        run: go run . push-images
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mapfile -t args < "$RUNNER_TEMP/build-image-args"
+          go run . build-image "${args[@]}" --platform linux/amd64,linux/arm64 --push-to temporaliotest

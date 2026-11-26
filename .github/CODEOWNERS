@@ -1,1 +1,4 @@
 *  @temporalio/server @temporalio/sdk
+features/nexus/  @temporalio/nexus
+features/features.go  @temporalio/server @temporalio/sdk @temporalio/nexus
+harness/java/io/temporal/sdkfeatures/PreparedFeature.java  @temporalio/server @temporalio/sdk @temporalio/nexus

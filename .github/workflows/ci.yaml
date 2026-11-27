@@ -153,15 +153,21 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
 
-      - run: npm ci
       - name: Update Temporal SDK to latest
-        run: >
-          npm update
-          @temporalio/activity @temporalio/client @temporalio/common
-          @temporalio/external-storage-gcs @temporalio/external-storage-gcs-google-sdk
-          @temporalio/external-storage-s3 @temporalio/external-storage-s3-aws-sdk
-          @temporalio/plugin @temporalio/proto @temporalio/worker @temporalio/workflow
-          nexus-rpc
+        shell: bash
+        run: |
+          sdk_range=$(node -p 'require("./package.json").dependencies["@temporalio/common"]')
+          sdk_version=$(npm view "@temporalio/common@$sdk_range" version --json |
+            jq -er 'if type == "array" then max_by(split(".") | map(tonumber)) else . end')
+          sdk_packages=$(node -p '
+            Object.keys(require("./package.json").dependencies)
+              .filter(name => name.startsWith("@temporalio/")).join(" ")
+          ')
+          read -r -a sdk_packages <<< "$sdk_packages"
+          # Resolve existing SDK peer dependencies before pinning every SDK package together.
+          npm update --package-lock-only --ignore-scripts "${sdk_packages[@]}" nexus-rpc
+          npm install --package-lock-only --ignore-scripts --save-exact "${sdk_packages[@]/%/@$sdk_version}"
+      - run: npm ci
       - run: npm run build
       - run: npm run lint
 

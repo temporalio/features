@@ -18,7 +18,12 @@ func latestSdkVersionCmd() *cli.Command {
 		Usage: "get the latest SDK version from the package registry",
 		Flags: config.flags(),
 		Action: func(ctx *cli.Context) error {
-			return getLatestSdkVersion(config)
+			version, err := fetchLatestSdkVersion(config.Lang)
+			if err != nil {
+				return err
+			}
+			fmt.Println(version)
+			return nil
 		},
 	}
 }
@@ -164,44 +169,42 @@ var registryQueries = map[string]registryQuery{
 	},
 }
 
-func getLatestSdkVersion(config LatestSdkVersionConfig) error {
-	lang, err := expandLangName(config.Lang)
+func fetchLatestSdkVersion(language string) (string, error) {
+	lang, err := expandLangName(language)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	query, ok := registryQueries[lang]
 	if !ok {
-		return fmt.Errorf("no package registry configured for language %q", lang)
+		return "", fmt.Errorf("no package registry configured for language %q", lang)
 	}
 
 	req, err := http.NewRequest(http.MethodGet, query.url, nil)
 	if err != nil {
-		return err
+		return "", err
 	}
 	// crates.io's API policy requires an identifying User-Agent for automated clients.
 	req.Header.Set("User-Agent", "temporal-sdk-features (https://github.com/temporalio/features)")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to query package registry: %w", err)
+		return "", fmt.Errorf("failed to query package registry: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("package registry returned status %d for %s", resp.StatusCode, query.url)
+		return "", fmt.Errorf("package registry returned status %d for %s", resp.StatusCode, query.url)
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf("failed to read response body: %w", err)
+		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 
 	version, err := query.extract(body)
 	if err != nil {
-		return fmt.Errorf("failed to extract version from response: %w", err)
+		return "", fmt.Errorf("failed to extract version from response: %w", err)
 	}
 
-	fmt.Println(strings.TrimPrefix(version, "v"))
-
-	return nil
+	return strings.TrimPrefix(version, "v"), nil
 }

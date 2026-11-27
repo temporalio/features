@@ -25,7 +25,7 @@ features.sln
 # Build stuff
 bin
 obj
-/harness/rust/target/
+target/
 
 # VS Code config
 .vscode

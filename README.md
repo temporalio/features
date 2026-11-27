@@ -43,9 +43,10 @@ Command:
 Note, `go run .` can be used in place of `go build` + `temporal-features` to save on the build step.
 
 `LANG` can be `go`, `java`, `ts`, `php`, `py`, `cs`, `rb`, or `rs` (`rust` is an alias).
-`VERSION` is per SDK. If omitted, dependency selection follows that language's repository
-configuration and package manager: Rust uses its checked-in default Cargo package and lockfile,
-while unconstrained Ruby/Python SDK dependencies resolve to the latest available release.
+`VERSION` is per SDK. If omitted, TypeScript/Ruby/Python SDK
+dependencies resolve to the latest available release. Other languages follow their
+repository configuration and package manager; Rust uses its checked-in default
+Cargo package and lockfile.
 
 `VERSION` may also be a path to a local checkout of the matching SDK repository. This is useful for sanity checking a
 feature against unreleased SDK changes before cutting a release:

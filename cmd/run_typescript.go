@@ -2,9 +2,7 @@ package cmd
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -18,20 +16,11 @@ import (
 func (p *Preparer) BuildTypeScriptProgram(ctx context.Context) (sdkbuild.Program, error) {
 	p.log.Info("Building TypeScript project", "DirName", p.config.DirName)
 
-	// Get version from package.json if not present
-	version := p.config.Version
-	if version == "" {
-		verStruct := struct {
-			Dependencies map[string]string `json:"dependencies"`
-		}{}
-		if b, err := os.ReadFile(filepath.Join(p.rootDir, "package.json")); err != nil {
-			return nil, fmt.Errorf("failed reading package.json: %w", err)
-		} else if err := json.Unmarshal(b, &verStruct); err != nil {
-			return nil, fmt.Errorf("failed read top level package.json: %w", err)
-		} else if version = verStruct.Dependencies["@temporalio/client"]; version == "" {
-			return nil, fmt.Errorf("version not found in package.json")
-		}
+	version, err := p.typeScriptVersion()
+	if err != nil {
+		return nil, fmt.Errorf("failed selecting TypeScript SDK version: %w", err)
 	}
+	p.log.Info("Selected TypeScript SDK", "Version", version)
 
 	var dependencies map[string]string
 	var excludes []string
@@ -78,6 +67,15 @@ func (p *Preparer) BuildTypeScriptProgram(ctx context.Context) (sdkbuild.Program
 		return nil, fmt.Errorf("failed preparing: %w", err)
 	}
 	return prog, nil
+}
+
+func (p *Preparer) typeScriptVersion() (string, error) {
+	if p.config.Version != "" {
+		return p.config.Version, nil
+	}
+	// Resolve once so every SDK package uses the same exact release, independent
+	// of the reproducible repository build's package.json pins.
+	return fetchLatestSdkVersion("typescript")
 }
 
 // RunTypeScriptExternal runs the TS harness in an external process. This expects the

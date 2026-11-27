@@ -23,6 +23,7 @@ public class PreparedFeature {
           data_converter.json.feature.Impl.class,
           data_converter.json_protobuf.feature.Impl.class,
           eager_activity.non_remote_activities_worker.feature.Impl.class,
+          external_storage.s3_interop.feature.Impl.class,
           nexus.async_cancellation.feature.Impl.class,
           nexus.async_cancellation_abandon.feature.Impl.class,
           nexus.async_cancellation_try_cancel.feature.Impl.class,

@@ -8,14 +8,14 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strings"
 	"time"
 
 	"github.com/temporalio/features/harness/go/harness"
 	"github.com/urfave/cli/v2"
-	"go.temporal.io/sdk/log"
 	"golang.org/x/mod/semver"
+
+	"go.temporal.io/sdk/log"
 )
 
 func buildImageCmd() *cli.Command {
@@ -41,6 +41,8 @@ type ImageBuildConfig struct {
 	Platform     string
 	ImageName    string
 	SemverLatest string
+	PushTo       string
+	MetadataFile string
 	DryRun       bool
 }
 
@@ -84,6 +86,19 @@ func (c *ImageBuildConfig) flags() []cli.Flag {
 			Required:    false,
 			DefaultText: DEFAULT_IMAGE_NAME,
 			Destination: &c.ImageName,
+		},
+		&cli.StringFlag{
+			Name: "push-to",
+			Usage: "Repository prefix to push to, such as temporaliotest. If set, builds --platform with docker buildx" +
+				" and pushes the image by digest only, without tags, instead of loading it locally. Requires --metadata-file.",
+			Required:    false,
+			Destination: &c.PushTo,
+		},
+		&cli.StringFlag{
+			Name:        "metadata-file",
+			Usage:       "File to write Buildx metadata to; used with --push-to.",
+			Required:    false,
+			Destination: &c.MetadataFile,
 		},
 		&cli.BoolFlag{
 			Name:        "dry-run",
@@ -247,26 +262,31 @@ func (i *ImageBuilder) dockerBuild(ctx context.Context, config buildConfig) erro
 		"--file",
 		fmt.Sprintf("dockerfiles/%s.Dockerfile", i.config.Lang),
 	}
-	platform := runtime.GOARCH
 	if i.config.Platform != "" {
-		platform = i.config.Platform
-		args = append(args, "--platform", platform)
+		args = append(args, "--platform", i.config.Platform)
 	}
 
-	args = append(args, "--build-arg", fmt.Sprintf("PLATFORM=%s", platform))
+	if i.config.PushTo != "" {
+		if i.config.MetadataFile == "" {
+			return fmt.Errorf("--push-to requires --metadata-file")
+		}
+		// Each platform is pushed by digest; the publishing workflow joins the digests under the tags.
+		args = append([]string{"buildx"}, args...)
+		args = append(args,
+			"--output", fmt.Sprintf("type=image,name=%s/%s,push-by-digest=true,name-canonical=true,push=true",
+				i.config.PushTo, imageName),
+			"--metadata-file", i.config.MetadataFile)
+	}
+
 	var imageTagsForPublish []string
 	for _, tag := range config.tags {
 		tagVal := fmt.Sprintf("%s:%s", imageName, tag)
-		if tag != "" {
+		if i.config.PushTo == "" && tag != "" {
 			args = append(args, "--tag", tagVal)
 		}
 		imageTagsForPublish = append(imageTagsForPublish, tagVal)
 	}
-	// Write the most specific tag, so that the tests can use it.
-	err = writeGitHubEnv("FEATURES_BUILT_IMAGE_TAG", imageTagsForPublish[0])
-	if err != nil {
-		return fmt.Errorf("writing test image tag to github env failed: %s", err)
-	}
+	// Keep the most specific tag first, so that the tests can use it.
 	// Write all the produced image tags to an env var so that the GH workflow can later use it
 	// to publish them, iff the tests passed.
 	err = writeGitHubEnv("FEATURES_BUILT_IMAGE_TAGS", strings.Join(imageTagsForPublish, ";"))

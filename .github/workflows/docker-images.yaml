@@ -6,6 +6,10 @@ on:
         description: SDK language to build the container for
         required: true
         type: string
+      platforms:
+        description: Architectures to build and publish (amd64 or arm64), as a JSON list
+        type: string
+        default: '["amd64","arm64"]'
       sdk-repo-ref:
         description: Git ref of SDK repo to use to build (overrides "sdk-version")
         required: false
@@ -34,10 +38,20 @@ on:
 permissions:
   contents: read
 
+env:
+  REPO_PREFIX: temporaliotest
+
 jobs:
   build-image:
-    name: Build ${{ inputs.lang }} docker image
-    runs-on: ubuntu-latest
+    name: Build ${{ inputs.lang }} docker image (${{ matrix.arch }})
+    # Each platform builds and tests natively; the publish job joins them under one tag.
+    strategy:
+      matrix:
+        arch: ${{ fromJSON(inputs.platforms) }}
+    outputs:
+      amd64: ${{ steps.image.outputs.amd64 }}
+      arm64: ${{ steps.image.outputs.arm64 }}
+    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     env:
       TEMPORAL_CLOUD_ADDRESS: sdk-ci.a2dd6.tmprl.cloud:7233
       TEMPORAL_CLOUD_NAMESPACE: sdk-ci.a2dd6
@@ -68,7 +82,18 @@ jobs:
           TEMPORAL_CLIENT_CERT: ${{ secrets.TEMPORAL_CLIENT_CERT }}
           TEMPORAL_CLIENT_KEY: ${{ secrets.TEMPORAL_CLIENT_KEY }}
 
-      # This step will set the FEATURES_BUILT_IMAGE_TAG env key
+      - name: Login to DockerHub
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4
+        if: inputs.do-push
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PAT }}
+
+      - name: Set up Docker Buildx
+        if: inputs.do-push
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      # This step will set the FEATURES_BUILT_IMAGE_TAGS env key
       - name: Build docker image
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -77,8 +102,10 @@ jobs:
           INPUT_SDK_REPO_URL: ${{ inputs.sdk-repo-url }}
           INPUT_SDK_VERSION: ${{ inputs.sdk-version }}
           INPUT_SEMVER_LATEST: ${{ inputs.semver-latest }}
+          DO_PUSH: ${{ inputs.do-push }}
+          ARCH: ${{ matrix.arch }}
         run: |
-          args=(--lang "$INPUT_LANG")
+          args=(--lang "$INPUT_LANG" --platform "linux/$ARCH")
           if [ -n "$INPUT_SDK_REPO_REF" ]; then
             args+=(--repo-ref "$INPUT_SDK_REPO_REF")
             if [ -n "$INPUT_SDK_REPO_URL" ]; then
@@ -90,14 +117,46 @@ jobs:
           if [ "$INPUT_SEMVER_LATEST" != "none" ]; then
             args+=(--semver-latest "$INPUT_SEMVER_LATEST")
           fi
+          if [ "$DO_PUSH" = true ]; then
+            args+=(--push-to "$REPO_PREFIX" --metadata-file "$RUNNER_TEMP/image.json")
+          fi
           go run . build-image "${args[@]}"
 
+      - name: Resolve image to test
+        id: image
+        env:
+          DO_PUSH: ${{ inputs.do-push }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          image="${FEATURES_BUILT_IMAGE_TAGS%%;*}"
+          if [ "$DO_PUSH" = true ]; then
+            digest=$(
+              jq -er '
+                ."containerimage.digest"
+                | select(test("^sha256:[0-9a-f]{64}$"))
+              ' "$RUNNER_TEMP/image.json"
+            )
+            metadata=$(
+              jq -cn \
+                --arg digest "$digest" \
+                --arg tags "$FEATURES_BUILT_IMAGE_TAGS" '
+                {
+                  digest: $digest,
+                  tags: ($tags | split(";"))
+                }
+              '
+            )
+            echo "$ARCH=$metadata" >> "$GITHUB_OUTPUT"
+            image="$REPO_PREFIX/${image%%:*}@$digest"
+          fi
+          echo "FEATURES_TEST_IMAGE=$image" >> "$GITHUB_ENV"
+
       - name: Test with Dev Server
-        run: docker run --rm -i -v /tmp/temporal-certs:/certs "$FEATURES_BUILT_IMAGE_TAG"
+        run: docker run --rm -i -v /tmp/temporal-certs:/certs "$FEATURES_TEST_IMAGE"
 
       - name: Test with Cloud
-        # Only supported in non-fork runs
-        if: ${{ (github.event.pull_request.head.repo.full_name == '' || github.event.pull_request.head.repo.full_name == 'temporalio/features') && !inputs.skip-cloud }}
+        # Only supported in non-fork runs. One platform is enough to check the cloud connection.
+        if: ${{ matrix.arch == 'amd64' && (github.event.pull_request.head.repo.full_name == '' || github.event.pull_request.head.repo.full_name == 'temporalio/features') && !inputs.skip-cloud }}
         run: |
           max_attempts=3
           attempt=0
@@ -106,7 +165,7 @@ jobs:
             docker run --rm -i \
             -v /tmp/temporal-certs:/certs \
             --env TEMPORAL_FEATURES_DISABLE_WORKFLOW_COMPLETION_CHECK=true \
-            "$FEATURES_BUILT_IMAGE_TAG" \
+            "$FEATURES_TEST_IMAGE" \
             --server "$TEMPORAL_CLOUD_ADDRESS" \
             --namespace "$TEMPORAL_CLOUD_NAMESPACE" \
             --client-cert-path /certs/client.pem \
@@ -122,13 +181,44 @@ jobs:
             exit 1
           fi
 
+  publish-image:
+    name: Publish ${{ inputs.lang }} docker image
+    needs: build-image
+    if: inputs.do-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate image metadata
+        id: metadata
+        env:
+          PLATFORMS: ${{ inputs.platforms }}
+          IMAGE_OUTPUTS: ${{ toJSON(needs.build-image.outputs) }}
+        run: |
+          # GitHub wraps each architecture's JSON metadata in a string.
+          metadata=$(
+            jq -ce --argjson platforms "$PLATFORMS" '
+              [$platforms[] as $arch | .[$arch] | fromjson]
+            ' <<< "$IMAGE_OUTPUTS"
+          )
+          jq -e '.[0].tags | type == "array" and length > 0' <<< "$metadata" > /dev/null
+          echo "images=$metadata" >> "$GITHUB_OUTPUT"
+
       - name: Login to DockerHub
         uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4
-        if: inputs.do-push
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PAT }}
 
-      - name: Push image to DockerHub
-        if: inputs.do-push
-        run: go run . push-images
+      - name: Publish image tags
+        env:
+          IMAGE_METADATA: ${{ steps.metadata.outputs.images }}
+        run: |
+          tag_args_lines=$(
+            jq -er --arg prefix "$REPO_PREFIX" '
+              .[0].tags[] | ("--tag", "\($prefix)/\(.)")
+            ' <<< "$IMAGE_METADATA"
+          )
+          mapfile -t tag_args <<< "$tag_args_lines"
+          digest_lines=$(jq -er '.[].digest' <<< "$IMAGE_METADATA")
+          mapfile -t digests <<< "$digest_lines"
+          # Buildx resolves bare digests against the common repository of the destination tags.
+          docker buildx imagetools create "${tag_args[@]}" "${digests[@]}"

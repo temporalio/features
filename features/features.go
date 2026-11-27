@@ -89,6 +89,7 @@ import (
 	update_client_interceptor "github.com/temporalio/features/features/update/client_interceptor"
 	update_deduplication "github.com/temporalio/features/features/update/deduplication"
 	update_non_durable_reject "github.com/temporalio/features/features/update/non_durable_reject"
+	update_rejected_update_worker_restart "github.com/temporalio/features/features/update/rejected_update_worker_restart"
 	update_self "github.com/temporalio/features/features/update/self"
 	update_task_failure "github.com/temporalio/features/features/update/task_failure"
 	update_validation_replay "github.com/temporalio/features/features/update/validation_replay"
@@ -188,6 +189,7 @@ func init() {
 		update_deduplication.Feature,
 		update_client_interceptor.Feature,
 		update_non_durable_reject.Feature,
+		update_rejected_update_worker_restart.Feature,
 		update_self.Feature,
 		update_task_failure.Feature,
 		update_validation_replay.Feature,

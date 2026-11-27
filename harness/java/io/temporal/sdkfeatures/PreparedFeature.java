@@ -75,6 +75,7 @@ public class PreparedFeature {
           update.deduplication.feature.Impl.class,
           update.client_interceptor.feature.Impl.class,
           update.non_durable_reject.feature.Impl.class,
+          update.rejected_update_worker_restart.feature.Impl.class,
           update.task_failure.feature.Impl.class,
           update.worker_restart.feature.Impl.class,
           update.validation_replay.feature.Impl.class,
